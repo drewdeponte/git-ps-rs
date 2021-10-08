@@ -1,3 +1,10 @@
+// This is the `ls` module. It is responsible for exposing a public interface
+// making it easy for the CLI to execute the ls subcommand. This generally
+// means there is one public function. In this case the `ls()` function. All
+// other functions in here are purely private supporting functions and should
+// be strongly considered if they fit better in one of the other modules such
+// as the `ps::ps`, `ps::git`, or `ps::utils`.
+
 use git2;
 use std::fs::File;
 use std::io::prelude::*;

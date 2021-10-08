@@ -1,3 +1,9 @@
+// This is the `test` module. It is an internal module that is only loaded
+// for test compilations. It is resposible for housing any custom helper
+// functionality use to make writing tests easier. This will most likely
+// consist of functions to help with test setup or functions to assert with
+// common types of assertions.
+
 use tempfile::TempDir;
 use git2::{Repository, RepositoryInitOptions};
 

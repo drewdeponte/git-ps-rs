@@ -1,3 +1,15 @@
+// This is the the main application module. In module namespacing it is the
+// `crate` module. It is generally responsible for housing the main() entry
+// point. In our case we have the main entry point responsible for the
+// following:
+//
+// - declaring the CLI options interface & help messaging
+// - parsing the CLI options into a data structure (ApplicationArguments)
+// - map CLI options data structure to subcommand calls & arguments
+//
+// So any code that fits the above responsibilities should live within this
+// module.
+
 use structopt::StructOpt;
 
 pub mod ps;

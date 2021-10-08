@@ -60,10 +60,18 @@ respective completion statuses.
 
 ## Development
 
-### Application Architecture
 
-The following is a breakdown of the module hierarchy and what each of the
-module's repsonsabilities are.
+### Modules
+
+Below are outlined two different views of the module hierarchy of this app. The
+hope is that with the combination of these two views you will understand the
+architecture of the application and where things live/should live to ease the
+process of getting acclimated to a new code base.
+
+#### Filesystem Hierarchy
+
+The following is a breakdown of the filesystem hierarchy and what each of the
+module's is responsible for.
 
 * `src`
 	* `main` - command line parsing & sub command handoff
@@ -80,6 +88,47 @@ module's repsonsabilities are.
 			* `pub` - pub subcommand & supporting functionality
 			* `show` - show subcommand & supporting functionality
 			* `co` - co subcommand & supporting functionality
+
+#### Module Hierarchy
+
+We can also look at the module hierarchy from a dependency standpoint. Below we
+can see that the main entry point for the command line tool depends on a module
+called `ps`. You can think of the `ps` module as Patch Stack library that the
+mobile app uses to execute the various Patch Stack subcommands. We can also
+see that the various subcommands depend on a module named `ps::ps`. This is
+a lower level module supporting the functionality of the subcommands by
+providing an API at a conceptual level of the Patch Stack internals. We can
+further see that there are two more modules, `ps::utils` & `ps::git` that
+support the `ps::ps` module's functionality.
+
+```
+              +--------+
+              |  main  |
+              +--------+
+                   |
+                   v
+              +--------+
+              |   ps   |
+              +--------+
+                   |
+                   v
++-------------------------------------+
+|    subcommand (ps::commands::ls,    |
+|      ps::commands::pull, etc.)      |
++-------------------------------------+
+                   |
+                   v
+             +-----------+
+             |  ps::ps   |
+             +-----------+
+                   |
+           +-------+------+
+           |              |
+           v              v
+     +-----------+  +----------+
+     | ps::utils |  | ps::git  |
+     +-----------+  +----------+
+```
 
 ### Build
 
