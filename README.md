@@ -37,7 +37,7 @@ of Swift plus more.
   This implementation gives us an opportunity to make sure we have test
   coverage from the get go.
 - **community support** - with the stable implementations code base being a
-  mess, it is hard form people to easily contribute to it.
+  mess, it is hard for people to easily contribute to it.
 
 ## Status
 
