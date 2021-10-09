@@ -2,5 +2,7 @@
 // the other subcommand modules. This module has two responsibility, loading
 // it's respective subcommand modules and exposing them externally. All code
 // related to these responsibilities belongs here.
+
 pub mod ls;
 pub mod rebase;
+pub mod pull;
