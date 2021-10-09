@@ -52,7 +52,7 @@ respective completion statuses.
 
 * `ls` - functional (missing status info, needs cleanup & tests)
 * `rebase` - functional (needs some cleanup & tests)
-* `pull` - not started
+* `pull` - functional (needs cleanup & tests)
 * `rr` - not started
 * `pub` - not started
 * `show` - not started

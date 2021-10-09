@@ -25,6 +25,8 @@ pub enum Command {
     List,
     #[structopt(name = "rebase")]
     Rebase,
+    #[structopt(name = "pull")]
+    Pull,
     // Show(Show)
 }
 
@@ -42,5 +44,6 @@ fn main() {
     match opt.command {
         Command::List => ps::commands::ls::ls(),
         Command::Rebase => ps::commands::rebase::rebase(),
+        Command::Pull => ps::commands::pull::pull()
     };
 }
