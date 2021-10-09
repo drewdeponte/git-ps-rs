@@ -50,7 +50,7 @@ to it being feature complete.
 The following is a breakdown of the planned commands and their
 respective completion statuses.
 
-* `ls` - under active development
+* `ls` - functional (missing status info, needs cleanup & tests)
 * `rebase` - functional (needs some cleanup & tests)
 * `pull` - not started
 * `rr` - not started

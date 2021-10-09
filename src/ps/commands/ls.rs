@@ -6,13 +6,13 @@
 // as the `ps::ps`, `ps::git`, or `ps::utils`.
 
 use git2;
-use std::fs::File;
-use std::io::prelude::*;
-use std::path::Path;
 use uuid::Uuid;
 use serde::{Serialize, Deserialize};
-use serde_json;
 use super::super::git;
+// use std::fs::File;
+// use std::io::prelude::*;
+// use std::path::Path;
+// use serde_json;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct RequestReviewRecord {
@@ -71,28 +71,28 @@ pub fn get_patch_list(repo: &git2::Repository, patch_stack: PatchStack) -> Vec<L
 }
 
 pub fn ls() {
-    let repo = match git2::Repository::discover("/Users/adeponte/code/uptech/git-ps") {
+    let repo = match git2::Repository::discover("./") {
         Ok(repo) => repo,
         Err(e) => panic!("failed to open: {}", e),
     };
 
-    let path_str = format!("{}{}", repo.path().to_str().unwrap(), "patch-stack-review-requests.json");
-    let path = Path::new(&path_str);
-    let display = path.display();
+    // let path_str = format!("{}{}", repo.path().to_str().unwrap(), "patch-stack-review-requests.json");
+    // let path = Path::new(&path_str);
+    // let display = path.display();
 
-    let mut file = match File::open(&path) {
-        Err(why) => panic!("couldn't open {}: {}", display, why),
-        Ok(file) => file,
-    };
+    // let mut file = match File::open(&path) {
+    //     Err(why) => panic!("couldn't open {}: {}", display, why),
+    //     Ok(file) => file,
+    // };
 
-    let mut s = String::new();
-    match file.read_to_string(&mut s) {
-        Err(why) => panic!("couldn't read {}: {}", display, why),
-        Ok(_) => print!("{} contains:\n{}", display, s),
-    }
+    // let mut s = String::new();
+    // match file.read_to_string(&mut s) {
+    //     Err(why) => panic!("couldn't read {}: {}", display, why),
+    //     Ok(_) => print!("{} contains:\n{}", display, s),
+    // }
 
-    let rr_records: Vec<RequestReviewRecord> = serde_json::from_str(s.as_str()).unwrap();
-    println!("deserialized = {:?}", rr_records);
+    // let rr_records: Vec<RequestReviewRecord> = serde_json::from_str(s.as_str()).unwrap();
+    // println!("deserialized = {:?}", rr_records);
 
     let patch_stack = get_patch_stack(&repo).unwrap();
     let list_of_patches = get_patch_list(&repo, patch_stack);
