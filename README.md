@@ -51,7 +51,7 @@ The following is a breakdown of the planned commands and their
 respective completion statuses.
 
 * `ls` - under active development
-* `rebase` - not started
+* `rebase` - functional (needs some cleanup & tests)
 * `pull` - not started
 * `rr` - not started
 * `pub` - not started

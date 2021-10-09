@@ -3,3 +3,4 @@
 // it's respective subcommand modules and exposing them externally. All code
 // related to these responsibilities belongs here.
 pub mod ls;
+pub mod rebase;

@@ -23,6 +23,8 @@ pub mod ps;
 pub enum Command {
     #[structopt(name = "ls")]
     List,
+    #[structopt(name = "rebase")]
+    Rebase,
     // Show(Show)
 }
 
@@ -38,7 +40,7 @@ fn main() {
     // println!("{:?}", opt);
 
     match opt.command {
-        Command::List => ps::commands::ls::ls()
+        Command::List => ps::commands::ls::ls(),
+        Command::Rebase => ps::commands::rebase::rebase(),
     };
-
 }
