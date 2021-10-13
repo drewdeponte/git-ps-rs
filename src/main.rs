@@ -19,6 +19,14 @@ pub mod ps;
 //     pub patch_index: u32
 // }
 
+
+#[derive(Debug, StructOpt)]
+pub struct RequestReview {
+    pub patch_index: usize,
+    #[structopt(short = "n")]
+    pub branch_name: Option<String>
+}
+
 #[derive(Debug, StructOpt)]
 pub enum Command {
     #[structopt(name = "ls")]
@@ -27,6 +35,8 @@ pub enum Command {
     Rebase,
     #[structopt(name = "pull")]
     Pull,
+    #[structopt(name = "rr")]
+    RequestReview(RequestReview),
     // Show(Show)
 }
 
@@ -44,6 +54,7 @@ fn main() {
     match opt.command {
         Command::List => ps::commands::ls::ls(),
         Command::Rebase => ps::commands::rebase::rebase(),
-        Command::Pull => ps::commands::pull::pull()
+        Command::Pull => ps::commands::pull::pull(),
+        Command::RequestReview(opts) => ps::commands::rr::rr(opts.patch_index),
     };
 }
