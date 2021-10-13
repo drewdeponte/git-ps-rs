@@ -21,24 +21,43 @@
 // constrained to the conceptual level of git and isn't aware of any Patch
 // Stack specific concepts.
 //
+// This explicitly intended to NOT wrap libgit2. Instead it is designed to
+// extend the functionality of libgit2. This means that it's functions will
+// consume libgit2 types as well as potentially return libgit2 types.
+//
 // All code fitting that description belongs here.
 
+use git2;
+
 #[derive(Debug)]
-pub enum GetSummaryError {
-    GitError(git2::Error),
-    NotFound
+pub enum GitError {
+  GitError(git2::Error),
+  NotFound
 }
 
-impl From<git2::Error> for GetSummaryError {
+impl From<git2::Error> for GitError {
     fn from(e: git2::Error) -> Self {
         Self::GitError(e)
     }
 }
 
+/// Attempt to open an already-existing repository at or above current working
+/// directory
+pub fn create_cwd_repo() -> Result<git2::Repository, GitError> {
+    let repo = git2::Repository::discover("./")?;
+    Ok(repo)
+}
+
 /// Get Commit Summary given a repository & oid
-pub fn get_summary(repo: &git2::Repository, oid: &git2::Oid) -> Result<String, GetSummaryError>{
+pub fn get_summary(repo: &git2::Repository, oid: &git2::Oid) -> Result<String, GitError>{
     Ok(String::from(repo.find_commit(*oid)?
-                        .summary().ok_or(GetSummaryError::NotFound)?))
+                        .summary().ok_or(GitError::NotFound)?))
+}
+
+/// Attempt to get uptream branch name given local branch name
+pub fn branch_upstream_name(repo: &git2::Repository, branch_name: &str) -> Result<String, GitError> {
+  let upstream_branch_name_buf = repo.branch_upstream_name(branch_name)?;
+  Ok(String::from(upstream_branch_name_buf.as_str().ok_or(GitError::NotFound)?))
 }
 
 #[cfg(test)]

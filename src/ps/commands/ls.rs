@@ -71,10 +71,7 @@ pub fn get_patch_list(repo: &git2::Repository, patch_stack: PatchStack) -> Vec<L
 }
 
 pub fn ls() {
-    let repo = match git2::Repository::discover("./") {
-        Ok(repo) => repo,
-        Err(e) => panic!("failed to open: {}", e),
-    };
+    let repo = git::create_cwd_repo().unwrap();
 
     // let path_str = format!("{}{}", repo.path().to_str().unwrap(), "patch-stack-review-requests.json");
     // let path = Path::new(&path_str);
