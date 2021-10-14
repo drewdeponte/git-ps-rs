@@ -4,6 +4,7 @@ version: 2.1
 
 jobs:
   build:
+    resource_class: small
     docker:
       - image: cimg/rust:1.55.0
     steps:
