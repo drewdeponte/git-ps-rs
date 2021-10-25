@@ -60,15 +60,41 @@ pub fn branch_upstream_name(repo: &git2::Repository, branch_name: &str) -> Resul
   Ok(String::from(upstream_branch_name_buf.as_str().ok_or(GitError::NotFound)?))
 }
 
+/// Attempt to get revs given a repo, start Oid (excluded), and end Oid (included)
+pub fn get_revs<'a>(repo: &'a git2::Repository, start: git2::Oid, end: git2::Oid) -> Result<git2::Revwalk<'a>, GitError> {
+    let mut rev_walk = repo.revwalk()?;
+    rev_walk.push(end)?;
+    rev_walk.hide(start)?;
+    rev_walk.set_sorting(git2::Sort::REVERSE)?;
+    Ok(rev_walk)
+}
+
 #[cfg(test)]
 mod tests {
     #[test]
-    fn get_summary() {
+    fn smoke_get_summary() {
         let (_td, repo) = crate::ps::test::repo_init();
         let head_id = repo.refname_to_id("HEAD").unwrap();
 
         let res = super::get_summary(&repo, &head_id);
         assert!(res.is_ok());
         assert_eq!(res.unwrap(), "initial");
+    }
+
+    #[test]
+    fn smoke_get_revs() {
+        let (_td, repo) = crate::ps::test::repo_init();
+
+        let start_oid_excluded = crate::ps::test::create_commit(&repo, "fileA.txt", &[0, 1, 2, 3], "starting numbers");
+        crate::ps::test::create_commit(&repo, "fileB.txt", &[4, 5, 6, 7], "four, five, six, and seven");
+        let end_oid_included = crate::ps::test::create_commit(&repo, "fileC.txt", &[8, 9, 10, 11], "eight, nine, ten, and eleven");
+        crate::ps::test::create_commit(&repo, "fileD.txt", &[12, 13, 14, 15], "twelve, thirteen, forteen, fifteen");
+
+        let rev_walk = super::get_revs(&repo, start_oid_excluded, end_oid_included).unwrap();
+        let summaries: Vec<String> = rev_walk.map(|oid| repo.find_commit(oid.unwrap()).unwrap().summary().unwrap().to_string()).collect();
+        assert_eq!(summaries.len(), 2);
+
+        assert_eq!(summaries.first().unwrap(), "four, five, six, and seven");
+        assert_eq!(summaries.last().unwrap(), "eight, nine, ten, and eleven");
     }
 }
