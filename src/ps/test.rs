@@ -27,3 +27,32 @@ pub fn repo_init() -> (TempDir, Repository) {
     (td, repo)
 }
 
+pub fn create_commit(repo: &git2::Repository, path: &str, data: &[u8], message: &str) -> git2::Oid {
+  // To implement this I was losely following
+  // https://stackoverflow.com/questions/15711444/how-to-commit-to-a-git-repository-using-libgit2
+  let sig = git2::Signature::now("Bob Villa", "bob@example.com").unwrap();
+
+  // create the blob record for storing the content
+  let blob_oid = repo.blob(data).unwrap();
+  // repo.find_blob(blob_oid).unwrap();
+
+  // create the tree record
+  let mut treebuilder = repo.treebuilder(Option::None).unwrap();
+  let file_mode: i32 = i32::from(git2::FileMode::Blob);
+  treebuilder.insert(path, blob_oid, file_mode).unwrap();
+  let tree_oid = treebuilder.write().unwrap();
+
+  // lookup the tree entity
+  let tree = repo.find_tree(tree_oid).unwrap();
+
+  // TODO: need to figure out some way to get the parent commit as a
+  // git2::Commit object to hand
+  // into the repo.commit call. I am guessing that is why I am getting
+  // the following error
+  // "failed to create commit: current tip is not the first parent"
+  let parent_oid = repo.head().unwrap().target().unwrap();
+  let parent_commit = repo.find_commit(parent_oid).unwrap();
+
+  // create the actual commit packaging the blob, tree entry, etc.
+  repo.commit(Option::Some("HEAD"), &sig, &sig, message, &tree, &[&parent_commit]).unwrap()
+}
