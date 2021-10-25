@@ -17,8 +17,8 @@ pub fn repo_init() -> (TempDir, Repository) {
         config.set_str("user.name", "name").unwrap();
         config.set_str("user.email", "email").unwrap();
         let mut index = repo.index().unwrap();
-        let id = index.write_tree().unwrap();
 
+        let id = index.write_tree().unwrap();
         let tree = repo.find_tree(id).unwrap();
         let sig = repo.signature().unwrap();
         repo.commit(Some("HEAD"), &sig, &sig, "initial", &tree, &[])
