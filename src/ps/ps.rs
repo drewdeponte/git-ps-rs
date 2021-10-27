@@ -6,3 +6,53 @@
 // will be consumed by each of the subcommand specific modules.
 //
 // All code fitting that description belongs here.
+
+use git2;
+use super::git;
+
+pub struct PatchStack<'a> {
+    pub head: git2::Reference<'a>,
+    pub base: git2::Reference<'a>
+}
+
+#[derive(Debug)]
+pub enum PatchStackError {
+    GitError(git2::Error),
+    HeadNoName,
+    UpstreamBranchNameNotFound
+}
+
+impl From<git2::Error> for PatchStackError {
+    fn from(e: git2::Error) -> Self {
+        Self::GitError(e)
+    }
+}
+
+pub fn get_patch_stack<'a>(repo: &'a git2::Repository) -> Result<PatchStack<'a>, PatchStackError> {
+    let head_ref = repo.head()?;
+    let upstream_branch_name_buf = head_ref.name().ok_or(PatchStackError::HeadNoName)
+        .and_then(|head_branch_name| repo.branch_upstream_name(head_branch_name).map_err(PatchStackError::GitError))?;
+    let upstream_branch_name = upstream_branch_name_buf.as_str().ok_or(PatchStackError::UpstreamBranchNameNotFound)?;
+    let base_ref = repo.find_reference(upstream_branch_name).map_err(PatchStackError::GitError)?;
+
+    Ok(PatchStack { head: head_ref, base: base_ref })
+}
+
+pub struct ListPatch {
+    pub index: usize,
+    pub summary: String,
+    pub oid: git2::Oid
+}
+
+pub fn get_patch_list(repo: &git2::Repository, patch_stack: PatchStack) -> Vec<ListPatch> {
+    let mut rev_walk = repo.revwalk().unwrap();
+    rev_walk.push(patch_stack.head.target().unwrap()).unwrap();
+    rev_walk.hide(patch_stack.base.target().unwrap()).unwrap();
+    rev_walk.set_sorting(git2::Sort::REVERSE).unwrap();
+
+    let list_of_patches: Vec<ListPatch> = rev_walk.enumerate().map(|(i, rev)| {
+        let r = rev.unwrap();
+        ListPatch { index: i, summary: git::get_summary(&repo, &r).unwrap(), oid: r }
+    }).collect();
+    return list_of_patches;
+}
