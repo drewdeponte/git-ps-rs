@@ -94,9 +94,9 @@ module's is responsible for.
 We can also look at the module hierarchy from a dependency standpoint. Below we
 can see that the main entry point for the command line tool depends on a module
 called `ps`. You can think of the `ps` module as Patch Stack library that the
-mobile app uses to execute the various Patch Stack subcommands. We can also
-see that the various subcommands depend on a module named `ps::ps`. This is
-a lower level module supporting the functionality of the subcommands by
+command line app uses to execute the various Patch Stack subcommands. We can
+also see that the various subcommands depend on a module named `ps::ps`. This
+is a lower level module supporting the functionality of the subcommands by
 providing an API at a conceptual level of the Patch Stack internals. We can
 further see that there are two more modules, `ps::utils` & `ps::git` that
 support the `ps::ps` module's functionality.
