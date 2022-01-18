@@ -15,11 +15,18 @@ pub fn rr(patch_index: usize) {
 
   let patch_stack = ps::get_patch_stack(&repo).unwrap();
   let patches_vec = ps::get_patch_list(&repo, patch_stack);
-  println!("patch: {}", patches_vec.get(patch_index).unwrap().oid);
+  let patch_oid = patches_vec.get(patch_index).unwrap().oid;
+  println!("patch: {}", patch_oid);
 
+  let patch_commit = repo.find_commit(patch_oid).unwrap();
+  let patch_message = patch_commit.message().unwrap();
+  println!("patch message: {}", patch_message);
 
-  // Ok(String::from(repo.find_commit(*oid)?
-  //                     .summary().ok_or(GitError::NotFound)?))
+  if let Some(ps_id) = ps::extract_ps_id(patch_message) {
+    println!("patch-stack-id: {}", ps_id);
+  } else {
+    // add patch stack id to the commit
+  }
 
   // - get patch given the patch index
   //    - have a map of patch index to patches
