@@ -5,6 +5,8 @@
 // be strongly considered if they fit better in one of the other modules such
 // as the `ps::ps`, `ps::git`, or `ps::utils`.
 
+use crate::ps::ps::slugify;
+
 use super::super::git;
 use super::super::ps;
 
@@ -14,12 +16,20 @@ pub fn rr(patch_index: usize) {
   let repo = git::create_cwd_repo().unwrap();
 
   let patch_stack = ps::get_patch_stack(&repo).unwrap();
+  let patch_stack_start = patch_stack.head.target().unwrap();
+  let patch_stack_end = patch_stack.base.target().unwrap();
+
+  let patch_stack_base_commit = patch_stack.base.peel_to_commit().unwrap();
+  println!("base-patch-summary: {}", patch_stack_base_commit.summary().unwrap());
+
   let patches_vec = ps::get_patch_list(&repo, patch_stack);
   let patch_oid = patches_vec.get(patch_index).unwrap().oid;
   println!("patch: {}", patch_oid);
 
   let patch_commit = repo.find_commit(patch_oid).unwrap();
+  let patch_summary = patch_commit.summary().unwrap();
   let patch_message = patch_commit.message().unwrap();
+  println!("patch summary: {}", patch_summary);
   println!("patch message: {}", patch_message);
 
   if let Some(branch_name) = git::get_current_branch(&repo) {
@@ -33,6 +43,20 @@ pub fn rr(patch_index: usize) {
   } else {
     // add patch stack id to the commit
   }
+
+
+  let branch_name = ps::generate_rr_branch_name(patch_summary);
+
+  // create branch
+  let branch = repo.branch(branch_name.as_str(), &patch_stack_base_commit, false).unwrap();
+
+  // checkout the new branch
+  // TODO: extract this and generalize it into function in the git module
+  repo.checkout_tree(patch_stack_base_commit.as_object(), None).unwrap();
+  repo.set_head(format!("refs/heads/{}", branch_name.as_str()).as_str()).unwrap();
+  
+  // cherry-pick patch into new branch
+  // git::cherry_pick(&repo, patch_oid);
 
   // - get patch given the patch index
   //    - have a map of patch index to patches

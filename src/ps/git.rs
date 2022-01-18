@@ -77,6 +77,66 @@ pub fn get_current_branch<'a>(repo: &'a git2::Repository) -> Option<String> {
   }
 }
 
+pub fn cherry_pick_range<'a>(repo: &'a git2::Repository, start: git2::Oid, end: git2::Oid) -> Result<(), GitError> {
+  let mut rev_walk = repo.revwalk()?;
+  rev_walk.push(start)?;
+  rev_walk.hide(end)?;
+
+  rev_walk.into_iter().for_each(|rev| {
+    let r = rev.unwrap();
+    if let Ok(commit) = repo.find_commit(r) {
+      println!("- cherry-picking {}", commit.id());
+      if let Ok(_) = repo.cherrypick(&commit, None) {
+        println!("successfully cherry picked {}", commit.id());
+      } else {
+        println!("failed to cherry picked {}", commit.id());
+      }
+    } else {
+      println!("can't find commit to cherry-pick");
+    }
+  });
+
+  return Ok(());
+}
+
+pub fn cherry_pick<'a>(repo: &'a git2::Repository, oid: git2::Oid) -> Result<(), GitError> {
+  if let Ok(commit) = repo.find_commit(oid) {
+    println!("- cherry-picking {}", commit.id());
+    if let Ok(_) = repo.cherrypick(&commit, None) {
+      println!("successfully cherry picked {}", commit.id());
+    } else {
+      println!("failed to cherry picked {}", commit.id());
+    }
+  } else {
+    println!("can't find commit to cherry-pick");
+  }
+  return Ok(());
+}
+
+// private func addIdTo(uuid: UUID, patch: Commit) throws -> Commit? {
+//   let originalBranch = try self.git.getCheckedOutBranch()
+//   let upstreamBranch = try self.git.getUpstreamBranch()
+//   let commonAncestorRef = try self.git.mergeBase(refA: patch.hash, refB: upstreamBranch.remoteBase)
+//   try self.git.createAndCheckout(branch: "ps/tmp/add_id_rework", startingFrom: commonAncestorRef)
+//   try self.git.cherryPickCommits(from: commonAncestorRef, to: patch.hash)
+//   let shaOfPatchPrime = try self.git.getShaOf(ref: "HEAD")
+//   print("- got sha of HEAD (a.k.a. patch') - \(shaOfPatchPrime)")
+//   let originalMessage = try self.git.commitMessageOf(ref: shaOfPatchPrime)
+//   print("- got commit message from \(shaOfPatchPrime) (a.k.a. patch')")
+//   try self.git.commitAmendMessages(messages: [originalMessage, "ps-id: \(uuid.uuidString)"])
+//   print("- amended patch' wich ps-id: \(uuid.uuidString), it is now patch''")
+//   let shaOfPatchFinalPrime = try self.git.getShaOf(ref: "HEAD")
+//   print("- got sha of HEAD (a.k.a. patch'' - \(shaOfPatchFinalPrime)")
+//   try self.git.cherryPickCommits(from: patch.hash, to: upstreamBranch.branch)
+//   try self.git.forceBranch(named: upstreamBranch.branch, to: "HEAD")
+//   print("- forced branch (\(upstreamBranch.branch)) to point to HEAD")
+//   try self.git.checkout(ref: originalBranch)
+//   print("- checked out branch - \(originalBranch)")
+//   try self.git.deleteBranch(named: "ps/tmp/add_id_rework")
+//   print("- deleted tmp working branch - ps/tmp/add_id_rework")
+//   return try self.git.commit(shaOfPatchFinalPrime)
+// }
+
 #[cfg(test)]
 mod tests {
     #[test]
