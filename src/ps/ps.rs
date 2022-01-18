@@ -9,6 +9,7 @@
 
 use git2;
 use super::git;
+use regex::Regex;
 
 pub struct PatchStack<'a> {
     pub head: git2::Reference<'a>,
@@ -55,4 +56,29 @@ pub fn get_patch_list(repo: &git2::Repository, patch_stack: PatchStack) -> Vec<L
         ListPatch { index: i, summary: git::get_summary(&repo, &r).unwrap(), oid: r }
     }).collect();
     return list_of_patches;
+}
+
+pub fn extract_ps_id(message: &str) -> Option<String> {
+  lazy_static! {
+    static ref RE: Regex = Regex::new(r"ps-id:\s(?P<patchStackId>[\w\d-]+)").unwrap();
+  }
+  return RE.captures(message).map(|caps| String::from(&caps["patchStackId"]));
+}
+
+#[cfg(test)]
+mod tests {
+  #[test]
+  fn test_extract_ps_id_with_ps_id() {
+    let msg = "Some summary\n\nSome paragraph\nSome more lines of the paragraph\n      ps-id: a0aoeu-aeoua0aoeua-aeuaoea0\n some other stuff";
+    let opt = super::extract_ps_id(&msg);
+    assert!(opt.is_some());
+    assert_eq!(opt.unwrap(), "a0aoeu-aeoua0aoeua-aeuaoea0");
+  }
+
+  #[test]
+  fn test_extract_ps_id_without_ps_id() {
+    let msg = "Some summary\n\nSome paragraph\nSome more lines of the paragraph\n aeuae uaeou aoeu aoeeo\n some other stuff";
+    let opt = super::extract_ps_id(&msg);
+    assert!(opt.is_none());
+  }
 }

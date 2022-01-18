@@ -10,6 +10,9 @@
 // So any code that fits the above responsibilities should live within this
 // module.
 
+#[macro_use]
+extern crate lazy_static;
+
 use structopt::StructOpt;
 
 pub mod ps;
