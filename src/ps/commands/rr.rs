@@ -22,6 +22,12 @@ pub fn rr(patch_index: usize) {
   let patch_message = patch_commit.message().unwrap();
   println!("patch message: {}", patch_message);
 
+  if let Some(branch_name) = git::get_current_branch(&repo) {
+    println!("branch-name: {}", branch_name);
+  } else {
+    println!("failed to get current branch name");
+  }
+
   if let Some(ps_id) = ps::extract_ps_id(patch_message) {
     println!("patch-stack-id: {}", ps_id);
   } else {
