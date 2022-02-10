@@ -69,6 +69,11 @@ pub fn slugify(summary: &str) -> String {
   return summary.replace(|c: char| !c.is_alphanumeric(), "_").to_lowercase();
 }
 
+pub fn generate_rr_branch_name(summary: &str) -> String {
+  let slug = slugify(summary);
+  return format!("ps/rr/{}", slug);
+}
+
 #[cfg(test)]
 mod tests {
   #[test]
@@ -89,5 +94,10 @@ mod tests {
   #[test]
   fn test_slugify() {
     assert_eq!(super::slugify("Hello & Goodbye - Purple %#@!()"), "hello___goodbye___purple_______");
+  }
+
+  #[test]
+  fn test_generate_rr_branch_name() {
+    assert_eq!(super::generate_rr_branch_name("Hello & Goodbye"), "ps/rr/hello___goodbye");
   }
 }
