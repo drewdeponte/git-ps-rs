@@ -65,6 +65,10 @@ pub fn extract_ps_id(message: &str) -> Option<String> {
   return RE.captures(message).map(|caps| String::from(&caps["patchStackId"]));
 }
 
+pub fn slugify(summary: &str) -> String {
+  return summary.replace(|c: char| !c.is_alphanumeric(), "_").to_lowercase();
+}
+
 #[cfg(test)]
 mod tests {
   #[test]
@@ -80,5 +84,10 @@ mod tests {
     let msg = "Some summary\n\nSome paragraph\nSome more lines of the paragraph\n aeuae uaeou aoeu aoeeo\n some other stuff";
     let opt = super::extract_ps_id(&msg);
     assert!(opt.is_none());
+  }
+
+  #[test]
+  fn test_slugify() {
+    assert_eq!(super::slugify("Hello & Goodbye - Purple %#@!()"), "hello___goodbye___purple_______");
   }
 }
