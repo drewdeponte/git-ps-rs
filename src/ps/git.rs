@@ -113,23 +113,75 @@ pub fn cherry_pick<'a>(repo: &'a git2::Repository, oid: git2::Oid) -> Result<(),
   return Ok(());
 }
 
-// pub fn cherry_pick_no_working_copy<'a>(repo: &'a git2::Repository, oid: git2::Oid) -> Result<(), GitError> {
-//   let commit = repo.find_commit(oid).unwrap();
-//   let ancestory_tree = commit.parents().next().unwrap().tree().unwrap();
-//   repo.merge_trees(ancestor_tree, our_tree, their_tree, opts)
+// https://www.pygit2.org/recipes/git-cherry-pick.html#cherry-picking-a-commit-without-a-working-copy
+pub fn cherry_pick_no_working_copy<'a>(repo: &'a git2::Repository, oid: git2::Oid, destination: git2::Branch) -> Result<(), GitError> {
+  let commit = repo.find_commit(oid).unwrap();
+  let commit_tree = commit.tree().unwrap();
 
-//   if let Ok(commit) = repo.find_commit(oid) {
-//     println!("- cherry-picking {}", commit.id());
-//     if let Ok(_) = repo.cherrypick(&commit, None) {
-//       println!("successfully cherry picked {}", commit.id());
-//     } else {
-//       println!("failed to cherry picked {}", commit.id());
-//     }
-//   } else {
-//     println!("can't find commit to cherry-pick");
-//   }
-//   return Ok(());
-// }
+  let destination_ref = destination.get();
+  let destination_oid = destination_ref.target().unwrap();
+
+  let common_ancestor_oid = repo.merge_base(oid, destination_oid).unwrap();
+  let common_ancestor_commit = repo.find_commit(common_ancestor_oid).unwrap();
+  let common_ancestor_tree = common_ancestor_commit.tree().unwrap();
+
+  let destination_commit = repo.find_commit(destination_oid).unwrap();
+  let destination_tree = destination_commit.tree().unwrap();
+
+  let mut index = repo.merge_trees(&common_ancestor_tree, &destination_tree, &commit_tree, None).unwrap();
+  let tree_oid = index.write_tree_to(repo).unwrap();
+  let tree = repo.find_tree(tree_oid).unwrap();
+
+  let destination_ref_name = destination_ref.name().unwrap();
+
+  let author = commit.author();
+  let committer = commit.committer();
+  let message = commit.message().unwrap();
+
+  let new_commit_oid = repo.commit(Option::Some(destination_ref_name), &author, &committer, message, &tree, &[&destination_commit]).unwrap();
+
+  // repo.commit(Option::Some("HEAD"), &sig, &sig, message, &tree, &[&parent_commit]).unwrap()
+
+
+
+  // let sig = git2::Signature::now("Bob Villa", "bob@example.com").unwrap();
+
+  // // create the blob record for storing the content
+  // let blob_oid = repo.blob(data).unwrap();
+  // // repo.find_blob(blob_oid).unwrap();
+
+  // // create the tree record
+  // let mut treebuilder = repo.treebuilder(Option::None).unwrap();
+  // let file_mode: i32 = i32::from(git2::FileMode::Blob);
+  // treebuilder.insert(path, blob_oid, file_mode).unwrap();
+  // let tree_oid = treebuilder.write().unwrap();
+
+  // // lookup the tree entity
+  // let tree = repo.find_tree(tree_oid).unwrap();
+
+  // // TODO: need to figure out some way to get the parent commit as a
+  // // git2::Commit object to hand
+  // // into the repo.commit call. I am guessing that is why I am getting
+  // // the following error
+  // // "failed to create commit: current tip is not the first parent"
+  // let parent_oid = repo.head().unwrap().target().unwrap();
+  // let parent_commit = repo.find_commit(parent_oid).unwrap();
+
+  // // create the actual commit packaging the blob, tree entry, etc.
+  // repo.commit(Option::Some("HEAD"), &sig, &sig, message, &tree, &[&parent_commit]).unwrap()
+
+  // if let Ok(commit) = repo.find_commit(oid) {
+  //   println!("- cherry-picking {}", commit.id());
+  //   if let Ok(_) = repo.cherrypick(&commit, None) {
+  //     println!("successfully cherry picked {}", commit.id());
+  //   } else {
+  //     println!("failed to cherry picked {}", commit.id());
+  //   }
+  // } else {
+  //   println!("can't find commit to cherry-pick");
+  // }
+  return Ok(());
+}
 
 // private func addIdTo(uuid: UUID, patch: Commit) throws -> Commit? {
 //   let originalBranch = try self.git.getCheckedOutBranch()

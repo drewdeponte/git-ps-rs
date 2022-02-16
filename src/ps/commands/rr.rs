@@ -42,27 +42,28 @@ pub fn rr(patch_index: usize) {
 
   let cur_branch_obj = repo.revparse_single(&branch_ref_name).unwrap();
   let upstream_branch_obj = repo.revparse_single(&upstream_branch_ref_name).unwrap();
+  let upstream_branch_commit = repo.find_commit(upstream_branch_obj.id()).unwrap();
   println!("cur_branch oid: {}", cur_branch_obj.id());
   println!("upstream_branch oid: {}", upstream_branch_obj.id());
 
   // Get the common ancestor
-  let common_ancestor_oid = repo.merge_base(patch_oid, upstream_branch_obj.id()).unwrap();
-  println!("common_ancestor_oid: {}", common_ancestor_oid);
-  let common_ancestor_commit = repo.find_commit(common_ancestor_oid).unwrap();
+  // let common_ancestor_oid = repo.merge_base(patch_oid, upstream_branch_obj.id()).unwrap();
+  // println!("common_ancestor_oid: {}", common_ancestor_oid);
+  // let common_ancestor_commit = repo.find_commit(common_ancestor_oid).unwrap();
 
   // create branch
-  let add_id_rework_branch = repo.branch("ps/tmp/add_id_rework", &common_ancestor_commit, false).unwrap();
+  let add_id_rework_branch = repo.branch("ps/tmp/add_id_rework", &upstream_branch_commit, false).unwrap();
   let add_id_rework_branch_ref_name = add_id_rework_branch.get().name().unwrap();
   println!("foo: {}", add_id_rework_branch_ref_name);
       
   // checkout the new branch
-  repo.checkout_tree(add_id_rework_branch.get().peel_to_commit().unwrap().as_object(), None).unwrap();
-  // repo.checkout_tree(common_ancestor_commit.as_object(), None).unwrap();
-  repo.set_head(add_id_rework_branch_ref_name).unwrap();
-
+  // repo.checkout_tree(add_id_rework_branch.get().peel_to_commit().unwrap().as_object(), None).unwrap();
+  // // repo.checkout_tree(common_ancestor_commit.as_object(), None).unwrap();
+  // repo.set_head(add_id_rework_branch_ref_name).unwrap();
 
   // cherry pick
-  git::cherry_pick(&repo, patch_oid).unwrap();
+  let foo_result = git::cherry_pick_no_working_copy(&repo, patch_oid, add_id_rework_branch).unwrap();
+  // git::cherry_pick(&repo, patch_oid).unwrap();
 
 
   // if let Some(ps_id) = ps::extract_ps_id(patch_message) {
