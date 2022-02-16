@@ -113,6 +113,24 @@ pub fn cherry_pick<'a>(repo: &'a git2::Repository, oid: git2::Oid) -> Result<(),
   return Ok(());
 }
 
+// pub fn cherry_pick_no_working_copy<'a>(repo: &'a git2::Repository, oid: git2::Oid) -> Result<(), GitError> {
+//   let commit = repo.find_commit(oid).unwrap();
+//   let ancestory_tree = commit.parents().next().unwrap().tree().unwrap();
+//   repo.merge_trees(ancestor_tree, our_tree, their_tree, opts)
+
+//   if let Ok(commit) = repo.find_commit(oid) {
+//     println!("- cherry-picking {}", commit.id());
+//     if let Ok(_) = repo.cherrypick(&commit, None) {
+//       println!("successfully cherry picked {}", commit.id());
+//     } else {
+//       println!("failed to cherry picked {}", commit.id());
+//     }
+//   } else {
+//     println!("can't find commit to cherry-pick");
+//   }
+//   return Ok(());
+// }
+
 // private func addIdTo(uuid: UUID, patch: Commit) throws -> Commit? {
 //   let originalBranch = try self.git.getCheckedOutBranch()
 //   let upstreamBranch = try self.git.getUpstreamBranch()
