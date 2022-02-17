@@ -34,17 +34,19 @@ pub fn rr(patch_index: usize) {
 
   // Get currently checked out branch
   let branch_ref_name = git::get_current_branch(&repo).unwrap();
+  let mut branch_ref = repo.find_reference(&branch_ref_name).unwrap();
+  let cur_branch_obj = repo.revparse_single(&branch_ref_name).unwrap();
+  let cur_branch_oid = cur_branch_obj.id();
   println!("branch-name: {}",  branch_ref_name);
+  println!("cur_branch oid: {}", cur_branch_oid);
 
   // Get current branches upstream tracking branch
   let upstream_branch_ref_name = git::branch_upstream_name(&repo, &branch_ref_name).unwrap();
-  println!("upstream-branch-name: {}", upstream_branch_ref_name);
-
-  let cur_branch_obj = repo.revparse_single(&branch_ref_name).unwrap();
   let upstream_branch_obj = repo.revparse_single(&upstream_branch_ref_name).unwrap();
-  let upstream_branch_commit = repo.find_commit(upstream_branch_obj.id()).unwrap();
-  println!("cur_branch oid: {}", cur_branch_obj.id());
-  println!("upstream_branch oid: {}", upstream_branch_obj.id());
+  let upstream_branch_oid = upstream_branch_obj.id();
+  let upstream_branch_commit = repo.find_commit(upstream_branch_oid).unwrap();
+  println!("upstream-branch-name: {}", upstream_branch_ref_name);
+  println!("upstream_branch oid: {}", upstream_branch_oid);
 
   // Get the common ancestor
   // let common_ancestor_oid = repo.merge_base(patch_oid, upstream_branch_obj.id()).unwrap();
@@ -62,7 +64,21 @@ pub fn rr(patch_index: usize) {
   // repo.set_head(add_id_rework_branch_ref_name).unwrap();
 
   // cherry pick
-  let foo_result = git::cherry_pick_no_working_copy(&repo, patch_oid, add_id_rework_branch).unwrap();
+  git::cherry_pick_no_working_copy_range(&repo, patch_oid, upstream_branch_oid, add_id_rework_branch_ref_name).unwrap();
+
+  let amended_patch_oid = git::cherry_pick_no_working_copy_amend_message(&repo, patch_oid, add_id_rework_branch_ref_name, "\nps-id: some-ps-id-here").unwrap();
+
+  if cur_branch_oid != patch_oid {
+    git::cherry_pick_no_working_copy_range(&repo, cur_branch_oid, patch_oid, add_id_rework_branch_ref_name).unwrap();
+    let cherry_picked_commit_oid = git::cherry_pick_no_working_copy(&repo, cur_branch_oid, add_id_rework_branch_ref_name).unwrap();
+    branch_ref.set_target(cherry_picked_commit_oid, "swap branch to add_id_rework").unwrap();
+  } else {
+    branch_ref.set_target(amended_patch_oid, "swap branch to add_id_rework").unwrap();
+  }
+
+
+  // git::cherry_pick_no_working_copy(&repo, oid, dest_ref_name)
+  // let foo_result = git::cherry_pick_no_working_copy(&repo, patch_oid, add_id_rework_branch).unwrap();
   // git::cherry_pick(&repo, patch_oid).unwrap();
 
 
