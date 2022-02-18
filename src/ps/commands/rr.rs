@@ -9,22 +9,24 @@ use crate::ps::ps::slugify;
 
 use super::super::git;
 use super::super::ps;
+use uuid::Uuid;
 
 pub fn rr(patch_index: usize) {
-  println!("patch-index: {}", patch_index);
+  println!("patch_index: {}", patch_index);
 
   let repo = git::create_cwd_repo().unwrap();
 
   let patch_stack = ps::get_patch_stack(&repo).unwrap();
+
+  let patches_vec = ps::get_patch_list(&repo, patch_stack);
+  let patch_oid = patches_vec.get(patch_index).unwrap().oid;
+  println!("patch_oid: {}", patch_oid);
+
   // let patch_stack_start = patch_stack.head.target().unwrap();
   // let patch_stack_end = patch_stack.base.target().unwrap();
 
   // let patch_stack_base_commit = patch_stack.base.peel_to_commit().unwrap();
   // println!("base-patch-summary: {}", patch_stack_base_commit.summary().unwrap());
-
-  let patches_vec = ps::get_patch_list(&repo, patch_stack);
-  let patch_oid = patches_vec.get(patch_index).unwrap().oid;
-  println!("patch: {}", patch_oid);
 
   // let patch_commit = repo.find_commit(patch_oid).unwrap();
   // let patch_summary = patch_commit.summary().unwrap();
@@ -32,54 +34,8 @@ pub fn rr(patch_index: usize) {
   // println!("patch summary: {}", patch_summary);
   // println!("patch message: {}", patch_message);
 
-  // Get currently checked out branch
-  let branch_ref_name = git::get_current_branch(&repo).unwrap();
-  let mut branch_ref = repo.find_reference(&branch_ref_name).unwrap();
-  let cur_branch_obj = repo.revparse_single(&branch_ref_name).unwrap();
-  let cur_branch_oid = cur_branch_obj.id();
-  println!("branch-name: {}",  branch_ref_name);
-  println!("cur_branch oid: {}", cur_branch_oid);
 
-  // Get current branches upstream tracking branch
-  let upstream_branch_ref_name = git::branch_upstream_name(&repo, &branch_ref_name).unwrap();
-  let upstream_branch_obj = repo.revparse_single(&upstream_branch_ref_name).unwrap();
-  let upstream_branch_oid = upstream_branch_obj.id();
-  let upstream_branch_commit = repo.find_commit(upstream_branch_oid).unwrap();
-  println!("upstream-branch-name: {}", upstream_branch_ref_name);
-  println!("upstream_branch oid: {}", upstream_branch_oid);
-
-  // Get the common ancestor
-  // let common_ancestor_oid = repo.merge_base(patch_oid, upstream_branch_obj.id()).unwrap();
-  // println!("common_ancestor_oid: {}", common_ancestor_oid);
-  // let common_ancestor_commit = repo.find_commit(common_ancestor_oid).unwrap();
-
-  // create branch
-  let add_id_rework_branch = repo.branch("ps/tmp/add_id_rework", &upstream_branch_commit, false).unwrap();
-  let add_id_rework_branch_ref_name = add_id_rework_branch.get().name().unwrap();
-  println!("foo: {}", add_id_rework_branch_ref_name);
-      
-  // checkout the new branch
-  // repo.checkout_tree(add_id_rework_branch.get().peel_to_commit().unwrap().as_object(), None).unwrap();
-  // // repo.checkout_tree(common_ancestor_commit.as_object(), None).unwrap();
-  // repo.set_head(add_id_rework_branch_ref_name).unwrap();
-
-  // cherry pick
-  git::cherry_pick_no_working_copy_range(&repo, patch_oid, upstream_branch_oid, add_id_rework_branch_ref_name).unwrap();
-
-  let amended_patch_oid = git::cherry_pick_no_working_copy_amend_message(&repo, patch_oid, add_id_rework_branch_ref_name, "\nps-id: some-ps-id-here").unwrap();
-
-  if cur_branch_oid != patch_oid {
-    git::cherry_pick_no_working_copy_range(&repo, cur_branch_oid, patch_oid, add_id_rework_branch_ref_name).unwrap();
-    let cherry_picked_commit_oid = git::cherry_pick_no_working_copy(&repo, cur_branch_oid, add_id_rework_branch_ref_name).unwrap();
-    branch_ref.set_target(cherry_picked_commit_oid, "swap branch to add_id_rework").unwrap();
-  } else {
-    branch_ref.set_target(amended_patch_oid, "swap branch to add_id_rework").unwrap();
-  }
-
-
-  // git::cherry_pick_no_working_copy(&repo, oid, dest_ref_name)
-  // let foo_result = git::cherry_pick_no_working_copy(&repo, patch_oid, add_id_rework_branch).unwrap();
-  // git::cherry_pick(&repo, patch_oid).unwrap();
+  let new_patch_oid = ps::add_ps_id(&repo, patch_oid, Uuid::new_v4()).unwrap();
 
 
   // if let Some(ps_id) = ps::extract_ps_id(patch_message) {

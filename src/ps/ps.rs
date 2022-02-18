@@ -10,6 +10,7 @@
 use git2;
 use super::git;
 use regex::Regex;
+use uuid::Uuid;
 
 pub struct PatchStack<'a> {
     pub head: git2::Reference<'a>,
@@ -72,6 +73,67 @@ pub fn slugify(summary: &str) -> String {
 pub fn generate_rr_branch_name(summary: &str) -> String {
   let slug = slugify(summary);
   return format!("ps/rr/{}", slug);
+}
+
+#[derive(Debug)]
+pub enum AddPsIdError {
+  GitError(git2::Error),
+  FailedToGetCurrentBranch,
+  UpstreamBranchNotFound,
+  FailedToGetReferenceName
+}
+
+impl From<git2::Error> for AddPsIdError {
+    fn from(e: git2::Error) -> Self {
+        Self::GitError(e)
+    }
+}
+
+impl From<git::GitError> for AddPsIdError {
+    fn from(e: git::GitError) -> Self {
+      match e {
+        git::GitError::NotFound => AddPsIdError::UpstreamBranchNotFound,
+        git::GitError::GitError(err) => AddPsIdError::GitError(err)
+      }
+    }
+}
+
+pub fn add_ps_id(repo: &git2::Repository, commit_oid: git2::Oid, ps_id: Uuid) -> Result<git2::Oid, AddPsIdError> {
+  // Get currently checked out branch
+  let branch_ref_name = git::get_current_branch(&repo).ok_or(AddPsIdError::FailedToGetCurrentBranch)?;
+  let mut branch_ref = repo.find_reference(&branch_ref_name)?;
+  let cur_branch_obj = repo.revparse_single(&branch_ref_name)?;
+  let cur_branch_oid = cur_branch_obj.id();
+
+  // Get current branches upstream tracking branch
+  let upstream_branch_ref_name = git::branch_upstream_name(&repo, &branch_ref_name)?;
+  let upstream_branch_obj = repo.revparse_single(&upstream_branch_ref_name)?;
+  let upstream_branch_oid = upstream_branch_obj.id();
+  let upstream_branch_commit = repo.find_commit(upstream_branch_oid)?;
+
+  // create branch
+  let mut add_id_rework_branch = repo.branch("ps/tmp/add_id_rework", &upstream_branch_commit, true)?;
+  let add_id_rework_branch_ref_name = add_id_rework_branch.get().name().ok_or(AddPsIdError::FailedToGetReferenceName)?;
+
+  // cherry pick
+  git::cherry_pick_no_working_copy_range(&repo, commit_oid, upstream_branch_oid, add_id_rework_branch_ref_name)?;
+
+  let message_amendment = format!("\nps-id: {}", ps_id.to_hyphenated().to_string());
+  let amended_patch_oid = git::cherry_pick_no_working_copy_amend_message(&repo, commit_oid, add_id_rework_branch_ref_name, message_amendment.as_str())?;
+
+  if cur_branch_oid != commit_oid {
+    git::cherry_pick_no_working_copy_range(&repo, cur_branch_oid, commit_oid, add_id_rework_branch_ref_name)?;
+    let cherry_picked_commit_oid = git::cherry_pick_no_working_copy(&repo, cur_branch_oid, add_id_rework_branch_ref_name)?;
+    branch_ref.set_target(cherry_picked_commit_oid, "swap branch to add_id_rework")?;
+  } else {
+    branch_ref.set_target(amended_patch_oid, "swap branch to add_id_rework")?;
+  }
+
+  // delete temporary branch
+  let mut tmp_branch_ref = repo.find_reference(add_id_rework_branch_ref_name)?;
+  tmp_branch_ref.delete()?;
+
+  return Ok(amended_patch_oid);
 }
 
 #[cfg(test)]
