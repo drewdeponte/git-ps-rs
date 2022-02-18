@@ -34,7 +34,8 @@ pub enum GitError {
   GitError(git2::Error),
   NotFound,
   TargetNotFound,
-  ReferenceNameMissing
+  ReferenceNameMissing,
+  CommitMessageMissing
 }
 
 impl From<git2::Error> for GitError {
@@ -158,36 +159,34 @@ pub fn cherry_pick_no_working_copy<'a>(repo: &'a git2::Repository, oid: git2::Oi
 
 pub fn cherry_pick_no_working_copy_amend_message<'a>(repo: &'a git2::Repository, oid: git2::Oid, dest_ref_name: &str, message_amendment: &str) -> Result<git2::Oid, GitError> {
   // https://www.pygit2.org/recipes/git-cherry-pick.html#cherry-picking-a-commit-without-a-working-copy
-  let commit = repo.find_commit(oid).unwrap();
-  let commit_tree = commit.tree().unwrap();
+  let commit = repo.find_commit(oid)?;
+  let commit_tree = commit.tree()?;
 
-  let commit_parent = commit.parent(0).unwrap();
-  let commit_parent_tree = commit_parent.tree().unwrap();
+  let commit_parent = commit.parent(0)?;
+  let commit_parent_tree = commit_parent.tree()?;
 
-  let destination_ref = repo.find_reference(dest_ref_name).unwrap();
-  let destination_oid = destination_ref.target().unwrap();
-  println!("destination_oid: {}", destination_oid);
+  let destination_ref = repo.find_reference(dest_ref_name)?;
+  let destination_oid = destination_ref.target().ok_or(GitError::TargetNotFound)?;
 
-  let common_ancestor_oid = repo.merge_base(oid, destination_oid).unwrap();
-  let common_ancestor_commit = repo.find_commit(common_ancestor_oid).unwrap();
-  let common_ancestor_tree = common_ancestor_commit.tree().unwrap();
-  println!("common_ancestor_oid: {}", common_ancestor_oid);
+  // let common_ancestor_oid = repo.merge_base(oid, destination_oid)?;
+  // let common_ancestor_commit = repo.find_commit(common_ancestor_oid)?;
+  // let common_ancestor_tree = common_ancestor_commit.tree()?;
 
-  let destination_commit = repo.find_commit(destination_oid).unwrap();
-  let destination_tree = destination_commit.tree().unwrap();
+  let destination_commit = repo.find_commit(destination_oid)?;
+  let destination_tree = destination_commit.tree()?;
 
-  let mut index = repo.merge_trees(&commit_parent_tree, &destination_tree, &commit_tree, None).unwrap();
-  let tree_oid = index.write_tree_to(repo).unwrap();
-  let tree = repo.find_tree(tree_oid).unwrap();
+  let mut index = repo.merge_trees(&commit_parent_tree, &destination_tree, &commit_tree, None)?;
+  let tree_oid = index.write_tree_to(repo)?;
+  let tree = repo.find_tree(tree_oid)?;
 
-  let destination_ref_name = destination_ref.name().unwrap();
+  let destination_ref_name = destination_ref.name().ok_or(GitError::ReferenceNameMissing)?;
 
   let author = commit.author();
   let committer = commit.committer();
-  let message = commit.message().unwrap();
+  let message = commit.message().ok_or(GitError::CommitMessageMissing)?;
   let amended_message = format!("{}{}", message, message_amendment);
 
-  let new_commit_oid = repo.commit(Option::Some(destination_ref_name), &author, &committer, amended_message.as_str(), &tree, &[&destination_commit]).unwrap();
+  let new_commit_oid = repo.commit(Option::Some(destination_ref_name), &author, &committer, amended_message.as_str(), &tree, &[&destination_commit])?;
 
   return Ok(new_commit_oid);
 }

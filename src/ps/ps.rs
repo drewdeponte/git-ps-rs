@@ -82,7 +82,8 @@ pub enum AddPsIdError {
   UpstreamBranchNotFound,
   FailedToGetReferenceName,
   TargetNotFound,
-  ReferenceNameMissing
+  ReferenceNameMissing,
+  CommitMessageMissing
 }
 
 impl From<git2::Error> for AddPsIdError {
@@ -97,7 +98,8 @@ impl From<git::GitError> for AddPsIdError {
         git::GitError::NotFound => AddPsIdError::UpstreamBranchNotFound,
         git::GitError::GitError(err) => AddPsIdError::GitError(err),
         git::GitError::TargetNotFound => AddPsIdError::TargetNotFound,
-        git::GitError::ReferenceNameMissing => AddPsIdError::ReferenceNameMissing
+        git::GitError::ReferenceNameMissing => AddPsIdError::ReferenceNameMissing,
+        git::GitError::CommitMessageMissing => AddPsIdError::CommitMessageMissing
       }
     }
 }
