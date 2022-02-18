@@ -80,7 +80,9 @@ pub enum AddPsIdError {
   GitError(git2::Error),
   FailedToGetCurrentBranch,
   UpstreamBranchNotFound,
-  FailedToGetReferenceName
+  FailedToGetReferenceName,
+  TargetNotFound,
+  ReferenceNameMissing
 }
 
 impl From<git2::Error> for AddPsIdError {
@@ -93,7 +95,9 @@ impl From<git::GitError> for AddPsIdError {
     fn from(e: git::GitError) -> Self {
       match e {
         git::GitError::NotFound => AddPsIdError::UpstreamBranchNotFound,
-        git::GitError::GitError(err) => AddPsIdError::GitError(err)
+        git::GitError::GitError(err) => AddPsIdError::GitError(err),
+        git::GitError::TargetNotFound => AddPsIdError::TargetNotFound,
+        git::GitError::ReferenceNameMissing => AddPsIdError::ReferenceNameMissing
       }
     }
 }
