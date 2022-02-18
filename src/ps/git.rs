@@ -121,20 +121,6 @@ pub fn cherry_pick_no_working_copy_range<'a>(repo: &'a git2::Repository, start: 
   return Ok(());
 }
 
-pub fn cherry_pick<'a>(repo: &'a git2::Repository, oid: git2::Oid) -> Result<(), GitError> {
-  if let Ok(commit) = repo.find_commit(oid) {
-    println!("- cherry-picking {}", commit.id());
-    if let Ok(_) = repo.cherrypick(&commit, None) {
-      println!("successfully cherry picked {}", commit.id());
-    } else {
-      println!("failed to cherry picked {}", commit.id());
-    }
-  } else {
-    println!("can't find commit to cherry-pick");
-  }
-  return Ok(());
-}
-
 pub fn cherry_pick_no_working_copy<'a>(repo: &'a git2::Repository, oid: git2::Oid, dest_ref_name: &str) -> Result<git2::Oid, GitError> {
   // https://www.pygit2.org/recipes/git-cherry-pick.html#cherry-picking-a-commit-without-a-working-copy
   let commit = repo.find_commit(oid).unwrap();
