@@ -90,36 +90,23 @@ pub fn get_current_branch<'a>(repo: &'a git2::Repository) -> Option<String> {
 // in history and the `end` should be the least recent commit in the range.
 // Think you are starting at the top of the tree going down.
 pub fn cherry_pick_no_working_copy_range<'a>(repo: &'a git2::Repository, start: git2::Oid, end: git2::Oid, dest_ref_name: &str) -> Result<(), GitError> {
-  println!("cherry picking range");
-  println!("start: {}", start);
-  println!("end: {}", end);
   let mut rev_walk = repo.revwalk()?;
-  rev_walk.set_sorting(git2::Sort::REVERSE).unwrap();
+  rev_walk.set_sorting(git2::Sort::REVERSE)?;
   rev_walk.push(start)?;
   rev_walk.hide(end)?;
 
-
-  rev_walk.into_iter().for_each(|rev| {
-    let r = rev.unwrap();
-    println!("iteration for rev: {}", r);
- 
-    if r == start {
-      println!("hit the end rev: {}", r);
-      return; // effectively short-circuit doing nothing for this last patch
-    }
-
-    if let Ok(commit) = repo.find_commit(r) {
-      println!("- cherry-picking {}", commit.id());
-
-      if let Ok(_) = cherry_pick_no_working_copy(repo, commit.id(), dest_ref_name) {
-        println!("successfully cherry picked {}", commit.id());
-      } else {
-        println!("failed to cherry picked {}", commit.id());
+  for rev in rev_walk {
+    if let Ok(r) = rev {
+      if r == start {
+        return Ok(()); // effectively short-circuit doing nothing for this last patch
       }
-    } else {
-      println!("can't find commit to cherry-pick");
+
+      repo
+        .find_commit(r)
+        .map_err(|e| GitError::GitError(e))
+        .and_then(|commit| cherry_pick_no_working_copy(repo, commit.id(), dest_ref_name))?;
     }
-  });
+  }
 
   return Ok(());
 }
