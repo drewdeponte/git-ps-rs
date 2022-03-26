@@ -10,12 +10,10 @@
 // So any code that fits the above responsibilities should live within this
 // module.
 
-#[macro_use]
-extern crate lazy_static;
 
 use structopt::StructOpt;
 
-pub mod ps;
+use gps as ps;
 
 // #[derive(Debug, StructOpt)]
 // pub struct Show {
@@ -55,9 +53,9 @@ fn main() {
     // println!("{:?}", opt);
 
     match opt.command {
-        Command::List => ps::commands::ls::ls(),
-        Command::Rebase => ps::commands::rebase::rebase(),
-        Command::Pull => ps::commands::pull::pull(),
-        Command::RequestReview(opts) => ps::commands::rr::rr(opts.patch_index),
+        Command::List => ps::ls(),
+        Command::Rebase => ps::rebase(),
+        Command::Pull => ps::pull(),
+        Command::RequestReview(opts) => ps::rr(opts.patch_index),
     };
 }
