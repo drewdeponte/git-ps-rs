@@ -5,6 +5,7 @@
 // be strongly considered if they fit better in one of the other modules such
 // as the `ps::ps`, `ps::git`, or `ps::utils`.
 
+use super::super::utils;
 use super::super::git;
 use super::super::ps;
 use uuid::Uuid;
@@ -50,4 +51,21 @@ pub fn rr(patch_index: usize) {
 
   // TODO: add pushing up to the remote
   // - push rr branch up as a remote branch
+
+  let cur_branch_name = git::get_current_branch(&repo).unwrap();
+  println!("cur_branch_name: {}", cur_branch_name);
+
+  let branch_upstream_name = git::branch_upstream_name(&repo, cur_branch_name.as_str()).unwrap();
+  println!("branch_upstream_name: {}", branch_upstream_name);
+
+  let remote_name = repo.branch_remote_name(&branch_upstream_name).unwrap();
+  println!("remote_name: {}", remote_name.as_str().unwrap());
+
+  let refspecs = format!("{}:{}", branch_ref_name, branch_ref_name);
+  println!("git push -f {} {}", remote_name.as_str().unwrap(), refspecs);
+  let res = utils::execute("git", &["push", "-f", remote_name.as_str().unwrap(), &refspecs]);
+  match res {
+    Ok(exit_status) => println!("exitStatus: {}", exit_status),
+    Err(e) => println!("error: {}", e)
+  }
 }
