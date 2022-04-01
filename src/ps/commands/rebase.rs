@@ -17,9 +17,8 @@ pub fn rebase() {
 
   let upstream_branch_name = git::branch_upstream_name(&repo, head_branch_name).unwrap();
 
-  let res = utils::execute("git", &["rebase", "-i", "--onto", upstream_branch_name.as_str(), upstream_branch_name.as_str(), head_branch_shorthand]);
-  match res {
-    Ok(exit_status) => println!("exitStatus: {}", exit_status),
-    Err(e) => println!("error: {}", e)
+  match utils::execute("git", &["rebase", "-i", "--onto", upstream_branch_name.as_str(), upstream_branch_name.as_str(), head_branch_shorthand]) {
+    Ok(_) => return,
+    Err(e) => println!("error: {:?}", e)
   }
 }

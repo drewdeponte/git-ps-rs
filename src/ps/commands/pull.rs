@@ -8,9 +8,8 @@
 use super::super::utils;
 
 pub fn pull() {
-  let res = utils::execute("git", &["pull", "--rebase"]);
-  match res {
-    Ok(exit_status) => println!("exit_status: {}", exit_status),
-    Err(e) => println!("error: {}", e)
+  match utils::execute("git", &["pull", "--rebase"]) {
+    Ok(_) => return,
+    Err(e) => println!("error: {:?}", e)
   }
 }

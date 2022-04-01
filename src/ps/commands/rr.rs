@@ -63,9 +63,8 @@ pub fn rr(patch_index: usize) {
 
   let refspecs = format!("{}:{}", branch_ref_name, branch_ref_name);
   println!("git push -f {} {}", remote_name.as_str().unwrap(), refspecs);
-  let res = utils::execute("git", &["push", "-f", remote_name.as_str().unwrap(), &refspecs]);
-  match res {
-    Ok(exit_status) => println!("exitStatus: {}", exit_status),
-    Err(e) => println!("error: {}", e)
+  match utils::execute("git", &["push", "-f", remote_name.as_str().unwrap(), &refspecs]) {
+    Ok(_) => return,
+    Err(e) => println!("error: {:?}", e)
   }
 }
