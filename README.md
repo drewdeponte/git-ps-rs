@@ -74,61 +74,29 @@ The following is a breakdown of the filesystem hierarchy and what each of the
 module's is responsible for.
 
 * `src`
-	* `main` - command line parsing & sub command handoff
+	* `main` - command line entry point, parsing & sub command handoff
+	* `commands` - module collecting plumbing & porcelain cmd funcs for cli
+		* `plumbing` - module of plumbing command funcs for cli
+			* `branch` - branch command & supporting functionality
+		* `porcelain` - module of porcelain command funcs for cli
+			* `ls` - ls command & supporting functionality
+			* `pull` - pull command & supporting functionality
+			* `rebase` - rebase command & supporting functionality
+			* `rr` - rr command & supporting functionality 
+			* `pub` - pub command & supporting functionality
+			* `show` - show command & supporting functionality
+			* `co` - co command & supporting functionality
+	* `lib` - library entry point
 	* `ps` - parenting module collecting Patch Stack specific modules 
 		* `utils` - generic utility functions
 		* `git` - functionality for interfacing with git
 		* `test` - test suite helpers
 		* `ps` - generic shared patch stack functionality
-		* `commands` - container module for the subcommand modules
-			* `ls` - ls subcommand & supporting functionality
-			* `pull` - pull subcommand & supporting functionality
-			* `rebase` - rebase subcommand & supporting functionality
-			* `rr` - rr subcommand & supporting functionality
-			* `pub` - pub subcommand & supporting functionality
-			* `show` - show subcommand & supporting functionality
-			* `co` - co subcommand & supporting functionality
-
-#### Module Hierarchy
-
-We can also look at the module hierarchy from a dependency standpoint. Below we
-can see that the main entry point for the command line tool depends on a module
-called `ps`. You can think of the `ps` module as Patch Stack library that the
-command line app uses to execute the various Patch Stack subcommands. We can
-also see that the various subcommands depend on a module named `ps::ps`. This
-is a lower level module supporting the functionality of the subcommands by
-providing an API at a conceptual level of the Patch Stack internals. We can
-further see that there are two more modules, `ps::utils` & `ps::git` that
-support the `ps::ps` module's functionality.
-
-```
-              +--------+
-              |  main  |
-              +--------+
-                   |
-                   v
-              +--------+
-              |   ps   |
-              +--------+
-                   |
-                   v
-+-------------------------------------+
-|    subcommand (ps::commands::ls,    |
-|      ps::commands::pull, etc.)      |
-+-------------------------------------+
-                   |
-                   v
-             +-----------+
-             |  ps::ps   |
-             +-----------+
-                   |
-           +-------+------+
-           |              |
-           v              v
-     +-----------+  +----------+
-     | ps::utils |  | ps::git  |
-     +-----------+  +----------+
-```
+		* `ls` - ls command function in the library
+		* `pull` - pull command function in the library
+		* `rebase` - rebase command function in the library
+		* `rr` - rr command function in the library
+		* `branch` - branch command function in the library
 
 ### Build
 

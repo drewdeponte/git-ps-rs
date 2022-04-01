@@ -1,11 +1,9 @@
-mod ps;
-
 #[macro_use]
 extern crate lazy_static;
 
-pub use ps::{
-  commands::ls::ls,
-  commands::rebase::rebase,
-  pull::{pull, PullError},
-  commands::rr::rr
-};
+mod ps;
+
+pub use ps::pull::{pull, PullError};
+pub use ps::ls::ls;
+pub use ps::rebase::rebase;
+pub use ps::rr::rr;

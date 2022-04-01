@@ -13,7 +13,7 @@
 
 use structopt::StructOpt;
 
-use gps as ps;
+mod commands;
 
 // #[derive(Debug, StructOpt)]
 // pub struct Show {
@@ -53,9 +53,9 @@ fn main() {
     // println!("{:?}", opt);
 
     match opt.command {
-        Command::List => ps::ls(),
-        Command::Rebase => ps::rebase(),
-        Command::Pull => ps::pull().unwrap(),
-        Command::RequestReview(opts) => ps::rr(opts.patch_index),
+        Command::List => commands::porcelain::ls::ls(),
+        Command::Rebase => commands::porcelain::rebase::rebase(),
+        Command::Pull => commands::porcelain::pull::pull(),
+        Command::RequestReview(opts) => commands::porcelain::rr::rr(opts.patch_index),
     };
 }

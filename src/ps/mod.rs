@@ -4,10 +4,13 @@
 // externally. All code related to these responsibilities belongs here.
 
 pub mod ps;
+pub mod branch;
 pub mod git;
 pub mod utils;
-pub mod commands;
 pub mod pull;
+pub mod ls;
+pub mod rebase;
+pub mod rr;
 
 #[cfg(test)]
 mod test;

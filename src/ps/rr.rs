@@ -1,13 +1,6 @@
-// This is the `rr` module. It is responsible for exposing a public interface
-// making it easy for the CLI to execute the rr subcommand. This generally
-// means there is one public function. In this case the `rr()` function. All
-// other functions in here are purely private supporting functions and should
-// be strongly considered if they fit better in one of the other modules such
-// as the `ps::ps`, `ps::git`, or `ps::utils`.
-
-use super::super::utils;
-use super::super::git;
-use super::super::ps;
+use super::utils;
+use super::git;
+use super::ps;
 use uuid::Uuid;
 
 pub fn rr(patch_index: usize) {
