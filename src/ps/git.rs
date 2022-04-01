@@ -44,9 +44,20 @@ impl From<git2::Error> for GitError {
     }
 }
 
+#[derive(Debug)]
+pub enum CreateCwdRepositoryError {
+  Failed(git2::Error)
+}
+
+impl From<git2::Error> for CreateCwdRepositoryError {
+  fn from(e: git2::Error) -> Self {
+    Self::Failed(e)
+  }
+}
+
 /// Attempt to open an already-existing repository at or above current working
 /// directory
-pub fn create_cwd_repo() -> Result<git2::Repository, GitError> {
+pub fn create_cwd_repo() -> Result<git2::Repository, CreateCwdRepositoryError> {
     let repo = git2::Repository::discover("./")?;
     Ok(repo)
 }
