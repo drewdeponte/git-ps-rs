@@ -7,8 +7,6 @@
 //
 // All code fitting that description belongs here.
 
-pub mod pull;
-
 use git2;
 use super::git;
 use regex::Regex;
