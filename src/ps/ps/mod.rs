@@ -7,12 +7,12 @@
 //
 // All code fitting that description belongs here.
 
+pub mod pull;
+
 use git2;
 use super::git;
 use regex::Regex;
 use uuid::Uuid;
-use super::utils;
-use std::io;
 
 pub struct PatchStack<'a> {
     pub head: git2::Reference<'a>,
@@ -144,29 +144,6 @@ pub fn add_ps_id(repo: &git2::Repository, commit_oid: git2::Oid, ps_id: Uuid) ->
   return Ok(amended_patch_oid);
 }
 
-#[derive(Debug)]
-pub enum PullError {
-  ExitStatus(i32),
-  ExitSignal(i32),
-  IOError(io::Error),
-  Unknown
-}
-
-impl From<utils::ExecuteError> for PullError {
-  fn from(e: utils::ExecuteError) -> Self {
-    match e {
-      utils::ExecuteError::SpawnFailure(io_error) => PullError::IOError(io_error),
-      utils::ExecuteError::Failure(io_error) => PullError::IOError(io_error),
-      utils::ExecuteError::ExitStatus(code) => PullError::ExitStatus(code),
-      utils::ExecuteError::ExitSignal(signal) => PullError::ExitSignal(signal),
-      utils::ExecuteError::ExitMissingSignal => PullError::Unknown
-    }
-  }
-}
-
-pub fn pull() -> Result<(), PullError> {
-  utils::execute("git", &["pull", "--rebase"]).map_err(PullError::from)
-}
 
 #[cfg(test)]
 mod tests {

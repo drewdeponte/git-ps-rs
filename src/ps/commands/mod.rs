@@ -5,5 +5,4 @@
 
 pub mod ls;
 pub mod rebase;
-pub mod pull;
 pub mod rr;

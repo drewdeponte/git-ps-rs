@@ -55,7 +55,7 @@ fn main() {
     match opt.command {
         Command::List => ps::ls(),
         Command::Rebase => ps::rebase(),
-        Command::Pull => ps::pull(),
+        Command::Pull => ps::pull().unwrap(),
         Command::RequestReview(opts) => ps::rr(opts.patch_index),
     };
 }
