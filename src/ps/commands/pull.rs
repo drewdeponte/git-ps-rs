@@ -5,10 +5,10 @@
 // functions and should be strongly considered if they fit better in one of
 // the other modules such as the `ps::ps`, `ps::git`, or `ps::utils`.
 
-use super::super::utils;
+use super::super::ps;
 
 pub fn pull() {
-  match utils::execute("git", &["pull", "--rebase"]) {
+  match ps::pull() {
     Ok(_) => return,
     Err(e) => println!("error: {:?}", e)
   }
