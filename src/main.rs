@@ -29,7 +29,14 @@ pub struct RequestReview {
 }
 
 #[derive(Debug, StructOpt)]
+pub struct BranchCmdOpts {
+  pub patch_index: usize
+}
+
+#[derive(Debug, StructOpt)]
 pub enum Command {
+    #[structopt(name = "branch")]
+    Branch(BranchCmdOpts),
     #[structopt(name = "ls")]
     List,
     #[structopt(name = "rebase")]
@@ -53,6 +60,7 @@ fn main() {
     // println!("{:?}", opt);
 
     match opt.command {
+        Command::Branch(opts) => commands::plumbing::branch::branch(opts.patch_index),
         Command::List => commands::porcelain::ls::ls(),
         Command::Rebase => commands::porcelain::rebase::rebase(),
         Command::Pull => commands::porcelain::pull::pull(),

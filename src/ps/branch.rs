@@ -1,9 +1,8 @@
-
-use super::utils;
 use super::git;
 use super::ps;
 use uuid::Uuid;
 use std::result::Result;
+use std::fmt;
 
 #[derive(Debug)]
 pub enum BranchError {
@@ -42,6 +41,24 @@ impl From<ps::AddPsIdError> for BranchError {
   }
 }
 
+impl fmt::Display for BranchError {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      BranchError::RepositoryMissing => write!(f, "Repository not found in current working directory"),
+      BranchError::PatchStackNotFound => write!(f, "Patch Stack not found"),
+      BranchError::PatchStackBaseNotFound => write!(f, "Patch Stack Base not found"),
+      BranchError::PatchIndexNotFound => write!(f, "Patch Index out of range"),
+      BranchError::PatchCommitNotFound => write!(f, "Patch commit not found"),
+      BranchError::PatchMessageMissing => write!(f, "Patch missing message"),
+      BranchError::AddPsIdToPatchFailed(_add_ps_id_error) => write!(f, "Failed to add patch stack id to patch"),
+      BranchError::PatchSummaryMissing => write!(f, "Patch missing summary"),
+      BranchError::CreateRrBranchFailed => write!(f, "Failed to create request-review branch"),
+      BranchError::RrBranchNameNotUtf8 => write!(f, "request-review branch is not utf8"),
+      BranchError::CherryPickFailed(_git_error) => write!(f, "Failed to cherry pick")
+    }
+  }
+}
+
 pub fn branch(patch_index: usize) -> Result<(), BranchError>  {
   let repo = git::create_cwd_repo()?;
 
@@ -51,7 +68,6 @@ pub fn branch(patch_index: usize) -> Result<(), BranchError>  {
   let patches_vec = ps::get_patch_list(&repo, patch_stack);
 
   let patch_oid = patches_vec.get(patch_index).ok_or(BranchError::PatchIndexNotFound)?.oid;
-  println!("patch_oid: {}", patch_oid);
 
   let patch_commit = repo.find_commit(patch_oid).map_err(|_| BranchError::PatchCommitNotFound)?;
   let patch_message = patch_commit.message().ok_or(BranchError::PatchMessageMissing)?;
@@ -71,13 +87,11 @@ pub fn branch(patch_index: usize) -> Result<(), BranchError>  {
   let branch = repo.branch(branch_name.as_str(), &patch_stack_base_commit, false).map_err(|_| BranchError::CreateRrBranchFailed)?;
   
   let branch_ref_name = branch.get().name().ok_or(BranchError::RrBranchNameNotUtf8)?;
-  println!("branch_ref_name: {}", branch_ref_name);
 
   // TODO: finish handling errors below this
 
   // - cherry pick the patch onto new rr branch
   let cherry_picked_patch_oid = git::cherry_pick_no_working_copy(&repo, new_patch_oid, branch_ref_name).map_err(BranchError::CherryPickFailed)?;
-  println!("cherry_picked_patch_oid: {}", cherry_picked_patch_oid);
 
   Ok(())
 }
