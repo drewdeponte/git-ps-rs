@@ -1,5 +1,8 @@
 use gps as ps;
 
 pub fn pull() {
-  ps::pull().unwrap();
+  match ps::pull() {
+    Ok(_) => return,
+    Err(e) => eprintln!("Error: {:?}", e)
+  };
 }
