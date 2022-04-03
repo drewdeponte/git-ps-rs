@@ -8,5 +8,8 @@
 use gps as ps;
 
 pub fn rr(patch_index: usize) {
-  ps::rr(patch_index);
+  match ps::rr(patch_index) {
+    Ok(_) => return,
+    Err(e) => eprintln!("Error: {:?}", e)
+  };
 }
