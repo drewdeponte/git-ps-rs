@@ -196,9 +196,13 @@ pub enum ExtForcePushError {
   ExecuteFailed(utils::ExecuteError)
 }
 
-pub fn ext_force_push(remote_name: &str, src_ref_spec: &str, dest_ref_spec: &str) -> Result<(), ExtForcePushError> {
+pub fn ext_push(force: bool, remote_name: &str, src_ref_spec: &str, dest_ref_spec: &str) -> Result<(), ExtForcePushError> {
   let refspecs = format!("{}:{}", src_ref_spec, dest_ref_spec);
-  utils::execute("git", &["push", "-f", remote_name, &refspecs]).map_err(|e| ExtForcePushError::ExecuteFailed(e))
+  if force {
+    utils::execute("git", &["push", "-f", remote_name, &refspecs]).map_err(|e| ExtForcePushError::ExecuteFailed(e))
+  } else {
+    utils::execute("git", &["push", remote_name, &refspecs]).map_err(|e| ExtForcePushError::ExecuteFailed(e))
+  }
 }
 
 // private func addIdTo(uuid: UUID, patch: Commit) throws -> Commit? {

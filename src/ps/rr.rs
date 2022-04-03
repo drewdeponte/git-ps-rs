@@ -25,5 +25,5 @@ pub fn rr(patch_index: usize) -> Result<(), RequestReviewError> {
 
   // force push request review branch up to remote
   let branch_ref_name = branch.get().name().ok_or(RequestReviewError::RequestReviewBranchNameMissing)?;
-  git::ext_force_push(remote_name.as_str().unwrap(), branch_ref_name, branch_ref_name).map_err(|e| RequestReviewError::ForcePushFailed(e))
+  git::ext_push(true, remote_name.as_str().unwrap(), branch_ref_name, branch_ref_name).map_err(|e| RequestReviewError::ForcePushFailed(e))
 }
