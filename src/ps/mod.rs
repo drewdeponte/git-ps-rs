@@ -8,6 +8,7 @@ pub mod pull;
 pub mod ls;
 pub mod rebase;
 pub mod rr;
+pub mod integrate;
 
 use plumbing::git;
 // This is the `ps` module. It is responsible for housing functionality

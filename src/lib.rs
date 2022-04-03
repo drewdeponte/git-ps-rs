@@ -8,3 +8,4 @@ pub use ps::ls::ls;
 pub use ps::rebase::rebase;
 pub use ps::rr::rr;
 pub use ps::plumbing;
+pub use ps::integrate;
