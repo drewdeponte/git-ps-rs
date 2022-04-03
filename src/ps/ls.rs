@@ -15,7 +15,8 @@ struct RequestReviewRecord {
 #[derive(Debug)]
 pub enum LsError {
   RepositoryNotFound,
-  GetPatchStackFailed(ps::PatchStackError)
+  GetPatchStackFailed(ps::PatchStackError),
+  GetPatchListFailed(ps::GetPatchListError)
 }
 
 pub fn ls() -> Result<(), LsError> {
@@ -40,7 +41,7 @@ pub fn ls() -> Result<(), LsError> {
     // println!("deserialized = {:?}", rr_records);
 
     let patch_stack = ps::get_patch_stack(&repo).map_err(|e| LsError::GetPatchStackFailed(e))?;
-    let list_of_patches = ps::get_patch_list(&repo, patch_stack);
+    let list_of_patches = ps::get_patch_list(&repo, patch_stack).map_err(|e| LsError::GetPatchListFailed(e))?;
 
     for patch in list_of_patches.into_iter().rev() {
         println!("{}     {} - {}", patch.index, patch.oid, patch.summary)

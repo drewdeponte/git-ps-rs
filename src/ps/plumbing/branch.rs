@@ -16,11 +16,12 @@ pub enum BranchError {
   PatchSummaryMissing,
   CreateRrBranchFailed,
   RrBranchNameNotUtf8,
-  CherryPickFailed(git::GitError)
+  CherryPickFailed(git::GitError),
+  GetPatchListFailed(ps::GetPatchListError)
 }
 
 impl From<git::CreateCwdRepositoryError> for BranchError {
-  fn from(e: git::CreateCwdRepositoryError) -> Self {
+  fn from(_e: git::CreateCwdRepositoryError) -> Self {
     BranchError::RepositoryMissing
   }
 }
@@ -28,7 +29,7 @@ impl From<git::CreateCwdRepositoryError> for BranchError {
 impl From<ps::PatchStackError> for BranchError {
   fn from(e: ps::PatchStackError) -> Self {
     match e {
-      ps::PatchStackError::GitError(git2_error) => BranchError::PatchStackNotFound,
+      ps::PatchStackError::GitError(_git2_error) => BranchError::PatchStackNotFound,
       ps::PatchStackError::HeadNoName => BranchError::PatchStackNotFound,
       ps::PatchStackError::UpstreamBranchNameNotFound => BranchError::PatchStackNotFound,
     }
@@ -54,7 +55,8 @@ impl fmt::Display for BranchError {
       BranchError::PatchSummaryMissing => write!(f, "Patch missing summary"),
       BranchError::CreateRrBranchFailed => write!(f, "Failed to create request-review branch"),
       BranchError::RrBranchNameNotUtf8 => write!(f, "request-review branch is not utf8"),
-      BranchError::CherryPickFailed(_git_error) => write!(f, "Failed to cherry pick")
+      BranchError::CherryPickFailed(_git_error) => write!(f, "Failed to cherry pick"),
+      BranchError::GetPatchListFailed(_patch_list_error) => write!(f, "Failed to get patch list")
     }
   }
 }
@@ -63,14 +65,14 @@ pub fn branch<'a>(repo: &'a git2::Repository, patch_index: usize) -> Result<git2
   // - find the patch identified by the patch_index
   let patch_stack = ps::get_patch_stack(&repo)?;
   let patch_stack_base_commit = patch_stack.base.peel_to_commit().map_err(|_| BranchError::PatchStackBaseNotFound)?;
-  let patches_vec = ps::get_patch_list(&repo, patch_stack);
+  let patches_vec = ps::get_patch_list(&repo, patch_stack).map_err(|e| BranchError::GetPatchListFailed(e))?;
   let patch_oid = patches_vec.get(patch_index).ok_or(BranchError::PatchIndexNotFound)?.oid;
   let patch_commit = repo.find_commit(patch_oid).map_err(|_| BranchError::PatchCommitNotFound)?;
 
   let patch_message = patch_commit.message().ok_or(BranchError::PatchMessageMissing)?;
 
   let new_patch_oid: git2::Oid;
-  if let Some(ps_id) = ps::extract_ps_id(patch_message) {
+  if let Some(_ps_id) = ps::extract_ps_id(patch_message) {
     new_patch_oid = patch_oid;
   } else {
     new_patch_oid = ps::add_ps_id(&repo, patch_oid, Uuid::new_v4())?;

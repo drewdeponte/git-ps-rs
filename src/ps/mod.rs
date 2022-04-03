@@ -57,17 +57,24 @@ pub struct ListPatch {
     pub oid: git2::Oid
 }
 
-pub fn get_patch_list(repo: &git2::Repository, patch_stack: PatchStack) -> Vec<ListPatch> {
-    let mut rev_walk = repo.revwalk().unwrap();
-    rev_walk.push(patch_stack.head.target().unwrap()).unwrap();
-    rev_walk.hide(patch_stack.base.target().unwrap()).unwrap();
-    rev_walk.set_sorting(git2::Sort::REVERSE).unwrap();
+#[derive(Debug)]
+pub enum GetPatchListError {
+  CreateRevWalkFailed(git2::Error),
+  StackHeadTargetMissing,
+  StackBaseTargetMissing
+}
+
+pub fn get_patch_list(repo: &git2::Repository, patch_stack: PatchStack) -> Result<Vec<ListPatch>, GetPatchListError> {
+    let mut rev_walk = repo.revwalk().map_err(|e| GetPatchListError::CreateRevWalkFailed(e))?;
+    rev_walk.push(patch_stack.head.target().ok_or(GetPatchListError::StackHeadTargetMissing)?).map_err(|e| GetPatchListError::CreateRevWalkFailed(e))?;
+    rev_walk.hide(patch_stack.base.target().ok_or(GetPatchListError::StackBaseTargetMissing)?).map_err(|e| GetPatchListError::CreateRevWalkFailed(e))?;
+    rev_walk.set_sorting(git2::Sort::REVERSE).map_err(|e| GetPatchListError::CreateRevWalkFailed(e))?;
 
     let list_of_patches: Vec<ListPatch> = rev_walk.enumerate().map(|(i, rev)| {
         let r = rev.unwrap();
         ListPatch { index: i, summary: git::get_summary(&repo, &r).unwrap(), oid: r }
     }).collect();
-    return list_of_patches;
+    return Ok(list_of_patches);
 }
 
 pub fn extract_ps_id(message: &str) -> Option<String> {
@@ -129,7 +136,7 @@ pub fn add_ps_id(repo: &git2::Repository, commit_oid: git2::Oid, ps_id: Uuid) ->
   let upstream_branch_commit = repo.find_commit(upstream_branch_oid)?;
 
   // create branch
-  let mut add_id_rework_branch = repo.branch("ps/tmp/add_id_rework", &upstream_branch_commit, true)?;
+  let add_id_rework_branch = repo.branch("ps/tmp/add_id_rework", &upstream_branch_commit, true)?;
   let add_id_rework_branch_ref_name = add_id_rework_branch.get().name().ok_or(AddPsIdError::FailedToGetReferenceName)?;
 
   // cherry pick
