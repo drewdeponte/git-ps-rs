@@ -34,9 +34,16 @@ pub struct BranchCmdOpts {
 }
 
 #[derive(Debug, StructOpt)]
+pub struct IntegrateCmdOpts {
+  pub patch_index: usize
+}
+
+#[derive(Debug, StructOpt)]
 pub enum Command {
     #[structopt(name = "branch")]
     Branch(BranchCmdOpts),
+    #[structopt(name = "integrate")]
+    Integrate(IntegrateCmdOpts),
     #[structopt(name = "ls")]
     List,
     #[structopt(name = "rebase")]
@@ -61,6 +68,7 @@ fn main() {
 
     match opt.command {
         Command::Branch(opts) => commands::plumbing::branch::branch(opts.patch_index),
+        Command::Integrate(opts) => commands::porcelain::integrate::integrate(opts.patch_index),
         Command::List => commands::porcelain::ls::ls(),
         Command::Rebase => commands::porcelain::rebase::rebase(),
         Command::Pull => commands::porcelain::pull::pull(),
