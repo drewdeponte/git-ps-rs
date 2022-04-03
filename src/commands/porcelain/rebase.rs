@@ -8,5 +8,8 @@
 use gps as ps;
 
 pub fn rebase() {
-  ps::rebase();
+  match ps::rebase() {
+    Ok(_) => return,
+    Err(e) => eprintln!("Error: {:?}", e)
+  };
 }
