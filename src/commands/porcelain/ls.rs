@@ -8,5 +8,8 @@
 use gps as ps;
 
 pub fn ls() {
-  ps::ls();
+  match ps::ls() {
+    Ok(_) => return,
+    Err(e) => eprintln!("Error: {:?}", e)
+  };
 }

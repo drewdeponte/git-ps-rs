@@ -12,8 +12,14 @@ struct RequestReviewRecord {
     location_agnostic_hash: Option<String>
 }
 
-pub fn ls() {
-    let repo = git::create_cwd_repo().unwrap();
+#[derive(Debug)]
+pub enum LsError {
+  RepositoryNotFound,
+  GetPatchStackFailed(ps::PatchStackError)
+}
+
+pub fn ls() -> Result<(), LsError> {
+    let repo = git::create_cwd_repo().map_err(|_| LsError::RepositoryNotFound)?;
 
     // let path_str = format!("{}{}", repo.path().to_str().unwrap(), "patch-stack-review-requests.json");
     // let path = Path::new(&path_str);
@@ -33,10 +39,12 @@ pub fn ls() {
     // let rr_records: Vec<RequestReviewRecord> = serde_json::from_str(s.as_str()).unwrap();
     // println!("deserialized = {:?}", rr_records);
 
-    let patch_stack = ps::get_patch_stack(&repo).unwrap();
+    let patch_stack = ps::get_patch_stack(&repo).map_err(|e| LsError::GetPatchStackFailed(e))?;
     let list_of_patches = ps::get_patch_list(&repo, patch_stack);
 
     for patch in list_of_patches.into_iter().rev() {
         println!("{}     {} - {}", patch.index, patch.oid, patch.summary)
     }
+
+    Ok(())
 }
