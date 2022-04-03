@@ -28,6 +28,8 @@
 // All code fitting that description belongs here.
 
 use git2;
+use super::utils;
+use std::result::Result;
 
 #[derive(Debug)]
 pub enum GitError {
@@ -187,6 +189,16 @@ pub fn cherry_pick_no_working_copy_amend_message<'a>(repo: &'a git2::Repository,
   let new_commit_oid = repo.commit(Option::Some(destination_ref_name), &author, &committer, amended_message.as_str(), &tree, &[&destination_commit])?;
 
   return Ok(new_commit_oid);
+}
+
+#[derive(Debug)]
+pub enum ExtForcePushError {
+  ExecuteFailed(utils::ExecuteError)
+}
+
+pub fn ext_force_push(remote_name: &str, src_ref_spec: &str, dest_ref_spec: &str) -> Result<(), ExtForcePushError> {
+  let refspecs = format!("{}:{}", src_ref_spec, dest_ref_spec);
+  utils::execute("git", &["push", "-f", remote_name, &refspecs]).map_err(|e| ExtForcePushError::ExecuteFailed(e))
 }
 
 // private func addIdTo(uuid: UUID, patch: Commit) throws -> Commit? {

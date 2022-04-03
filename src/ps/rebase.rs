@@ -1,4 +1,4 @@
-use super::utils;
+use super::plumbing::utils;
 use super::git;
 
 pub fn rebase() {

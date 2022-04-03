@@ -1,5 +1,5 @@
 use super::git;
-use super::ps;
+use super::super::ps;
 use uuid::Uuid;
 use serde::{Serialize, Deserialize};
 

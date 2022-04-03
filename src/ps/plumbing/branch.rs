@@ -1,5 +1,5 @@
 use super::git;
-use super::ps;
+use super::super::super::ps;
 use uuid::Uuid;
 use std::result::Result;
 use std::fmt;
@@ -59,9 +59,7 @@ impl fmt::Display for BranchError {
   }
 }
 
-pub fn branch(patch_index: usize) -> Result<(), BranchError>  {
-  let repo = git::create_cwd_repo()?;
-
+pub fn branch<'a>(repo: &'a git2::Repository, patch_index: usize) -> Result<git2::Branch<'a>, BranchError>  {
   // - find the patch identified by the patch_index
   let patch_stack = ps::get_patch_stack(&repo)?;
   let patch_stack_base_commit = patch_stack.base.peel_to_commit().map_err(|_| BranchError::PatchStackBaseNotFound)?;
@@ -88,5 +86,5 @@ pub fn branch(patch_index: usize) -> Result<(), BranchError>  {
   // - cherry pick the patch onto new rr branch
   git::cherry_pick_no_working_copy(&repo, new_patch_oid, branch_ref_name).map_err(BranchError::CherryPickFailed)?;
 
-  Ok(())
+  Ok(branch)
 }
