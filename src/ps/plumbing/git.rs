@@ -205,30 +205,6 @@ pub fn ext_push(force: bool, remote_name: &str, src_ref_spec: &str, dest_ref_spe
   }
 }
 
-// private func addIdTo(uuid: UUID, patch: Commit) throws -> Commit? {
-//   let originalBranch = try self.git.getCheckedOutBranch()
-//   let upstreamBranch = try self.git.getUpstreamBranch()
-//   let commonAncestorRef = try self.git.mergeBase(refA: patch.hash, refB: upstreamBranch.remoteBase)
-//   try self.git.createAndCheckout(branch: "ps/tmp/add_id_rework", startingFrom: commonAncestorRef)
-//   try self.git.cherryPickCommits(from: commonAncestorRef, to: patch.hash)
-//   let shaOfPatchPrime = try self.git.getShaOf(ref: "HEAD")
-//   print("- got sha of HEAD (a.k.a. patch') - \(shaOfPatchPrime)")
-//   let originalMessage = try self.git.commitMessageOf(ref: shaOfPatchPrime)
-//   print("- got commit message from \(shaOfPatchPrime) (a.k.a. patch')")
-//   try self.git.commitAmendMessages(messages: [originalMessage, "ps-id: \(uuid.uuidString)"])
-//   print("- amended patch' wich ps-id: \(uuid.uuidString), it is now patch''")
-//   let shaOfPatchFinalPrime = try self.git.getShaOf(ref: "HEAD")
-//   print("- got sha of HEAD (a.k.a. patch'' - \(shaOfPatchFinalPrime)")
-//   try self.git.cherryPickCommits(from: patch.hash, to: upstreamBranch.branch)
-//   try self.git.forceBranch(named: upstreamBranch.branch, to: "HEAD")
-//   print("- forced branch (\(upstreamBranch.branch)) to point to HEAD")
-//   try self.git.checkout(ref: originalBranch)
-//   print("- checked out branch - \(originalBranch)")
-//   try self.git.deleteBranch(named: "ps/tmp/add_id_rework")
-//   print("- deleted tmp working branch - ps/tmp/add_id_rework")
-//   return try self.git.commit(shaOfPatchFinalPrime)
-// }
-
 #[cfg(test)]
 mod tests {
     #[test]
