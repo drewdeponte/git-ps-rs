@@ -11,6 +11,8 @@ pub mod rr;
 pub mod integrate;
 pub mod state_management;
 
+use std::str::FromStr;
+
 use plumbing::git;
 // This is the `ps` module. It is responsible for housing functionality
 // specific to Patch Stack as a conceptual level.  It is responsible for
@@ -79,11 +81,15 @@ pub fn get_patch_list(repo: &git2::Repository, patch_stack: PatchStack) -> Resul
     return Ok(list_of_patches);
 }
 
-pub fn extract_ps_id(message: &str) -> Option<String> {
+pub fn extract_ps_id(message: &str) -> Option<Uuid> {
   lazy_static! {
     static ref RE: Regex = Regex::new(r"ps-id:\s(?P<patchStackId>[\w\d-]+)").unwrap();
   }
-  return RE.captures(message).map(|caps| String::from(&caps["patchStackId"]));
+  let string = RE.captures(message).map(|caps| String::from(&caps["patchStackId"]));
+  match string {
+    Some(v) => Uuid::from_str(v.as_str()).ok(),
+    None => None
+  }
 }
 
 pub fn slugify(summary: &str) -> String {

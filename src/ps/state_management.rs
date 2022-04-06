@@ -9,16 +9,15 @@ use uuid::Uuid;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum PatchState {
-  Pending,
-  BranchCreated(String), // branch_name
+  PushedToRemote(String), // branch_name
   RequestedReview(String), // branch_name
   Published(String) // branch_name
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Patch {
-  patch_id: Uuid,
-  state: PatchState
+  pub patch_id: Uuid,
+  pub state: PatchState
 }
 
 #[derive(Debug)]

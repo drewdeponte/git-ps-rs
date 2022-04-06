@@ -61,7 +61,7 @@ impl fmt::Display for BranchError {
   }
 }
 
-pub fn branch<'a>(repo: &'a git2::Repository, patch_index: usize) -> Result<git2::Branch<'a>, BranchError>  {
+pub fn branch<'a>(repo: &'a git2::Repository, patch_index: usize) -> Result<(git2::Branch<'a>, Uuid), BranchError>  {
   // - find the patch identified by the patch_index
   let patch_stack = ps::get_patch_stack(&repo)?;
   let patch_stack_base_commit = patch_stack.base.peel_to_commit().map_err(|_| BranchError::PatchStackBaseNotFound)?;
@@ -72,13 +72,18 @@ pub fn branch<'a>(repo: &'a git2::Repository, patch_index: usize) -> Result<git2
   let patch_message = patch_commit.message().ok_or(BranchError::PatchMessageMissing)?;
 
   let new_patch_oid: git2::Oid;
-  if let Some(_ps_id) = ps::extract_ps_id(patch_message) {
+  let ps_id: Uuid;
+  if let Some(extracted_ps_id) = ps::extract_ps_id(patch_message) {
+    ps_id = extracted_ps_id;
     new_patch_oid = patch_oid;
   } else {
-    new_patch_oid = ps::add_ps_id(&repo, patch_oid, Uuid::new_v4())?;
+    ps_id = Uuid::new_v4();
+    new_patch_oid = ps::add_ps_id(&repo, patch_oid, ps_id)?;
   }
 
   // - create rr branch based on upstream branch
+  // TODO: read patch states, check if patch has existing branch, if does use
+  // that branch otherwise fallback to creating our branch
   let patch_summary = patch_commit.summary().ok_or(BranchError::PatchSummaryMissing)?;
   let branch_name = ps::generate_rr_branch_name(patch_summary);
   let branch = repo.branch(branch_name.as_str(), &patch_stack_base_commit, false).map_err(|_| BranchError::CreateRrBranchFailed)?;
@@ -88,5 +93,5 @@ pub fn branch<'a>(repo: &'a git2::Repository, patch_index: usize) -> Result<git2
   // - cherry pick the patch onto new rr branch
   git::cherry_pick_no_working_copy(&repo, new_patch_oid, branch_ref_name).map_err(BranchError::CherryPickFailed)?;
 
-  Ok(branch)
+  Ok((branch, ps_id))
 }
