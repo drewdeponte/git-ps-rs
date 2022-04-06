@@ -29,6 +29,11 @@ pub fn rr(patch_index: usize) -> Result<(), RequestReviewError> {
   let rr_branch_name = branch_ref_name.to_string();
 
   // associate the patch to the branch that was created
+  // TODO: make this smarter. It needs to take into account the previous state
+  // of the patch. For example lets say that the patch was already in a state
+  // of published. What should happen if the user rr's that patch again?
+  // Should it reset the patch state to PushedToRemote, or even to
+  // RequestedReview? This needs to be thought through and taken into account.
   let patch_state = Patch {
     patch_id: ps_id,
     state: PatchState::PushedToRemote(rr_branch_name)
