@@ -105,6 +105,27 @@ pub fn store_patch_state(repo: &git2::Repository, patch_state: &Patch) -> Result
   Ok(())
 }
 
+pub fn update_patch_state(repo: &git2::Repository, patch_id: &Uuid, f: impl FnOnce(Option<Patch>) -> Patch) -> Result<(), StorePatchStateError> {
+  // get path to patch states file
+  let states_path = patch_states_path(repo)
+    .map_err(|_| StorePatchStateError::PatchStatesPathNotFound)?;
+
+  // read the patch states in
+  // let mut patch_states: HashMap<Uuid, Patch> = read_patch_states(
+  let mut patch_states = read_patch_states(&states_path)
+    .map_err(|e| StorePatchStateError::ReadPatchStatesFailed(e))?;
+
+  // add the patch to the hash map
+  let patch_state_copy: Patch = f(patch_states.get(patch_id).cloned());
+  patch_states.insert(patch_state_copy.patch_id, patch_state_copy);
+
+  // write the patch states out
+  write_patch_states(&states_path, &patch_states)
+    .map_err(|e| StorePatchStateError::WritePatchStatesFailed(e))?;
+
+  Ok(())
+}
+
 #[derive(Debug)]
 pub enum FetchPatchMetaDataError {
   FailedToGetPathToMetaData(PatchStatesPathError),

@@ -1,6 +1,6 @@
 use super::git;
 use super::super::ps;
-use super::state_management::{Patch, PatchState, StorePatchStateError, store_patch_state};
+use super::state_management;
 
 #[derive(Debug)]
 pub enum RequestReviewError {
@@ -11,7 +11,7 @@ pub enum RequestReviewError {
   CreateRrBranchFailed(ps::plumbing::branch::BranchError),
   RequestReviewBranchNameMissing,
   ForcePushFailed(ps::plumbing::git::ExtForcePushError),
-  StorePatchStateFailed(StorePatchStateError)
+  StorePatchStateFailed(state_management::StorePatchStateError)
 }
 
 pub fn rr(patch_index: usize) -> Result<(), RequestReviewError> {
@@ -25,21 +25,35 @@ pub fn rr(patch_index: usize) -> Result<(), RequestReviewError> {
   // create request review branch for patch
   let (branch, ps_id) = ps::plumbing::branch::branch(&repo, patch_index).map_err(|e| RequestReviewError::CreateRrBranchFailed(e))?;
 
-  let branch_ref_name = branch.get().name().ok_or(RequestReviewError::RequestReviewBranchNameMissing)?;
+  let branch_ref_name = branch.get().shorthand().ok_or(RequestReviewError::RequestReviewBranchNameMissing)?;
   let rr_branch_name = branch_ref_name.to_string();
 
-  // associate the patch to the branch that was created
-  // TODO: make this smarter. It needs to take into account the previous state
-  // of the patch. For example lets say that the patch was already in a state
-  // of published. What should happen if the user rr's that patch again?
-  // Should it reset the patch state to PushedToRemote, or even to
-  // RequestedReview? This needs to be thought through and taken into account.
-  let patch_state = Patch {
-    patch_id: ps_id,
-    state: PatchState::PushedToRemote(rr_branch_name)
-  };
-  store_patch_state(&repo, &patch_state).map_err(|e| RequestReviewError::StorePatchStateFailed(e))?;
-
   // force push request review branch up to remote
-  git::ext_push(true, remote_name.as_str().unwrap(), branch_ref_name, branch_ref_name).map_err(|e| RequestReviewError::ForcePushFailed(e))
+  git::ext_push(true, remote_name.as_str().unwrap(), branch_ref_name, branch_ref_name).map_err(|e| RequestReviewError::ForcePushFailed(e))?;
+
+  // associate the patch to the branch that was created
+  state_management::update_patch_state(&repo, &ps_id, |patch_meta_data_option|
+    match patch_meta_data_option {
+      Some(patch_meta_data) => {
+        match patch_meta_data.state {
+          state_management::PatchState::Published(ref _branch_name) => patch_meta_data.clone(),
+          state_management::PatchState::RequestedReview(ref _branch_name) => patch_meta_data.clone(),
+          _ => {
+            state_management::Patch {
+              patch_id: ps_id,
+              state: state_management::PatchState::PushedToRemote(rr_branch_name)
+            }
+          }
+        }
+      },
+      None => {
+        state_management::Patch {
+          patch_id: ps_id,
+          state: state_management::PatchState::PushedToRemote(rr_branch_name)
+        }
+      }
+    }
+  ).map_err(|e| RequestReviewError::StorePatchStateFailed(e))?;
+
+  Ok(())
 }
