@@ -9,9 +9,21 @@ use uuid::Uuid;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum PatchState {
+  BranchCreated(String), // branch_name
   PushedToRemote(String), // branch_name
   RequestedReview(String), // branch_name
   Published(String) // branch_name
+}
+
+impl PatchState {
+  pub fn branch_name(&self) -> String {
+    match self {
+      Self::BranchCreated(branch_name) => branch_name.to_string(),
+      Self::PushedToRemote(branch_name) => branch_name.to_string(),
+      Self::RequestedReview(branch_name) => branch_name.to_string(),
+      Self::Published(branch_name) => branch_name.to_string()
+    }
+  }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -91,4 +103,16 @@ pub fn store_patch_state(repo: &git2::Repository, patch_state: &Patch) -> Result
     .map_err(|e| StorePatchStateError::WritePatchStatesFailed(e))?;
 
   Ok(())
+}
+
+#[derive(Debug)]
+pub enum FetchPatchMetaDataError {
+  FailedToGetPathToMetaData(PatchStatesPathError),
+  FailedToReadMetaData(ReadPatchStatesError)
+}
+
+pub fn fetch_patch_meta_data(repo: &git2::Repository, patch_id: &Uuid) -> Result<Option<Patch>, FetchPatchMetaDataError> {
+  let patch_meta_data_path = patch_states_path(repo).map_err(|e| FetchPatchMetaDataError::FailedToGetPathToMetaData(e))?;
+  let patch_meta_data = read_patch_states(patch_meta_data_path).map_err(|e| FetchPatchMetaDataError::FailedToReadMetaData(e))?;
+  Ok(patch_meta_data.get(patch_id).cloned())
 }

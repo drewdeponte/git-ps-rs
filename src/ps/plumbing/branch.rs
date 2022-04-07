@@ -1,3 +1,5 @@
+use crate::ps::state_management;
+
 use super::git;
 use super::super::super::ps;
 use uuid::Uuid;
@@ -17,7 +19,10 @@ pub enum BranchError {
   CreateRrBranchFailed,
   RrBranchNameNotUtf8,
   CherryPickFailed(git::GitError),
-  GetPatchListFailed(ps::GetPatchListError)
+  GetPatchListFailed(ps::GetPatchListError),
+  GetPatchMetaDataPathFailed(state_management::PatchStatesPathError),
+  ReadPatchMetaDataFailed(state_management::ReadPatchStatesError),
+  WritePatchMetaDataFailed(state_management::WritePatchStatesError)
 }
 
 impl From<git::CreateCwdRepositoryError> for BranchError {
@@ -56,10 +61,14 @@ impl fmt::Display for BranchError {
       BranchError::CreateRrBranchFailed => write!(f, "Failed to create request-review branch"),
       BranchError::RrBranchNameNotUtf8 => write!(f, "request-review branch is not utf8"),
       BranchError::CherryPickFailed(_git_error) => write!(f, "Failed to cherry pick"),
-      BranchError::GetPatchListFailed(_patch_list_error) => write!(f, "Failed to get patch list")
+      BranchError::GetPatchListFailed(_patch_list_error) => write!(f, "Failed to get patch list"),
+      BranchError::GetPatchMetaDataPathFailed(_patch_meta_data_path_error) => write!(f, "Failed to get patch meta data path {:?}", _patch_meta_data_path_error),
+      BranchError::ReadPatchMetaDataFailed(_read_patch_meta_data_error) => write!(f, "Failed to read patch meta data {:?}", _read_patch_meta_data_error),
+      BranchError::WritePatchMetaDataFailed(_write_patch_meta_data_error) => write!(f, "Failed to write patch meta data {:?}", _write_patch_meta_data_error)
     }
   }
 }
+
 
 pub fn branch<'a>(repo: &'a git2::Repository, patch_index: usize) -> Result<(git2::Branch<'a>, Uuid), BranchError>  {
   // - find the patch identified by the patch_index
@@ -71,6 +80,7 @@ pub fn branch<'a>(repo: &'a git2::Repository, patch_index: usize) -> Result<(git
 
   let patch_message = patch_commit.message().ok_or(BranchError::PatchMessageMissing)?;
 
+  // fetch or add patch id given patch_message
   let new_patch_oid: git2::Oid;
   let ps_id: Uuid;
   if let Some(extracted_ps_id) = ps::extract_ps_id(patch_message) {
@@ -81,17 +91,32 @@ pub fn branch<'a>(repo: &'a git2::Repository, patch_index: usize) -> Result<(git
     new_patch_oid = ps::add_ps_id(&repo, patch_oid, ps_id)?;
   }
 
-  // - create rr branch based on upstream branch
-  // TODO: read patch states, check if patch has existing branch, if does use
-  // that branch otherwise fallback to creating our branch
-  let patch_summary = patch_commit.summary().ok_or(BranchError::PatchSummaryMissing)?;
-  let branch_name = ps::generate_rr_branch_name(patch_summary);
-  let branch = repo.branch(branch_name.as_str(), &patch_stack_base_commit, false).map_err(|_| BranchError::CreateRrBranchFailed)?;
+  // fetch patch meta data given repo and patch_id
+  let patch_meta_data_path = state_management::patch_states_path(repo).map_err(|e| BranchError::GetPatchMetaDataPathFailed(e))?;
+  let mut patch_meta_data = state_management::read_patch_states(&patch_meta_data_path).map_err(|e| BranchError::ReadPatchMetaDataFailed(e))?;
+  let branch_name = match patch_meta_data.get(&ps_id) {
+    Some(patch_meta_data) => patch_meta_data.state.branch_name(),
+    None => {
+      println!("generating branch name");
+      let patch_summary = patch_commit.summary().ok_or(BranchError::PatchSummaryMissing)?;
+      ps::generate_rr_branch_name(patch_summary)
+    }
+  };
+
+  let branch = repo.branch(branch_name.as_str(), &patch_stack_base_commit, true).map_err(|_| BranchError::CreateRrBranchFailed)?;
   
   let branch_ref_name = branch.get().name().ok_or(BranchError::RrBranchNameNotUtf8)?;
 
   // - cherry pick the patch onto new rr branch
   git::cherry_pick_no_working_copy(&repo, new_patch_oid, branch_ref_name).map_err(BranchError::CherryPickFailed)?;
+
+  // record new patch state
+  let new_patch_meta_data = state_management::Patch {
+    patch_id: ps_id,
+    state: state_management::PatchState::BranchCreated(branch_name)
+  };
+  patch_meta_data.insert(ps_id, new_patch_meta_data);
+  state_management::write_patch_states(&patch_meta_data_path, &patch_meta_data).map_err(|e| BranchError::WritePatchMetaDataFailed(e))?;
 
   Ok((branch, ps_id))
 }
