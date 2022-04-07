@@ -174,12 +174,15 @@ use plumbing::test;
 
 #[cfg(test)]
 mod tests {
+  use uuid::Uuid;
+  use std::str::FromStr;
+
   #[test]
   fn test_extract_ps_id_with_ps_id() {
-    let msg = "Some summary\n\nSome paragraph\nSome more lines of the paragraph\n      ps-id: a0aoeu-aeoua0aoeua-aeuaoea0\n some other stuff";
+    let msg = "Some summary\n\nSome paragraph\nSome more lines of the paragraph\n      ps-id: 2dce2a21-72b9-487a-b641-4a0b157b76e8\n some other stuff";
     let opt = super::extract_ps_id(&msg);
     assert!(opt.is_some());
-    assert_eq!(opt.unwrap(), "a0aoeu-aeoua0aoeua-aeuaoea0");
+    assert_eq!(opt.unwrap(), Uuid::from_str("2dce2a21-72b9-487a-b641-4a0b157b76e8").unwrap());
   }
 
   #[test]
