@@ -50,13 +50,15 @@ to it being feature complete.
 The following is a breakdown of the planned commands and their
 respective completion statuses.
 
-* `ls` - functional (missing status info, needs cleanup & tests)
-* `rebase` - functional (needs some cleanup & tests)
-* `pull` - functional (needs cleanup & tests)
-* `rr` - not started
-* `pub` - not started
-* `show` - not started
-* `co` - not started
+* `list - ls` - done 
+* `rebase` - done
+* `pull` - done
+* `branch - br` - done
+* `request-review - rr` - done
+* `integrate - int` - done
+* `sync` - not implemented
+* `checkout - co` - not implemented
+* `show` - not implemented
 
 ## Development
 
