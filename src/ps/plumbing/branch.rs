@@ -110,13 +110,15 @@ pub fn branch<'a>(repo: &'a git2::Repository, patch_index: usize) -> Result<(git
   // - cherry pick the patch onto new rr branch
   git::cherry_pick_no_working_copy(&repo, new_patch_oid, branch_ref_name).map_err(BranchError::CherryPickFailed)?;
 
-  // record new patch state
-  let new_patch_meta_data = state_management::Patch {
-    patch_id: ps_id,
-    state: state_management::PatchState::BranchCreated(branch_name)
-  };
-  patch_meta_data.insert(ps_id, new_patch_meta_data);
-  state_management::write_patch_states(&patch_meta_data_path, &patch_meta_data).map_err(|e| BranchError::WritePatchMetaDataFailed(e))?;
+  // record patch state if there is no record
+  if patch_meta_data.get(&ps_id).is_none() {
+    let new_patch_meta_data = state_management::Patch {
+      patch_id: ps_id,
+      state: state_management::PatchState::BranchCreated(branch_name)
+    };
+    patch_meta_data.insert(ps_id, new_patch_meta_data);
+    state_management::write_patch_states(&patch_meta_data_path, &patch_meta_data).map_err(|e| BranchError::WritePatchMetaDataFailed(e))?;
+  }
 
   Ok((branch, ps_id))
 }
