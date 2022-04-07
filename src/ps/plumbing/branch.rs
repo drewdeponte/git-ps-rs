@@ -97,7 +97,6 @@ pub fn branch<'a>(repo: &'a git2::Repository, patch_index: usize) -> Result<(git
   let branch_name = match patch_meta_data.get(&ps_id) {
     Some(patch_meta_data) => patch_meta_data.state.branch_name(),
     None => {
-      println!("generating branch name");
       let patch_summary = patch_commit.summary().ok_or(BranchError::PatchSummaryMissing)?;
       ps::generate_rr_branch_name(patch_summary)
     }
