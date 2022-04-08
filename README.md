@@ -65,6 +65,7 @@ respective completion statuses.
 	* doesn't support patch series
 	* doesn't support hook
 * `integrate - int` - doneish
+	* doesn't support custom branch naming, `-n` option
 	* doesn't support request review verification check & bypass `-f` option)
 	* doesn't support patch series
 * `show` - done
