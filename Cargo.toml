@@ -10,7 +10,7 @@ git2 = "0.13"
 uuid = { version = "0.8.2", features = ["serde", "v4"] }
 serde = { version = "1.0.130", features = ["derive"] }
 serde_json = "1.0.68"
-structopt = "0.3.23"
+structopt = "0.3.26"
 regex = "1.5.4"
 lazy_static = "1.4.0"
 
