@@ -74,7 +74,7 @@ pub enum PatchStatesPathError {
 
 pub fn patch_states_path(repo: &git2::Repository) -> Result<PathBuf, PatchStatesPathError> {
   let work_dir = repo.workdir().ok_or(PatchStatesPathError::RepoWorkDirNotFound)?;
-  return Ok(work_dir.join(Path::new(".git/git-patch-stack-patch-states-v1.json")));
+  return Ok(work_dir.join(Path::new(".git/GIT-PATCH-STACK-PATCH-STATES-V1.json")));
 }
 
 #[derive(Debug)]
