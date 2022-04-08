@@ -43,7 +43,7 @@ pub struct SyncCmdOpts {
 
 #[derive(Debug, StructOpt)]
 pub struct CheckoutCmdOpts {
-  pub patch_index: usize
+  pub patch_index: Option<usize>
 }
 
 #[derive(Debug, StructOpt)]
