@@ -42,7 +42,7 @@ pub struct SyncCmdOpts {
 }
 
 #[derive(Debug, StructOpt)]
-pub struct CheckoutCmdOpts {
+pub struct IsolateCmdOpts {
   pub patch_index: Option<usize>
 }
 
@@ -72,9 +72,9 @@ pub enum Command {
     /// Synchronize patch with the remote
     #[structopt(name = "sync")]
     Sync(SyncCmdOpts),
-    /// (co) - Create a temporary branch, cherry-pick the patch to it, & check it out
-    #[structopt(name = "checkout", alias = "co")]
-    Checkout(CheckoutCmdOpts)
+    /// (iso) - Isolate a patch by creating a temporary branch based on upstream, cherry-picking the patch to it, & checking it out
+    #[structopt(name = "isolate", alias = "iso")]
+    Isolate(IsolateCmdOpts)
 }
 
 #[derive(Debug, StructOpt)]
@@ -96,6 +96,6 @@ fn main() {
         Command::RequestReview(opts) => commands::porcelain::rr::rr(opts.patch_index),
         Command::Show(opts) => commands::porcelain::show::show(opts.patch_index),
         Command::Sync(opts) => commands::plumbing::sync::sync(opts.patch_index),
-        Command::Checkout(opts) => commands::porcelain::checkout::checkout(opts.patch_index)
+        Command::Isolate(opts) => commands::porcelain::isolate::isolate(opts.patch_index),
     };
 }

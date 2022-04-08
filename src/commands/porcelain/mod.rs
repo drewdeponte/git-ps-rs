@@ -10,3 +10,4 @@ pub mod rebase;
 pub mod integrate;
 pub mod show;
 pub mod checkout;
+pub mod isolate;

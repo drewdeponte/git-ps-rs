@@ -11,6 +11,7 @@ pub mod rr;
 pub mod integrate;
 pub mod show;
 pub mod checkout;
+pub mod isolate;
 pub mod state_management;
 
 use std::str::FromStr;

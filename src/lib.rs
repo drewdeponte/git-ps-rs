@@ -11,3 +11,4 @@ pub use ps::show::show;
 pub use ps::plumbing;
 pub use ps::integrate;
 pub use ps::checkout::checkout;
+pub use ps::isolate::isolate;
