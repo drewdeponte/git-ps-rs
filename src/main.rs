@@ -47,11 +47,18 @@ pub struct IsolateCmdOpts {
 }
 
 #[derive(Debug, StructOpt)]
+pub struct CheckoutCmdOpts {
+  pub patch_index: usize
+}
+
+#[derive(Debug, StructOpt)]
 pub enum Command {
-    /// (br) - Create a request review branch & cherry-pick the specified patch into it
+    /// (br) - Create a request review branch & cherry-pick the specified
+    /// patch into it
     #[structopt(name = "branch", alias = "br")]
     Branch(BranchCmdOpts),
-    /// (int) - Integrate the specified patch into the patch stacks upstream remote
+    /// (int) - Integrate the specified patch into the patch stacks upstream
+    /// remote
     #[structopt(name = "integrate", alias = "int")]
     Integrate(IntegrateCmdOpts),
     /// (ls) - List the stack of patches and their associated state info
@@ -72,9 +79,14 @@ pub enum Command {
     /// Synchronize patch with the remote
     #[structopt(name = "sync")]
     Sync(SyncCmdOpts),
-    /// (iso) - Isolate a patch by creating a temporary branch based on upstream, cherry-picking the patch to it, & checking it out
+    /// (iso) - Isolate a patch by creating a temporary branch based on
+    /// upstream, cherry-picking the patch to it, & checking it out
     #[structopt(name = "isolate", alias = "iso")]
-    Isolate(IsolateCmdOpts)
+    Isolate(IsolateCmdOpts),
+    /// (co) - Checkout the patch identified by the patch-index, leaving you
+    /// in a headless state.
+    #[structopt(name = "checkout", alias = "co")]
+    Checkout(CheckoutCmdOpts)
 }
 
 #[derive(Debug, StructOpt)]
@@ -97,5 +109,6 @@ fn main() {
         Command::Show(opts) => commands::porcelain::show::show(opts.patch_index),
         Command::Sync(opts) => commands::plumbing::sync::sync(opts.patch_index),
         Command::Isolate(opts) => commands::porcelain::isolate::isolate(opts.patch_index),
+        Command::Checkout(opts) => commands::porcelain::checkout::checkout(opts.patch_index)
     };
 }
