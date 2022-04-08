@@ -58,7 +58,7 @@ respective completion statuses.
 * `integrate - int` - done
 * `show` - done
 * `sync` - done
-* `checkout - co` - not implemented
+* `checkout - co` - done (but no way to get back to previous branch)
 
 ## Development
 
