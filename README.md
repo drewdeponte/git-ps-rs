@@ -50,15 +50,27 @@ to it being feature complete.
 The following is a breakdown of the planned commands and their
 respective completion statuses.
 
-* `list - ls` - done 
+* `list - ls` - doneish
+	* doesn't include change detection since last sync
 * `rebase` - done
 * `pull` - done
-* `branch - br` - done
-* `request-review - rr` - done
-* `integrate - int` - done
+* `branch - br` - doneish
+	* doesn't support custom branch naming, `-n` option
+	* doesn't support patch series
+* `sync` - doneish
+	* doesn't support custom branch naming, `-n` option
+	* doesn't support patch series
+* `request-review - rr` - doneish
+	* doesn't support custom branch naming, `-n` option
+	* doesn't support patch series
+	* doesn't support hook
+* `integrate - int` - doneish
+	* doesn't support request review verification check & bypass `-f` option)
+	* doesn't support patch series
 * `show` - done
-* `sync` - done
-* `checkout - co` - done (but no way to get back to previous branch)
+* `checkout - co` - done
+* `isolate - iso` - doneish
+	* but no way to get back to previous branch other than, `git checkout main`
 
 ## Development
 
