@@ -10,16 +10,9 @@
 // So any code that fits the above responsibilities should live within this
 // module.
 
-
 use structopt::StructOpt;
 
 mod commands;
-
-// #[derive(Debug, StructOpt)]
-// pub struct Show {
-//     pub patch_index: u32
-// }
-
 
 #[derive(Debug, StructOpt)]
 pub struct RequestReview {
@@ -40,19 +33,18 @@ pub struct IntegrateCmdOpts {
 
 #[derive(Debug, StructOpt)]
 pub enum Command {
-    #[structopt(name = "branch")]
+    #[structopt(name = "branch", alias = "br", about = "(br) - Create a request review branch & cherry-pick the specified patch into it")]
     Branch(BranchCmdOpts),
-    #[structopt(name = "integrate")]
+    #[structopt(name = "integrate", alias = "int", about = "(int) - Integrate the specified patch into the patch stacks upstream remote")]
     Integrate(IntegrateCmdOpts),
-    #[structopt(name = "ls")]
+    #[structopt(name = "list", alias = "ls", about = "(ls) - List the stack of patches and their associated state info")]
     List,
-    #[structopt(name = "rebase")]
+    #[structopt(name = "rebase", about = "Interactively rebase your stack of patches")]
     Rebase,
-    #[structopt(name = "pull")]
+    #[structopt(name = "pull", about = "Pull changes down from upstream and rebase stack on top")]
     Pull,
-    #[structopt(name = "rr")]
+    #[structopt(name = "request-review", alias = "rr", about = "(rr) - Request review of the specified patch")]
     RequestReview(RequestReview),
-    // Show(Show)
 }
 
 #[derive(Debug, StructOpt)]
@@ -64,7 +56,6 @@ pub struct ApplicationArguments {
 
 fn main() {
     let opt = ApplicationArguments::from_args();
-    // println!("{:?}", opt);
 
     match opt.command {
         Command::Branch(opts) => commands::plumbing::branch::branch(opts.patch_index),
