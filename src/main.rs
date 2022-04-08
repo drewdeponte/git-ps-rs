@@ -17,8 +17,8 @@ mod commands;
 #[derive(Debug, StructOpt)]
 pub struct RequestReview {
     pub patch_index: usize,
-    #[structopt(short = "n")]
-    pub branch_name: Option<String>
+    // #[structopt(short = "n")]
+    // pub branch_name: Option<String>
 }
 
 #[derive(Debug, StructOpt)]
