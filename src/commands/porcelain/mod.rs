@@ -8,3 +8,4 @@ pub mod rr;
 pub mod ls;
 pub mod rebase;
 pub mod integrate;
+pub mod show;

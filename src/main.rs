@@ -32,19 +32,33 @@ pub struct IntegrateCmdOpts {
 }
 
 #[derive(Debug, StructOpt)]
+pub struct ShowCmdOpts {
+  pub patch_index: usize
+}
+
+#[derive(Debug, StructOpt)]
 pub enum Command {
-    #[structopt(name = "branch", alias = "br", about = "(br) - Create a request review branch & cherry-pick the specified patch into it")]
+    /// (br) - Create a request review branch & cherry-pick the specified patch into it
+    #[structopt(name = "branch", alias = "br")]
     Branch(BranchCmdOpts),
-    #[structopt(name = "integrate", alias = "int", about = "(int) - Integrate the specified patch into the patch stacks upstream remote")]
+    /// (int) - Integrate the specified patch into the patch stacks upstream remote
+    #[structopt(name = "integrate", alias = "int")]
     Integrate(IntegrateCmdOpts),
-    #[structopt(name = "list", alias = "ls", about = "(ls) - List the stack of patches and their associated state info")]
+    /// (ls) - List the stack of patches and their associated state info
+    #[structopt(name = "list", alias = "ls")]
     List,
-    #[structopt(name = "rebase", about = "Interactively rebase your stack of patches")]
+    /// Interactively rebase your stack of patches
+    #[structopt(name = "rebase")]
     Rebase,
-    #[structopt(name = "pull", about = "Pull changes down from upstream and rebase stack on top")]
+    /// Pull changes down from upstream and rebase stack on top
+    #[structopt(name = "pull")]
     Pull,
-    #[structopt(name = "request-review", alias = "rr", about = "(rr) - Request review of the specified patch")]
+    /// (rr) - Request review of the specified patch
+    #[structopt(name = "request-review", alias = "rr")]
     RequestReview(RequestReview),
+    /// Show the identified patch in raw form
+    #[structopt(name = "show")]
+    Show(ShowCmdOpts)
 }
 
 #[derive(Debug, StructOpt)]
@@ -64,5 +78,6 @@ fn main() {
         Command::Rebase => commands::porcelain::rebase::rebase(),
         Command::Pull => commands::porcelain::pull::pull(),
         Command::RequestReview(opts) => commands::porcelain::rr::rr(opts.patch_index),
+        Command::Show(opts) => commands::porcelain::show::show(opts.patch_index)
     };
 }

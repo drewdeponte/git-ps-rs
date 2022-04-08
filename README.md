@@ -56,9 +56,9 @@ respective completion statuses.
 * `branch - br` - done
 * `request-review - rr` - done
 * `integrate - int` - done
+* `show` - done
 * `sync` - not implemented
 * `checkout - co` - not implemented
-* `show` - not implemented
 
 ## Development
 

@@ -7,5 +7,6 @@ pub use ps::pull::{pull, PullError};
 pub use ps::ls::ls;
 pub use ps::rebase::rebase;
 pub use ps::rr::rr;
+pub use ps::show::show;
 pub use ps::plumbing;
 pub use ps::integrate;

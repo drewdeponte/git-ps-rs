@@ -9,6 +9,7 @@ pub mod ls;
 pub mod rebase;
 pub mod rr;
 pub mod integrate;
+pub mod show;
 pub mod state_management;
 
 use std::str::FromStr;
