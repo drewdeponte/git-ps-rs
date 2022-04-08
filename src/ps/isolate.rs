@@ -18,6 +18,7 @@ pub enum IsolateError {
 }
 
 pub fn isolate(patch_index_optional: Option<usize>) -> Result<(), IsolateError> {
+  let isolate_branch_name = "ps/tmp/isolate";
   let repo = ps::plumbing::git::create_cwd_repo().map_err(IsolateError::OpenGitRepositoryFailed)?;
   match patch_index_optional {
     Some(patch_index) => {
@@ -26,7 +27,7 @@ pub fn isolate(patch_index_optional: Option<usize>) -> Result<(), IsolateError> 
       let patches_vec = ps::get_patch_list(&repo, patch_stack).map_err(IsolateError::GetPatchListFailed)?;
       let patch_oid = patches_vec.get(patch_index).ok_or(IsolateError::PatchIndexNotFound)?.oid;
 
-      let branch = repo.branch("ps/tmp/checkout", &patch_stack_base_commit, true).map_err(|_| IsolateError::CreateBranchFailed)?;
+      let branch = repo.branch(isolate_branch_name, &patch_stack_base_commit, true).map_err(|_| IsolateError::CreateBranchFailed)?;
 
       let branch_ref_name = branch.get().name().ok_or(IsolateError::BranchNameNotUtf8)?;
 
@@ -39,7 +40,7 @@ pub fn isolate(patch_index_optional: Option<usize>) -> Result<(), IsolateError> 
       // the state of the previously checked out branch and check that branch out.
 
       // checkout the ps/tmp/checkout branch
-      utils::execute("git", &["checkout", "ps/tmp/checkout"]).map_err(IsolateError::FailedToCheckout)?;
+      utils::execute("git", &["checkout", isolate_branch_name]).map_err(IsolateError::FailedToCheckout)?;
       Ok(())
     },
     None => {
