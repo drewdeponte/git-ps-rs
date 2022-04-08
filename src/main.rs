@@ -37,6 +37,11 @@ pub struct ShowCmdOpts {
 }
 
 #[derive(Debug, StructOpt)]
+pub struct SyncCmdOpts {
+  pub patch_index: usize
+}
+
+#[derive(Debug, StructOpt)]
 pub enum Command {
     /// (br) - Create a request review branch & cherry-pick the specified patch into it
     #[structopt(name = "branch", alias = "br")]
@@ -58,7 +63,10 @@ pub enum Command {
     RequestReview(RequestReview),
     /// Show the identified patch in raw form
     #[structopt(name = "show")]
-    Show(ShowCmdOpts)
+    Show(ShowCmdOpts),
+    /// Synchronize patch with the remote
+    #[structopt(name = "sync")]
+    Sync(SyncCmdOpts)
 }
 
 #[derive(Debug, StructOpt)]
@@ -78,6 +86,7 @@ fn main() {
         Command::Rebase => commands::porcelain::rebase::rebase(),
         Command::Pull => commands::porcelain::pull::pull(),
         Command::RequestReview(opts) => commands::porcelain::rr::rr(opts.patch_index),
-        Command::Show(opts) => commands::porcelain::show::show(opts.patch_index)
+        Command::Show(opts) => commands::porcelain::show::show(opts.patch_index),
+        Command::Sync(opts) => commands::plumbing::sync::sync(opts.patch_index)
     };
 }
