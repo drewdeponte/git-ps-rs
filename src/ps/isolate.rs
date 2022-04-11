@@ -38,6 +38,9 @@ pub fn isolate(patch_index_optional: Option<usize>) -> Result<(), IsolateError> 
       // store state of the branch currently checked out on so that when the
       // command is next run and not provided a patch index it will simply read
       // the state of the previously checked out branch and check that branch out.
+      
+      // get currently checked out branch name
+      // write currently checked out branch name to disk
 
       // checkout the ps/tmp/checkout branch
       utils::execute("git", &["checkout", isolate_branch_name]).map_err(IsolateError::FailedToCheckout)?;
@@ -48,6 +51,10 @@ pub fn isolate(patch_index_optional: Option<usize>) -> Result<(), IsolateError> 
       // if succeeed then check that branch out
       // if fail to retreive previous state then error out
       Err(IsolateError::PatchIndexNotProvided)
+
+      // read last checked out branch name from disk
+
+      // check it out
     }
   }
 }
