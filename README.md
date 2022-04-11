@@ -130,14 +130,14 @@ cargo test
 `git-ps` is Copyright © 2020 UpTech Works, LLC. It is free software, and
 may be redistributed under the terms specified in the LICENSE file.
 
-## About <img src="http://upte.ch/img/logo.png" alt="uptech" height="48">
+## About <img src="https://uploads-ssl.webflow.com/6222b1faf83d05669ca63972/624dc2dea4bbe5dd1d21a04c_uptechstudio-logo.svg" alt="Uptech Studio">
 
-`git-ps` is maintained and funded by [UpTech Works, LLC][uptech], a software
-design & development agency & consultancy.
+`git-ps-rs` is maintained and funded by [Uptech Studio][uptech], a software
+design & development studio.
 
 We love open source software. See [our other projects][community] or
 [hire us][hire] to design, develop, and grow your product.
 
 [community]: https://github.com/uptech
-[hire]: http://upte.ch
-[uptech]: http://upte.ch
+[hire]: https://www.uptechstudio.com/careers
+[uptech]: https://uptechstudio.com
