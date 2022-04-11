@@ -7,7 +7,7 @@
 
 use gps as ps;
 
-pub fn ls() {
+pub fn list() {
   match ps::ls() {
     Ok(_) => return,
     Err(e) => eprintln!("Error: {:?}", e)

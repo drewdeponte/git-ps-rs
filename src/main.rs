@@ -102,10 +102,10 @@ fn main() {
     match opt.command {
         Command::Branch(opts) => commands::branch::branch(opts.patch_index),
         Command::Integrate(opts) => commands::integrate::integrate(opts.patch_index),
-        Command::List => commands::ls::ls(),
+        Command::List => commands::list::list(),
         Command::Rebase => commands::rebase::rebase(),
         Command::Pull => commands::pull::pull(),
-        Command::RequestReview(opts) => commands::rr::rr(opts.patch_index),
+        Command::RequestReview(opts) => commands::request_review::request_review(opts.patch_index),
         Command::Show(opts) => commands::show::show(opts.patch_index),
         Command::Sync(opts) => commands::sync::sync(opts.patch_index),
         Command::Isolate(opts) => commands::isolate::isolate(opts.patch_index),
