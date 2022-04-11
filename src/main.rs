@@ -100,15 +100,15 @@ fn main() {
     let opt = ApplicationArguments::from_args();
 
     match opt.command {
-        Command::Branch(opts) => commands::plumbing::branch::branch(opts.patch_index),
-        Command::Integrate(opts) => commands::porcelain::integrate::integrate(opts.patch_index),
-        Command::List => commands::porcelain::ls::ls(),
-        Command::Rebase => commands::porcelain::rebase::rebase(),
-        Command::Pull => commands::porcelain::pull::pull(),
-        Command::RequestReview(opts) => commands::porcelain::rr::rr(opts.patch_index),
-        Command::Show(opts) => commands::porcelain::show::show(opts.patch_index),
-        Command::Sync(opts) => commands::plumbing::sync::sync(opts.patch_index),
-        Command::Isolate(opts) => commands::porcelain::isolate::isolate(opts.patch_index),
-        Command::Checkout(opts) => commands::porcelain::checkout::checkout(opts.patch_index)
+        Command::Branch(opts) => commands::branch::branch(opts.patch_index),
+        Command::Integrate(opts) => commands::integrate::integrate(opts.patch_index),
+        Command::List => commands::ls::ls(),
+        Command::Rebase => commands::rebase::rebase(),
+        Command::Pull => commands::pull::pull(),
+        Command::RequestReview(opts) => commands::rr::rr(opts.patch_index),
+        Command::Show(opts) => commands::show::show(opts.patch_index),
+        Command::Sync(opts) => commands::sync::sync(opts.patch_index),
+        Command::Isolate(opts) => commands::isolate::isolate(opts.patch_index),
+        Command::Checkout(opts) => commands::checkout::checkout(opts.patch_index)
     };
 }
