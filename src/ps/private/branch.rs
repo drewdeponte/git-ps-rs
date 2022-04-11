@@ -1,6 +1,5 @@
-use crate::ps::state_management;
-
-use super::git;
+use super::super::private::git;
+use super::super::private::state_management;
 use super::super::super::ps;
 use uuid::Uuid;
 use std::result::Result;

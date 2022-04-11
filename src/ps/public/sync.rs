@@ -1,6 +1,6 @@
-use super::git;
+use super::super::private::git;
 use super::super::super::ps;
-use super::super::super::ps::state_management;
+use super::super::private::state_management;
 
 #[derive(Debug)]
 pub enum SyncError {
@@ -8,9 +8,9 @@ pub enum SyncError {
   CurrentBranchNameMissing,
   GetUpstreamBranchNameFailed,
   GetRemoteBranchNameFailed,
-  CreateRrBranchFailed(ps::plumbing::branch::BranchError),
+  CreateRrBranchFailed(ps::private::branch::BranchError),
   RequestReviewBranchNameMissing,
-  ForcePushFailed(ps::plumbing::git::ExtForcePushError),
+  ForcePushFailed(git::ExtForcePushError),
   StorePatchStateFailed(state_management::StorePatchStateError)
 }
 
@@ -23,13 +23,13 @@ pub fn sync(patch_index: usize) -> Result<(), SyncError> {
   let remote_name = repo.branch_remote_name(&branch_upstream_name).map_err(|_| SyncError::GetRemoteBranchNameFailed)?;
 
   // create request review branch for patch
-  let (branch, ps_id) = ps::plumbing::branch::branch(&repo, patch_index).map_err(|e| SyncError::CreateRrBranchFailed(e))?;
+  let (branch, ps_id) = ps::private::branch::branch(&repo, patch_index).map_err(SyncError::CreateRrBranchFailed)?;
 
   let branch_ref_name = branch.get().shorthand().ok_or(SyncError::RequestReviewBranchNameMissing)?;
   let rr_branch_name = branch_ref_name.to_string();
 
   // force push request review branch up to remote
-  git::ext_push(true, remote_name.as_str().unwrap(), branch_ref_name, branch_ref_name).map_err(|e| SyncError::ForcePushFailed(e))?;
+  git::ext_push(true, remote_name.as_str().unwrap(), branch_ref_name, branch_ref_name).map_err(SyncError::ForcePushFailed)?;
 
   // associate the patch to the branch that was created
   state_management::update_patch_state(&repo, &ps_id, |patch_meta_data_option|

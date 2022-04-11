@@ -1,7 +1,7 @@
 use std::result::Result;
-use super::git;
-use super::super::ps;
-use super::plumbing::utils;
+use super::super::private::git;
+use super::super::super::ps;
+use super::super::private::utils;
 
 #[derive(Debug)]
 pub enum IsolateError {
@@ -19,7 +19,7 @@ pub enum IsolateError {
 
 pub fn isolate(patch_index_optional: Option<usize>) -> Result<(), IsolateError> {
   let isolate_branch_name = "ps/tmp/isolate";
-  let repo = ps::plumbing::git::create_cwd_repo().map_err(IsolateError::OpenGitRepositoryFailed)?;
+  let repo = ps::private::git::create_cwd_repo().map_err(IsolateError::OpenGitRepositoryFailed)?;
   match patch_index_optional {
     Some(patch_index) => {
       let patch_stack = ps::get_patch_stack(&repo).map_err(IsolateError::GetPatchStackFailed)?;

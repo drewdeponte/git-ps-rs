@@ -1,7 +1,7 @@
-use super::plumbing::utils;
+use super::super::private::utils;
 use std::io;
-use super::git;
-use super::super::ps;
+use super::super::private::git;
+use super::super::super::ps;
 
 #[derive(Debug)]
 pub enum ShowError {

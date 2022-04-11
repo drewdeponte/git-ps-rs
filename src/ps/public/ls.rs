@@ -1,8 +1,8 @@
-use super::git;
-use super::super::ps;
+use super::super::private::git;
+use super::super::super::ps;
 use uuid::Uuid;
 use serde::{Serialize, Deserialize};
-use super::super::ps::state_management;
+use super::super::private::state_management;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct RequestReviewRecord {

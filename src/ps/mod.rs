@@ -3,20 +3,13 @@
 // responsibility, loading it's respective child modules and exposing them
 // externally. All code related to these responsibilities belongs here.
 
-pub mod plumbing;
-pub mod pull;
-pub mod ls;
-pub mod rebase;
-pub mod rr;
-pub mod integrate;
-pub mod show;
-pub mod checkout;
-pub mod isolate;
-pub mod state_management;
+
+pub mod public;
+pub mod private;
 
 use std::str::FromStr;
 
-use plumbing::git;
+use private::git;
 // This is the `ps` module. It is responsible for housing functionality
 // specific to Patch Stack as a conceptual level.  It is responsible for
 // consuming functionality from other modules like the `git` and `utils`
@@ -26,7 +19,6 @@ use plumbing::git;
 //
 // All code fitting that description belongs here.
 
-use git2;
 use regex::Regex;
 use uuid::Uuid;
 

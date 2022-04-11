@@ -1,6 +1,6 @@
-use super::git;
-use super::super::ps;
-use super::super::ps::state_management;
+use super::super::private::git;
+use super::super::super::ps;
+use super::super::private::state_management;
 
 #[derive(Debug)]
 pub enum IntegrateError {
@@ -8,10 +8,10 @@ pub enum IntegrateError {
   CurrentBranchNameMissing,
   GetUpstreamBranchNameFailed,
   GetRemoteBranchNameFailed,
-  CreateRrBranchFailed(ps::plumbing::branch::BranchError),
+  CreateRrBranchFailed(ps::private::branch::BranchError),
   RequestReviewBranchNameMissing,
-  ForcePushFailed(ps::plumbing::git::ExtForcePushError),
-  PushFailed(ps::plumbing::git::ExtForcePushError),
+  ForcePushFailed(ps::private::git::ExtForcePushError),
+  PushFailed(ps::private::git::ExtForcePushError),
   GetShortBranchNameFailed,
   ConvertStringToStrFailed,
   UpdatePatchMetaDataFailed(state_management::StorePatchStateError)
@@ -26,7 +26,7 @@ pub fn integrate(patch_index: usize) -> Result<(), IntegrateError> {
   let remote_name = repo.branch_remote_name(&branch_upstream_name).map_err(|_| IntegrateError::GetRemoteBranchNameFailed)?;
 
   // create request review branch for patch
-  let (branch, ps_id) = ps::plumbing::branch::branch(&repo, patch_index).map_err(|e| IntegrateError::CreateRrBranchFailed(e))?;
+  let (branch, ps_id) = ps::private::branch::branch(&repo, patch_index).map_err(|e| IntegrateError::CreateRrBranchFailed(e))?;
 
   // force push request review branch up to remote
   let branch_ref_name = branch.get().name().ok_or(IntegrateError::RequestReviewBranchNameMissing)?;

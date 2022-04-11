@@ -1,5 +1,5 @@
-use super::plumbing::utils;
-use super::git;
+use super::super::private::utils;
+use super::super::private::git;
 
 #[derive(Debug)]
 pub enum RebaseError {
