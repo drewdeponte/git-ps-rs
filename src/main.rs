@@ -16,19 +16,26 @@ mod commands;
 
 #[derive(Debug, StructOpt)]
 pub struct RequestReview {
-    pub patch_index: usize,
-    // #[structopt(short = "n")]
-    // pub branch_name: Option<String>
+  pub patch_index: usize,
+  /// Use the provided branch name instead of generating one
+  #[structopt(short = "n")]
+  pub branch_name: Option<String>
 }
 
 #[derive(Debug, StructOpt)]
 pub struct BranchCmdOpts {
-  pub patch_index: usize
+  pub patch_index: usize,
+  /// Use the provided branch name instead of generating one
+  #[structopt(short = "n")]
+  pub branch_name: Option<String>
 }
 
 #[derive(Debug, StructOpt)]
 pub struct IntegrateCmdOpts {
-  pub patch_index: usize
+  pub patch_index: usize,
+  /// Use the provided branch name instead of generating one
+  #[structopt(short = "n")]
+  pub branch_name: Option<String>
 }
 
 #[derive(Debug, StructOpt)]
@@ -38,7 +45,10 @@ pub struct ShowCmdOpts {
 
 #[derive(Debug, StructOpt)]
 pub struct SyncCmdOpts {
-  pub patch_index: usize
+  pub patch_index: usize,
+  /// Use the provided branch name instead of generating one
+  #[structopt(short = "n")]
+  pub branch_name: Option<String>
 }
 
 #[derive(Debug, StructOpt)]
@@ -100,14 +110,14 @@ fn main() {
     let opt = ApplicationArguments::from_args();
 
     match opt.command {
-        Command::Branch(opts) => commands::branch::branch(opts.patch_index),
-        Command::Integrate(opts) => commands::integrate::integrate(opts.patch_index),
+        Command::Branch(opts) => commands::branch::branch(opts.patch_index, opts.branch_name),
+        Command::Integrate(opts) => commands::integrate::integrate(opts.patch_index, opts.branch_name),
         Command::List => commands::list::list(),
         Command::Rebase => commands::rebase::rebase(),
         Command::Pull => commands::pull::pull(),
-        Command::RequestReview(opts) => commands::request_review::request_review(opts.patch_index),
+        Command::RequestReview(opts) => commands::request_review::request_review(opts.patch_index, opts.branch_name),
         Command::Show(opts) => commands::show::show(opts.patch_index),
-        Command::Sync(opts) => commands::sync::sync(opts.patch_index),
+        Command::Sync(opts) => commands::sync::sync(opts.patch_index, opts.branch_name),
         Command::Isolate(opts) => commands::isolate::isolate(opts.patch_index),
         Command::Checkout(opts) => commands::checkout::checkout(opts.patch_index)
     };

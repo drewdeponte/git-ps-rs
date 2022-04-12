@@ -69,7 +69,7 @@ impl fmt::Display for BranchError {
 }
 
 
-pub fn branch<'a>(repo: &'a git2::Repository, patch_index: usize) -> Result<(git2::Branch<'a>, Uuid), BranchError>  {
+pub fn branch<'a>(repo: &'a git2::Repository, patch_index: usize, given_branch_name_option: Option<String>) -> Result<(git2::Branch<'a>, Uuid), BranchError>  {
   // - find the patch identified by the patch_index
   let patch_stack = ps::get_patch_stack(&repo)?;
   let patch_stack_base_commit = patch_stack.base.peel_to_commit().map_err(|_| BranchError::PatchStackBaseNotFound)?;
@@ -97,7 +97,7 @@ pub fn branch<'a>(repo: &'a git2::Repository, patch_index: usize) -> Result<(git
     Some(patch_meta_data) => patch_meta_data.state.branch_name(),
     None => {
       let patch_summary = patch_commit.summary().ok_or(BranchError::PatchSummaryMissing)?;
-      ps::generate_rr_branch_name(patch_summary)
+      given_branch_name_option.unwrap_or(ps::generate_rr_branch_name(patch_summary))
     }
   };
 

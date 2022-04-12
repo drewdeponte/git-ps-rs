@@ -8,8 +8,8 @@ pub enum BranchError {
   BranchOperationFailed(private::branch::BranchError)
 }
 
-pub fn branch(patch_index: usize) -> Result<(), BranchError>  {
+pub fn branch(patch_index: usize, branch_name: Option<String>) -> Result<(), BranchError>  {
   let repo = git::create_cwd_repo().map_err(BranchError::OpenRepositoryFailed)?;
-  private::branch::branch(&repo, patch_index).map_err(BranchError::BranchOperationFailed)?;
+  private::branch::branch(&repo, patch_index, branch_name).map_err(BranchError::BranchOperationFailed)?;
   Ok(())
 }

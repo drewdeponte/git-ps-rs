@@ -17,7 +17,7 @@ pub enum IntegrateError {
   UpdatePatchMetaDataFailed(state_management::StorePatchStateError)
 }
 
-pub fn integrate(patch_index: usize) -> Result<(), IntegrateError> {
+pub fn integrate(patch_index: usize, given_branch_name: Option<String>) -> Result<(), IntegrateError> {
   let repo = git::create_cwd_repo().map_err(|_| IntegrateError::RepositoryNotFound)?;
 
   // get remote name of current branch
@@ -26,7 +26,7 @@ pub fn integrate(patch_index: usize) -> Result<(), IntegrateError> {
   let remote_name = repo.branch_remote_name(&branch_upstream_name).map_err(|_| IntegrateError::GetRemoteBranchNameFailed)?;
 
   // create request review branch for patch
-  let (branch, ps_id) = ps::private::branch::branch(&repo, patch_index).map_err(|e| IntegrateError::CreateRrBranchFailed(e))?;
+  let (branch, ps_id) = ps::private::branch::branch(&repo, patch_index, given_branch_name).map_err(|e| IntegrateError::CreateRrBranchFailed(e))?;
 
   // force push request review branch up to remote
   let branch_ref_name = branch.get().name().ok_or(IntegrateError::RequestReviewBranchNameMissing)?;

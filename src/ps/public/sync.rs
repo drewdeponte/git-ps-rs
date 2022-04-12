@@ -14,7 +14,7 @@ pub enum SyncError {
   StorePatchStateFailed(state_management::StorePatchStateError)
 }
 
-pub fn sync(patch_index: usize) -> Result<(), SyncError> {
+pub fn sync(patch_index: usize, given_branch_name: Option<String>) -> Result<(), SyncError> {
   let repo = git::create_cwd_repo().map_err(|_| SyncError::RepositoryNotFound)?;
 
   // get remote name of current branch
@@ -23,7 +23,7 @@ pub fn sync(patch_index: usize) -> Result<(), SyncError> {
   let remote_name = repo.branch_remote_name(&branch_upstream_name).map_err(|_| SyncError::GetRemoteBranchNameFailed)?;
 
   // create request review branch for patch
-  let (branch, ps_id) = ps::private::branch::branch(&repo, patch_index).map_err(SyncError::CreateRrBranchFailed)?;
+  let (branch, ps_id) = ps::private::branch::branch(&repo, patch_index, given_branch_name).map_err(SyncError::CreateRrBranchFailed)?;
 
   let branch_ref_name = branch.get().shorthand().ok_or(SyncError::RequestReviewBranchNameMissing)?;
   let rr_branch_name = branch_ref_name.to_string();
