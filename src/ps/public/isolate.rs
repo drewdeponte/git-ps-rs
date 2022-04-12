@@ -2,6 +2,8 @@ use std::result::Result;
 use super::super::private::git;
 use super::super::super::ps;
 use super::super::private::utils;
+use super::super::private::string_file_io::{write_str_to_file, WriteStrToFileError, read_str_from_file, ReadStringFromFileError};
+use super::super::private::paths;
 
 #[derive(Debug)]
 pub enum IsolateError {
@@ -14,7 +16,10 @@ pub enum IsolateError {
   BranchNameNotUtf8,
   CherryPickFailed,
   FailedToCheckout(utils::ExecuteError),
-  PatchIndexNotProvided
+  GetCurrentBranchFailed,
+  GetIsolateLastBranchPathFailed(paths::PathsError),
+  StoreLastBranchFailed(WriteStrToFileError),
+  ReadLastBranchFailed(ReadStringFromFileError)
 }
 
 pub fn isolate(patch_index_optional: Option<usize>) -> Result<(), IsolateError> {
@@ -34,27 +39,24 @@ pub fn isolate(patch_index_optional: Option<usize>) -> Result<(), IsolateError> 
       // - cherry pick the patch onto new rr branch
       git::cherry_pick_no_working_copy(&repo, patch_oid, branch_ref_name).map_err(|_| IsolateError::CherryPickFailed)?;
 
-      // TODO:
-      // store state of the branch currently checked out on so that when the
-      // command is next run and not provided a patch index it will simply read
-      // the state of the previously checked out branch and check that branch out.
-      
       // get currently checked out branch name
+      let checked_out_branch = git::get_current_branch_shorthand(&repo).ok_or(IsolateError::GetCurrentBranchFailed)?;
       // write currently checked out branch name to disk
+      let path = paths::isolate_last_branch_path(&repo).map_err(IsolateError::GetIsolateLastBranchPathFailed)?;
+      write_str_to_file(checked_out_branch.as_str(), path).map_err(IsolateError::StoreLastBranchFailed)?;
 
       // checkout the ps/tmp/checkout branch
       utils::execute("git", &["checkout", isolate_branch_name]).map_err(IsolateError::FailedToCheckout)?;
       Ok(())
     },
     None => {
-      // TODO: attempt to retreive state of the previous branch
-      // if succeeed then check that branch out
-      // if fail to retreive previous state then error out
-      Err(IsolateError::PatchIndexNotProvided)
-
       // read last checked out branch name from disk
+      let path = paths::isolate_last_branch_path(&repo).map_err(IsolateError::GetIsolateLastBranchPathFailed)?;
+      let last_branch = read_str_from_file(path).map_err(IsolateError::ReadLastBranchFailed)?;
 
       // check it out
+      utils::execute("git", &["checkout", &last_branch]).map_err(IsolateError::FailedToCheckout)?;
+      Ok(())
     }
   }
 }
