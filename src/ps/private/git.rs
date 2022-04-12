@@ -213,6 +213,17 @@ pub fn ext_push(force: bool, remote_name: &str, src_ref_spec: &str, dest_ref_spe
   }
 }
 
+#[derive(Debug)]
+pub enum ExtDeleteRemoteBranchError {
+  ExecuteFailed(utils::ExecuteError)
+}
+
+pub fn ext_delete_remote_branch(remote_name: &str, branch_name: &str) -> Result<(), ExtDeleteRemoteBranchError> {
+  let refspecs = format!(":{}", branch_name);
+  utils::execute("git", &["push", remote_name, &refspecs]).map_err(ExtDeleteRemoteBranchError::ExecuteFailed)?;
+  Ok(())
+}
+
 #[cfg(test)]
 mod tests {
   use tempfile::TempDir;

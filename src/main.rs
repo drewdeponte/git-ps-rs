@@ -35,7 +35,11 @@ pub struct IntegrateCmdOpts {
   pub patch_index: usize,
   /// Use the provided branch name instead of generating one
   #[structopt(short = "n")]
-  pub branch_name: Option<String>
+  pub branch_name: Option<String>,
+  /// Keep request-review branches around (a.k.a. don't clean up request
+  /// review branches)
+  #[structopt(short = "k", long = "keep-branch")]
+  pub keep_branch: bool
 }
 
 #[derive(Debug, StructOpt)]
@@ -111,7 +115,7 @@ fn main() {
 
     match opt.command {
         Command::Branch(opts) => commands::branch::branch(opts.patch_index, opts.branch_name),
-        Command::Integrate(opts) => commands::integrate::integrate(opts.patch_index, opts.branch_name),
+        Command::Integrate(opts) => commands::integrate::integrate(opts.patch_index, opts.keep_branch, opts.branch_name),
         Command::List => commands::list::list(),
         Command::Rebase => commands::rebase::rebase(),
         Command::Pull => commands::pull::pull(),
