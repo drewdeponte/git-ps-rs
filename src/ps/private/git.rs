@@ -215,9 +215,62 @@ pub fn ext_push(force: bool, remote_name: &str, src_ref_spec: &str, dest_ref_spe
 
 #[cfg(test)]
 mod tests {
+  use tempfile::TempDir;
+  use git2::{Repository, RepositoryInitOptions};
+
+  pub fn repo_init() -> (TempDir, Repository) {
+      let td = TempDir::new().unwrap();
+      let mut opts = RepositoryInitOptions::new();
+      opts.initial_head("main");
+      let repo = Repository::init_opts(td.path(), &opts).unwrap();
+      {
+          let mut config = repo.config().unwrap();
+          config.set_str("user.name", "name").unwrap();
+          config.set_str("user.email", "email").unwrap();
+          let mut index = repo.index().unwrap();
+
+          let id = index.write_tree().unwrap();
+          let tree = repo.find_tree(id).unwrap();
+          let sig = repo.signature().unwrap();
+          repo.commit(Some("HEAD"), &sig, &sig, "initial", &tree, &[])
+              .unwrap();
+      }
+      (td, repo)
+  }
+
+  pub fn create_commit(repo: &git2::Repository, path: &str, data: &[u8], message: &str) -> git2::Oid {
+    // To implement this I was losely following
+    // https://stackoverflow.com/questions/15711444/how-to-commit-to-a-git-repository-using-libgit2
+    let sig = git2::Signature::now("Bob Villa", "bob@example.com").unwrap();
+
+    // create the blob record for storing the content
+    let blob_oid = repo.blob(data).unwrap();
+    // repo.find_blob(blob_oid).unwrap();
+
+    // create the tree record
+    let mut treebuilder = repo.treebuilder(Option::None).unwrap();
+    let file_mode: i32 = i32::from(git2::FileMode::Blob);
+    treebuilder.insert(path, blob_oid, file_mode).unwrap();
+    let tree_oid = treebuilder.write().unwrap();
+
+    // lookup the tree entity
+    let tree = repo.find_tree(tree_oid).unwrap();
+
+    // TODO: need to figure out some way to get the parent commit as a
+    // git2::Commit object to hand
+    // into the repo.commit call. I am guessing that is why I am getting
+    // the following error
+    // "failed to create commit: current tip is not the first parent"
+    let parent_oid = repo.head().unwrap().target().unwrap();
+    let parent_commit = repo.find_commit(parent_oid).unwrap();
+
+    // create the actual commit packaging the blob, tree entry, etc.
+    repo.commit(Option::Some("HEAD"), &sig, &sig, message, &tree, &[&parent_commit]).unwrap()
+  }
+
     #[test]
     fn smoke_get_summary() {
-        let (_td, repo) = crate::ps::test::repo_init();
+        let (_td, repo) = repo_init();
         let head_id = repo.refname_to_id("HEAD").unwrap();
 
         let res = super::get_summary(&repo, &head_id);
@@ -227,12 +280,12 @@ mod tests {
 
     #[test]
     fn smoke_get_revs() {
-        let (_td, repo) = crate::ps::test::repo_init();
+        let (_td, repo) = repo_init();
 
-        let start_oid_excluded = crate::ps::test::create_commit(&repo, "fileA.txt", &[0, 1, 2, 3], "starting numbers");
-        crate::ps::test::create_commit(&repo, "fileB.txt", &[4, 5, 6, 7], "four, five, six, and seven");
-        let end_oid_included = crate::ps::test::create_commit(&repo, "fileC.txt", &[8, 9, 10, 11], "eight, nine, ten, and eleven");
-        crate::ps::test::create_commit(&repo, "fileD.txt", &[12, 13, 14, 15], "twelve, thirteen, forteen, fifteen");
+        let start_oid_excluded = create_commit(&repo, "fileA.txt", &[0, 1, 2, 3], "starting numbers");
+        create_commit(&repo, "fileB.txt", &[4, 5, 6, 7], "four, five, six, and seven");
+        let end_oid_included = create_commit(&repo, "fileC.txt", &[8, 9, 10, 11], "eight, nine, ten, and eleven");
+        create_commit(&repo, "fileD.txt", &[12, 13, 14, 15], "twelve, thirteen, forteen, fifteen");
 
         let rev_walk = super::get_revs(&repo, start_oid_excluded, end_oid_included).unwrap();
         let summaries: Vec<String> = rev_walk.map(|oid| repo.find_commit(oid.unwrap()).unwrap().summary().unwrap().to_string()).collect();

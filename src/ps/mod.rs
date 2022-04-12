@@ -160,12 +160,8 @@ pub fn add_ps_id(repo: &git2::Repository, commit_oid: git2::Oid, ps_id: Uuid) ->
   let mut tmp_branch_ref = repo.find_reference(add_id_rework_branch_ref_name)?;
   tmp_branch_ref.delete()?;
 
-  return Ok(amended_patch_oid);
+  Ok(amended_patch_oid)
 }
-
-
-#[cfg(test)]
-use plumbing::test;
 
 #[cfg(test)]
 mod tests {
