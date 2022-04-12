@@ -75,55 +75,7 @@ respective completion statuses.
 
 ## Development
 
-
-### Modules
-
-Below are outlined two different views of the module hierarchy of this app. The
-hope is that with the combination of these two views you will understand the
-architecture of the application and where things live/should live to ease the
-process of getting acclimated to a new code base.
-
-#### Filesystem Hierarchy
-
-The following is a breakdown of the filesystem hierarchy and what each of the
-module's is responsible for.
-
-* `src`
-	* `main` - command line entry point, parsing & sub command handoff
-	* `commands` - module collecting plumbing & porcelain cmd funcs for cli
-		* `plumbing` - module of plumbing command funcs for cli
-			* `branch` - branch command & supporting functionality
-		* `porcelain` - module of porcelain command funcs for cli
-			* `ls` - ls command & supporting functionality
-			* `pull` - pull command & supporting functionality
-			* `rebase` - rebase command & supporting functionality
-			* `rr` - rr command & supporting functionality 
-			* `pub` - pub command & supporting functionality
-			* `show` - show command & supporting functionality
-			* `co` - co command & supporting functionality
-	* `lib` - library entry point
-	* `ps` - parenting module collecting Patch Stack specific modules 
-		* `utils` - generic utility functions
-		* `git` - functionality for interfacing with git
-		* `test` - test suite helpers
-		* `ps` - generic shared patch stack functionality
-		* `ls` - ls command function in the library
-		* `pull` - pull command function in the library
-		* `rebase` - rebase command function in the library
-		* `rr` - rr command function in the library
-		* `branch` - branch command function in the library
-
-### Build
-
-```text
-cargo build
-```
-
-### Test
-
-```text
-cargo test
-```
+To find details on contributing and developing this project see [DEVELOPMENT.md](DEVELOPMENT.md)
 
 ## License
 
