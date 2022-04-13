@@ -23,7 +23,7 @@ pub enum LsError {
   CommitMissing
 }
 
-pub fn ls() -> Result<(), LsError> {
+pub fn list() -> Result<(), LsError> {
     let repo = git::create_cwd_repo().map_err(|_| LsError::RepositoryNotFound)?;
 
     let patch_stack = ps::get_patch_stack(&repo).map_err(|e| LsError::GetPatchStackFailed(e))?;

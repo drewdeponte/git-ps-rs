@@ -2,7 +2,7 @@ pub mod branch;
 pub mod checkout;
 pub mod isolate;
 pub mod integrate;
-pub mod ls;
+pub mod list;
 pub mod pull;
 pub mod rebase;
 pub mod rr;

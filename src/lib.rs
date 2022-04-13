@@ -6,7 +6,7 @@ mod ps;
 pub use ps::public::pull::{pull, PullError};
 pub use ps::public::branch::{branch, BranchError};
 pub use ps::public::sync::{sync, SyncError};
-pub use ps::public::ls::ls;
+pub use ps::public::list::list;
 pub use ps::public::rebase::rebase;
 pub use ps::public::rr::rr;
 pub use ps::public::show::show;
