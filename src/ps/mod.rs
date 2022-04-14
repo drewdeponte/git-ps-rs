@@ -163,6 +163,21 @@ pub fn add_ps_id(repo: &git2::Repository, commit_oid: git2::Oid, ps_id: Uuid) ->
   Ok(amended_patch_oid)
 }
 
+#[derive(Debug)]
+pub enum FindPatchCommitError {
+  GetPatchStackDescFailed(PatchStackError),
+  GetPatchListFailed(GetPatchListError),
+  PatchWithIndexNotFound(usize),
+  FindCommitWithOidFailed(git2::Oid, git2::Error)
+}
+
+pub fn find_patch_commit(repo: &git2::Repository, patch_index: usize) -> Result<git2::Commit, FindPatchCommitError> {
+  let patch_stack = get_patch_stack(repo).map_err(FindPatchCommitError::GetPatchStackDescFailed)?;
+  let patches_vec = get_patch_list(repo, patch_stack).map_err(FindPatchCommitError::GetPatchListFailed)?;
+  let patch_oid = patches_vec.get(patch_index).ok_or(FindPatchCommitError::PatchWithIndexNotFound(patch_index))?.oid;
+  repo.find_commit(patch_oid).map_err(|e| FindPatchCommitError::FindCommitWithOidFailed(patch_oid, e))
+}
+
 #[cfg(test)]
 mod tests {
   use uuid::Uuid;
