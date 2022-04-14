@@ -224,6 +224,34 @@ pub fn ext_delete_remote_branch(remote_name: &str, branch_name: &str) -> Result<
   Ok(())
 }
 
+#[derive(Debug)]
+pub enum CommitDiffError {
+  MergeCommit,
+  CommitParentCountZero,
+  GetParentZeroFailed,
+  GetParentZeroCommitFailed,
+  GetParentZeroTreeFailed,
+  GetCommitTreeFailed,
+  GetDiffTreeToTreeFailed
+}
+
+pub fn commit_diff<'a>(repo: &'a git2::Repository, commit: &git2::Commit) -> Result<git2::Diff<'a>, CommitDiffError> {
+  if commit.parent_count() > 1 {
+    return Err(CommitDiffError::MergeCommit)
+  }
+
+  if commit.parent_count() > 0 {
+    let parent_oid = commit.parent_id(0).map_err(|_| CommitDiffError::GetParentZeroFailed)?;
+    let parent_commit = repo.find_commit(parent_oid).map_err(|_| CommitDiffError::GetParentZeroCommitFailed)?;
+    let parent_tree = parent_commit.tree().map_err(|_| CommitDiffError::GetParentZeroTreeFailed)?;
+
+    let commit_tree = commit.tree().map_err(|_| CommitDiffError::GetCommitTreeFailed)?;
+    Ok(repo.diff_tree_to_tree(Some(&parent_tree), Some(&commit_tree), Option::None).map_err(|_| CommitDiffError::GetDiffTreeToTreeFailed)?)
+  } else {
+    Err(CommitDiffError::CommitParentCountZero)
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use tempfile::TempDir;
