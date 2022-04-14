@@ -178,6 +178,10 @@ pub fn find_patch_commit(repo: &git2::Repository, patch_index: usize) -> Result<
   repo.find_commit(patch_oid).map_err(|e| FindPatchCommitError::FindCommitWithOidFailed(patch_oid, e))
 }
 
+pub fn commit_ps_id(commit: &git2::Commit) -> Option<Uuid> {
+  commit.message().and_then(extract_ps_id)
+}
+
 #[cfg(test)]
 mod tests {
   use uuid::Uuid;
