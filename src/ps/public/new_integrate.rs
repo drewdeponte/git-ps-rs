@@ -42,40 +42,18 @@ pub fn new_integrate(patch_index: usize, keep_branch: bool, given_branch_name: O
   // main - this is the patch stack itself
   // origin/main - this gets updated when do a fetch operation
 
-  // - find the patch identified by the patch_index
-  let patch_stack = ps::get_patch_stack(&repo).unwrap();
-  let patches_vec = ps::get_patch_list(&repo, patch_stack).unwrap(); //.map_err(|e| BranchError::GetPatchListFailed(e))?;
-  let patch_oid = patches_vec.get(patch_index).unwrap().oid; //.ok_or(BranchError::PatchIndexNotFound)?.oid;
+  // find the patch identified by the patch_index
+  let patch_commit = ps::find_patch_commit(&repo, patch_index).unwrap();
 
-  // fetch patch stack identifier
-  let patch_commit = repo.find_commit(patch_oid).unwrap(); //.map_err(|_| BranchError::PatchCommitNotFound)?;
+  // get the diff patch id of the patch's commit
+  let patch_commit_diff_patch_id = git::commit_diff_patch_id(&repo, &patch_commit).unwrap();
 
-  let raw_message = patch_commit.message_raw().unwrap();
-
-  println!("RAW MESSAGE{}", raw_message);
-
-  let raw_header = patch_commit.raw_header().unwrap();
-
-  println!("RAW HEADER\n{}", raw_header);
-
-  let author = patch_commit.author().to_string();
-
-  println!("AUTHOR\n{}", author.as_str());
-
-  let diff = git::commit_diff(&repo, &patch_commit).unwrap();
-
-  let patch_id = diff.patchid(Option::None).unwrap();
-
-  println!("PATCH ID\n{}", patch_id);
-
-
-  let patch_message = patch_commit.message().unwrap(); //.ok_or(BranchError::PatchMessageMissing)?;
-  let ps_id = ps::extract_ps_id(patch_message).unwrap();
+  // extract patch stack identifier from commit
+  let ps_id = ps::commit_ps_id(&patch_commit).unwrap();
 
   // fetch patch's associated branch name from state
-  let patch_meta_data_path = state_management::patch_states_path(&repo).unwrap();
-  let patch_meta_data = state_management::read_patch_states(&patch_meta_data_path).unwrap();
-  let branch_name = patch_meta_data.get(&ps_id).unwrap().state.branch_name();
+  let patch_meta_data = ps::get_patch_meta_data(&repo, ps_id).unwrap();
+  let patch_branch_name = patch_meta_data.map(|pmd| pmd.state.branch_name()).unwrap();
 
   // fetch
   
@@ -83,7 +61,7 @@ pub fn new_integrate(patch_index: usize, keep_branch: bool, given_branch_name: O
   // get the oid of origin/main
   let mainline_head_oid = repo.head().unwrap().target().unwrap();
   // get the oid of origin/ps/rr/my-patch-branch
-  let remote_rr_branch_refspec = format!("{}/{}", remote_name.as_str().unwrap(), branch_name.as_str());
+  let remote_rr_branch_refspec = format!("{}/{}", remote_name.as_str().unwrap(), patch_branch_name.as_str());
   let rr_branch_oid = repo.find_branch(&remote_rr_branch_refspec, git2::BranchType::Remote).unwrap().get().target().unwrap();
   let merge_base_oid = repo.merge_base(rr_branch_oid, mainline_head_oid).unwrap();
 
