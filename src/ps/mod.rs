@@ -10,6 +10,7 @@ pub mod private;
 use std::str::FromStr;
 
 use private::git;
+use private::state_management;
 // This is the `ps` module. It is responsible for housing functionality
 // specific to Patch Stack as a conceptual level.  It is responsible for
 // consuming functionality from other modules like the `git` and `utils`
@@ -180,6 +181,18 @@ pub fn find_patch_commit(repo: &git2::Repository, patch_index: usize) -> Result<
 
 pub fn commit_ps_id(commit: &git2::Commit) -> Option<Uuid> {
   commit.message().and_then(extract_ps_id)
+}
+
+#[derive(Debug)]
+pub enum GetPatchMetaDataError {
+  GetPatchStatesPatchFailed(state_management::PatchStatesPathError),
+  ReadPatchStatesFailed(state_management::ReadPatchStatesError)
+}
+
+pub fn get_patch_meta_data(repo: &git2::Repository, ps_id: Uuid) -> Result<Option<state_management::Patch>, GetPatchMetaDataError> {
+  let patch_meta_data_path = state_management::patch_states_path(repo).map_err(GetPatchMetaDataError::GetPatchStatesPatchFailed)?;
+  let patch_meta_data = state_management::read_patch_states(&patch_meta_data_path).map_err(GetPatchMetaDataError::ReadPatchStatesFailed)?;
+  Ok(patch_meta_data.get(&ps_id).cloned())
 }
 
 #[cfg(test)]
