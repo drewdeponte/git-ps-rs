@@ -49,6 +49,26 @@ pub fn new_integrate(patch_index: usize, keep_branch: bool, given_branch_name: O
 
   // fetch patch stack identifier
   let patch_commit = repo.find_commit(patch_oid).unwrap(); //.map_err(|_| BranchError::PatchCommitNotFound)?;
+
+  let raw_message = patch_commit.message_raw().unwrap();
+
+  println!("RAW MESSAGE{}", raw_message);
+
+  let raw_header = patch_commit.raw_header().unwrap();
+
+  println!("RAW HEADER\n{}", raw_header);
+
+  let author = patch_commit.author().to_string();
+
+  println!("AUTHOR\n{}", author.as_str());
+
+  let diff = git::commit_diff(&repo, &patch_commit).unwrap();
+
+  let patch_id = diff.patchid(Option::None).unwrap();
+
+  println!("PATCH ID\n{}", patch_id);
+
+
   let patch_message = patch_commit.message().unwrap(); //.ok_or(BranchError::PatchMessageMissing)?;
   let ps_id = ps::extract_ps_id(patch_message).unwrap();
 
@@ -67,10 +87,19 @@ pub fn new_integrate(patch_index: usize, keep_branch: bool, given_branch_name: O
   let rr_branch_oid = repo.find_branch(&remote_rr_branch_refspec, git2::BranchType::Remote).unwrap().get().target().unwrap();
   let merge_base_oid = repo.merge_base(rr_branch_oid, mainline_head_oid).unwrap();
 
+  println!("merge_base_oid = {}", merge_base_oid);
 
   let merge_base_commit = repo.find_commit(merge_base_oid).unwrap();
-  let common_ancestor_commit = merge_base_commit.parent(0).unwrap();
-  let common_ancestor_oid = common_ancestor_commit.id();
+  let common_ancestor_oid;
+  if merge_base_commit.parent_count() > 0 {
+    let common_ancestor_commit = merge_base_commit.parent(0).unwrap();
+    common_ancestor_oid = common_ancestor_commit.id();
+  } else {
+    common_ancestor_oid = merge_base_commit.id();
+  }
+
+  // let common_ancestor_commit = merge_base_commit.parent(0).unwrap();
+  // let common_ancestor_oid = common_ancestor_commit.id();
 
 
   let revwalk = git::get_revs(&repo, common_ancestor_oid, rr_branch_oid).unwrap();
@@ -80,6 +109,26 @@ pub fn new_integrate(patch_index: usize, keep_branch: bool, given_branch_name: O
   if num_of_commits != 1 {
     return Err(NewIntegrateError::PatchBranchDoesntHaveExactlyOneCommit(remote_rr_branch_refspec, num_of_commits))
   }
+
+
+  let patch_diff = git::commit_diff(&repo, &patch_commit).unwrap();
+  let patch_diff_stable_id = patch_diff.patchid(Option::None).unwrap();
+
+  println!("patch_diff_stable_id\n{}", patch_diff_stable_id);
+
+  let rr_branch_commit = repo.find_commit(rr_branch_oid).unwrap();
+  let rr_branch_commit_diff = git::commit_diff(&repo, &rr_branch_commit).unwrap();
+  let rr_branch_commit_diff_stable_id = rr_branch_commit_diff.patchid(Option::None).unwrap();
+
+  println!("rr_branch_commit_diff_stable_id\n{}", rr_branch_commit_diff_stable_id);
+
+  if (patch_diff_stable_id != rr_branch_commit_diff_stable_id) {
+    println!("WE HAVE A PROBLEM");
+  }
+
+
+
+
 
   // make sure that the commit that remote request-review branch has contains
   // the same content that the patch in the patch stack does
