@@ -6,6 +6,6 @@ pub mod new_integrate;
 pub mod list;
 pub mod pull;
 pub mod rebase;
-pub mod rr;
+pub mod request_review;
 pub mod show;
 pub mod sync;

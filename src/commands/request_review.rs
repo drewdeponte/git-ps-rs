@@ -8,7 +8,7 @@
 use gps as ps;
 
 pub fn request_review(patch_index: usize, branch_name: Option<String>) {
-  match ps::rr(patch_index, branch_name) {
+  match ps::request_review(patch_index, branch_name) {
     Ok(_) => return,
     Err(e) => eprintln!("Error: {:?}", e)
   };
