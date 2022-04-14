@@ -252,6 +252,17 @@ pub fn commit_diff<'a>(repo: &'a git2::Repository, commit: &git2::Commit) -> Res
   }
 }
 
+#[derive(Debug)]
+pub enum CommitDiffPatchIdError {
+  GetDiffFailed(CommitDiffError),
+  CreatePatchHashFailed(git2::Error)
+}
+
+pub fn commit_diff_patch_id(repo: &git2::Repository, commit: &git2::Commit) -> Result<git2::Oid, CommitDiffPatchIdError> {
+  let diff = commit_diff(repo, commit).map_err(CommitDiffPatchIdError::GetDiffFailed)?;
+  diff.patchid(Option::None).map_err(CommitDiffPatchIdError::CreatePatchHashFailed)
+}
+
 #[cfg(test)]
 mod tests {
   use tempfile::TempDir;
