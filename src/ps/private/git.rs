@@ -263,6 +263,26 @@ pub fn commit_diff_patch_id(repo: &git2::Repository, commit: &git2::Commit) -> R
   diff.patchid(Option::None).map_err(CommitDiffPatchIdError::CreatePatchHashFailed)
 }
 
+#[derive(Debug)]
+pub enum CommonAncestorError {
+  MergeBaseFailed(git2::Error),
+  FindCommitFailed(git2::Error),
+  GetParentZeroFailed(git2::Error)
+}
+
+pub fn common_ancestor(repo: &git2::Repository, one: git2::Oid, two: git2::Oid) -> Result<git2::Oid, CommonAncestorError> {
+  let merge_base_oid = repo.merge_base(one, two).map_err(CommonAncestorError::MergeBaseFailed)?;
+  let merge_base_commit = repo.find_commit(merge_base_oid).map_err(CommonAncestorError::FindCommitFailed)?;
+  let common_ancestor_oid;
+  if merge_base_commit.parent_count() > 0 {
+    let common_ancestor_commit = merge_base_commit.parent(0).map_err(CommonAncestorError::GetParentZeroFailed)?;
+    common_ancestor_oid = common_ancestor_commit.id();
+  } else {
+    common_ancestor_oid = merge_base_commit.id();
+  }
+  Ok(common_ancestor_oid)
+}
+
 #[cfg(test)]
 mod tests {
   use tempfile::TempDir;
