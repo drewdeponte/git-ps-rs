@@ -39,7 +39,10 @@ pub struct IntegrateCmdOpts {
   /// Keep request-review branches around (a.k.a. don't clean up request
   /// review branches)
   #[structopt(short = "k", long = "keep-branch")]
-  pub keep_branch: bool
+  pub keep_branch: bool,
+  /// Skip safety checks and publish
+  #[structopt(short = "f", long = "force")]
+  pub force: bool
 }
 
 #[derive(Debug, StructOpt)]
@@ -115,7 +118,7 @@ fn main() {
 
     match opt.command {
         Command::Branch(opts) => commands::branch::branch(opts.patch_index, opts.branch_name),
-        Command::Integrate(opts) => commands::integrate::integrate(opts.patch_index, opts.keep_branch, opts.branch_name),
+        Command::Integrate(opts) => commands::integrate::integrate(opts.patch_index, opts.force, opts.keep_branch, opts.branch_name),
         Command::List => commands::list::list(),
         Command::Rebase => commands::rebase::rebase(),
         Command::Pull => commands::pull::pull(),
