@@ -28,9 +28,9 @@ impl PatchState {
   pub fn has_been_pushed_to_remote(&self) -> bool {
     match self {
       Self::BranchCreated(_branch_name) => false,
-      Self::PushedToRemote(branch_name) => true,
-      Self::RequestedReview(branch_name) => true,
-      Self::Published(branch_name) => false
+      Self::PushedToRemote(_branch_name) => true,
+      Self::RequestedReview(_branch_name) => true,
+      Self::Published(_branch_name) => false
     }
   }
 }
