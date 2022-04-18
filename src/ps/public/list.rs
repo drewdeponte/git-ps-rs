@@ -45,7 +45,6 @@ pub fn list() -> Result<(), ListError> {
     let patch_meta_data_path = state_management::patch_states_path(&repo).map_err(ListError::GetPatchStatePathFailed)?;
     let patch_meta_data = state_management::read_patch_states(patch_meta_data_path).map_err(ListError::ReadPatchStatesFailed)?;
 
-
     for patch in list_of_patches.into_iter().rev() {
         let commit = repo.find_commit(patch.oid).map_err(|_| ListError::CommitMissing)?;
         let patch_state = match ps::commit_ps_id(&commit) {
@@ -56,19 +55,6 @@ pub fn list() -> Result<(), ListError> {
         let commit_diff_patch_id = git::commit_diff_patch_id(&repo, &commit).map_err(ListError::GetCommitDiffPatchIdFailed)?;
         let patch_status = patch_status(patch_state, &repo, commit_diff_patch_id).map_err(ListError::PatchStatusFailed)?;
         let patch_status_string = patch_status_to_string(patch_status);
-
-        // compute patch patch status (depends on state of patch or lack there
-        // of and if the patch has changed since last synced
-        // let patch_status = patch_status(patch_state);
-
-        // translate patch status to UI
-
-        // let commit_diff_patch_id = git::commit_diff_patch_id(&repo, &commit).map_err(ListError::GetCommitDiffPatchIdFailed)?;
-
-
-        // let patch_message = commit.message().unwrap_or("").to_string();
-        // let patch_status = ps::extract_ps_id(&patch_message)
-        //   .map_or("   ".to_string(), |patch_id| patch_status(patch_meta_data.get(&patch_id)));
 
         println!("{:<4} {:<6} {:.6} {}", patch.index, patch_status_string, patch.oid, patch.summary);
     }
