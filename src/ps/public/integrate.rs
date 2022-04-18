@@ -61,7 +61,7 @@ pub fn integrate(patch_index: usize, force: bool, keep_branch: bool, given_branc
     git::ext_push(false, remote_name_str, rr_branch_name, &upstream_branch_shorthand).map_err(IntegrateError::PushFailed)?;
 
     // update state of the patch to indicate it has been integrated
-    update_state(&repo, rr_branch_name.to_string(), ps_id)?;
+    update_state(&repo, remote_name_str.to_string(), rr_branch_name.to_string(), ps_id)?;
     
     // clean up the local rr branch
     if !keep_branch {
@@ -120,7 +120,7 @@ pub fn integrate(patch_index: usize, force: bool, keep_branch: bool, given_branc
 
     // Update state so that it is aware of the fact that this patch has been
     // integrated into upstream
-    update_state(&repo, rr_branch_name.clone(), ps_id)?;
+    update_state(&repo, remote_name_str.to_string(), rr_branch_name.clone(), ps_id)?;
 
     // Cleanup the local and remote branches associated with this patch
     if !keep_branch {
@@ -133,16 +133,16 @@ pub fn integrate(patch_index: usize, force: bool, keep_branch: bool, given_branc
   Ok(())
 }
 
-fn update_state(repo: &git2::Repository, rr_branch_name: String, ps_id: Uuid) -> Result<(), IntegrateError> {
+fn update_state(repo: &git2::Repository, remote_name: String, rr_branch_name: String, ps_id: Uuid) -> Result<(), IntegrateError> {
     state_management::update_patch_state(repo, &ps_id, |patch_meta_data_option|
       match patch_meta_data_option {
         Some(patch_meta_data) => {
           match patch_meta_data.state {
-            state_management::PatchState::Published(ref _branch_name) => patch_meta_data.clone(),
+            state_management::PatchState::Published(_, _) => patch_meta_data.clone(),
             _ => {
               state_management::Patch {
                 patch_id: ps_id,
-                state: state_management::PatchState::Published(rr_branch_name)
+                state: state_management::PatchState::Published(remote_name, rr_branch_name)
               }
             }
           }
@@ -150,7 +150,7 @@ fn update_state(repo: &git2::Repository, rr_branch_name: String, ps_id: Uuid) ->
         None => {
           state_management::Patch {
             patch_id: ps_id,
-            state: state_management::PatchState::Published(rr_branch_name)
+            state: state_management::PatchState::Published(remote_name, rr_branch_name)
           }
         }
       }

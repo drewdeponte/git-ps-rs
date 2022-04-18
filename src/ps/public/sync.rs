@@ -36,12 +36,12 @@ pub fn sync(patch_index: usize, given_branch_name: Option<String>) -> Result<(),
     match patch_meta_data_option {
       Some(patch_meta_data) => {
         match patch_meta_data.state {
-          state_management::PatchState::Published(ref _branch_name) => patch_meta_data.clone(),
-          state_management::PatchState::RequestedReview(ref _branch_name) => patch_meta_data.clone(),
+          state_management::PatchState::Published(_, _) => patch_meta_data,
+          state_management::PatchState::RequestedReview(_, _) => patch_meta_data,
           _ => {
             state_management::Patch {
               patch_id: ps_id,
-              state: state_management::PatchState::PushedToRemote(rr_branch_name)
+              state: state_management::PatchState::PushedToRemote(remote_name.as_str().unwrap().to_string(), rr_branch_name)
             }
           }
         }
@@ -49,11 +49,11 @@ pub fn sync(patch_index: usize, given_branch_name: Option<String>) -> Result<(),
       None => {
         state_management::Patch {
           patch_id: ps_id,
-          state: state_management::PatchState::PushedToRemote(rr_branch_name)
+          state: state_management::PatchState::PushedToRemote(remote_name.as_str().unwrap().to_string(), rr_branch_name)
         }
       }
     }
-  ).map_err(|e| SyncError::StorePatchStateFailed(e))?;
+  ).map_err(SyncError::StorePatchStateFailed)?;
 
   Ok(())
 }

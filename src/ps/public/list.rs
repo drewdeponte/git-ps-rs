@@ -86,7 +86,7 @@ fn patch_status(patch_meta_data_option: Option<&state_management::Patch>, repo: 
             Ok(PatchStatus::BranchCreated)
           }
         },
-        state_management::PatchState::PushedToRemote(rr_branch_name) => {
+        state_management::PatchState::PushedToRemote(remote, rr_branch_name) => {
           // get the singular commit (a.k.a) patch that should be the head of rr_branch_name
           let commit = git::singular_commit_of_branch(repo, rr_branch_name, git2::BranchType::Remote).map_err(PatchStatusError::SingularCommitOfBrachFailure)?;
           // get it's diff_patch_id
@@ -98,7 +98,7 @@ fn patch_status(patch_meta_data_option: Option<&state_management::Patch>, repo: 
             Ok(PatchStatus::PushedToRemote)
           }
         },
-        state_management::PatchState::RequestedReview(rr_branch_name) => {
+        state_management::PatchState::RequestedReview(remote, rr_branch_name) => {
           // get the singular commit (a.k.a) patch that should be the head of rr_branch_name
           let commit = git::singular_commit_of_branch(repo, rr_branch_name, git2::BranchType::Remote).map_err(PatchStatusError::SingularCommitOfBrachFailure)?;
           // get it's diff_patch_id
@@ -110,7 +110,7 @@ fn patch_status(patch_meta_data_option: Option<&state_management::Patch>, repo: 
             Ok(PatchStatus::RequestedReview)
           }
         },
-        state_management::PatchState::Published(_) => Ok(PatchStatus::Integrated)
+        state_management::PatchState::Published(_, _) => Ok(PatchStatus::Integrated)
       }
     }
   }
