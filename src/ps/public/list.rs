@@ -88,7 +88,7 @@ fn patch_status(patch_meta_data_option: Option<&state_management::Patch>, repo: 
         },
         state_management::PatchState::PushedToRemote(remote, rr_branch_name) => {
           // get the singular commit (a.k.a) patch that should be the head of rr_branch_name
-          let commit = git::singular_commit_of_branch(repo, rr_branch_name, git2::BranchType::Remote).map_err(PatchStatusError::SingularCommitOfBrachFailure)?;
+          let commit = git::singular_commit_of_branch(repo, format!("{}/{}", remote, rr_branch_name).as_str(), git2::BranchType::Remote).map_err(PatchStatusError::SingularCommitOfBrachFailure)?;
           // get it's diff_patch_id
           let remote_commit_diff_patch_id = git::commit_diff_patch_id(repo, &commit).map_err(PatchStatusError::GetCommitDiffPatchIdFailed)?;
           // compare it to the diff_patch_id of the current patch
@@ -100,7 +100,7 @@ fn patch_status(patch_meta_data_option: Option<&state_management::Patch>, repo: 
         },
         state_management::PatchState::RequestedReview(remote, rr_branch_name) => {
           // get the singular commit (a.k.a) patch that should be the head of rr_branch_name
-          let commit = git::singular_commit_of_branch(repo, rr_branch_name, git2::BranchType::Remote).map_err(PatchStatusError::SingularCommitOfBrachFailure)?;
+          let commit = git::singular_commit_of_branch(repo, format!("{}/{}", remote, rr_branch_name).as_str(), git2::BranchType::Remote).map_err(PatchStatusError::SingularCommitOfBrachFailure)?;
           // get it's diff_patch_id
           let remote_commit_diff_patch_id = git::commit_diff_patch_id(repo, &commit).map_err(PatchStatusError::GetCommitDiffPatchIdFailed)?;
           // compare it to the diff_patch_id of the current patch
