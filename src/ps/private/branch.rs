@@ -4,6 +4,7 @@ use super::super::super::ps;
 use uuid::Uuid;
 use std::result::Result;
 use std::fmt;
+use super::paths;
 
 #[derive(Debug)]
 pub enum BranchError {
@@ -19,7 +20,7 @@ pub enum BranchError {
   RrBranchNameNotUtf8,
   CherryPickFailed(git::GitError),
   GetPatchListFailed(ps::GetPatchListError),
-  GetPatchMetaDataPathFailed(state_management::PatchStatesPathError),
+  GetPatchMetaDataPathFailed(paths::PathsError),
   ReadPatchMetaDataFailed(state_management::ReadPatchStatesError),
   WritePatchMetaDataFailed(state_management::WritePatchStatesError)
 }
@@ -91,8 +92,8 @@ pub fn branch<'a>(repo: &'a git2::Repository, patch_index: usize, given_branch_n
   }
 
   // fetch patch meta data given repo and patch_id
-  let patch_meta_data_path = state_management::patch_states_path(repo).map_err(|e| BranchError::GetPatchMetaDataPathFailed(e))?;
-  let mut patch_meta_data = state_management::read_patch_states(&patch_meta_data_path).map_err(|e| BranchError::ReadPatchMetaDataFailed(e))?;
+  let patch_meta_data_path = paths::patch_states_path(repo).map_err(BranchError::GetPatchMetaDataPathFailed)?;
+  let mut patch_meta_data = state_management::read_patch_states(&patch_meta_data_path).map_err(BranchError::ReadPatchMetaDataFailed)?;
   let branch_name = match patch_meta_data.get(&ps_id) {
     Some(patch_meta_data) => patch_meta_data.state.branch_name(),
     None => {
@@ -115,7 +116,7 @@ pub fn branch<'a>(repo: &'a git2::Repository, patch_index: usize, given_branch_n
       state: state_management::PatchState::BranchCreated(branch_name)
     };
     patch_meta_data.insert(ps_id, new_patch_meta_data);
-    state_management::write_patch_states(&patch_meta_data_path, &patch_meta_data).map_err(|e| BranchError::WritePatchMetaDataFailed(e))?;
+    state_management::write_patch_states(&patch_meta_data_path, &patch_meta_data).map_err(BranchError::WritePatchMetaDataFailed)?;
   }
 
   Ok((branch, ps_id))

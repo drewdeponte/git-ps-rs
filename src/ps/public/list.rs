@@ -3,6 +3,7 @@ use super::super::super::ps;
 use uuid::Uuid;
 use serde::{Serialize, Deserialize};
 use super::super::private::state_management;
+use super::super::private::paths;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct RequestReviewRecord {
@@ -18,7 +19,7 @@ pub enum ListError {
   RepositoryNotFound,
   GetPatchStackFailed(ps::PatchStackError),
   GetPatchListFailed(ps::GetPatchListError),
-  GetPatchStatePathFailed(state_management::PatchStatesPathError),
+  GetPatchStatePathFailed(paths::PathsError),
   ReadPatchStatesFailed(state_management::ReadPatchStatesError),
   CommitMissing,
   GetCommitDiffPatchIdFailed(git::CommitDiffPatchIdError),
@@ -42,7 +43,7 @@ pub fn list() -> Result<(), ListError> {
     let patch_stack = ps::get_patch_stack(&repo).map_err(ListError::GetPatchStackFailed)?;
     let list_of_patches = ps::get_patch_list(&repo, patch_stack).map_err(ListError::GetPatchListFailed)?;
 
-    let patch_meta_data_path = state_management::patch_states_path(&repo).map_err(ListError::GetPatchStatePathFailed)?;
+    let patch_meta_data_path = paths::patch_states_path(&repo).map_err(ListError::GetPatchStatePathFailed)?;
     let patch_meta_data = state_management::read_patch_states(patch_meta_data_path).map_err(ListError::ReadPatchStatesFailed)?;
 
     for patch in list_of_patches.into_iter().rev() {

@@ -2,9 +2,10 @@ use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 use std::fs::File;
 use std::io;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::result::Result;
 use uuid::Uuid;
+use super::paths;
 
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -77,16 +78,6 @@ pub fn write_patch_states(path: &Path, patch_state: &HashMap<Uuid, Patch>) -> Re
 }
 
 #[derive(Debug)]
-pub enum PatchStatesPathError {
-  RepoWorkDirNotFound
-}
-
-pub fn patch_states_path(repo: &git2::Repository) -> Result<PathBuf, PatchStatesPathError> {
-  let work_dir = repo.workdir().ok_or(PatchStatesPathError::RepoWorkDirNotFound)?;
-  return Ok(work_dir.join(Path::new(".git/GIT-PATCH-STACK-PATCH-STATES-V1.json")));
-}
-
-#[derive(Debug)]
 pub enum StorePatchStateError {
   PatchStatesPathNotFound,
   ReadPatchStatesFailed(ReadPatchStatesError),
@@ -95,7 +86,7 @@ pub enum StorePatchStateError {
 
 pub fn store_patch_state(repo: &git2::Repository, patch_state: &Patch) -> Result<(), StorePatchStateError> {
   // get path to patch states file
-  let states_path = patch_states_path(repo)
+  let states_path = paths::patch_states_path(repo)
     .map_err(|_| StorePatchStateError::PatchStatesPathNotFound)?;
 
   // read the patch states in
@@ -116,7 +107,7 @@ pub fn store_patch_state(repo: &git2::Repository, patch_state: &Patch) -> Result
 
 pub fn update_patch_state(repo: &git2::Repository, patch_id: &Uuid, f: impl FnOnce(Option<Patch>) -> Patch) -> Result<(), StorePatchStateError> {
   // get path to patch states file
-  let states_path = patch_states_path(repo)
+  let states_path = paths::patch_states_path(repo)
     .map_err(|_| StorePatchStateError::PatchStatesPathNotFound)?;
 
   // read the patch states in
@@ -137,12 +128,12 @@ pub fn update_patch_state(repo: &git2::Repository, patch_id: &Uuid, f: impl FnOn
 
 #[derive(Debug)]
 pub enum FetchPatchMetaDataError {
-  FailedToGetPathToMetaData(PatchStatesPathError),
+  FailedToGetPathToMetaData(paths::PathsError),
   FailedToReadMetaData(ReadPatchStatesError)
 }
 
 pub fn fetch_patch_meta_data(repo: &git2::Repository, patch_id: &Uuid) -> Result<Option<Patch>, FetchPatchMetaDataError> {
-  let patch_meta_data_path = patch_states_path(repo).map_err(|e| FetchPatchMetaDataError::FailedToGetPathToMetaData(e))?;
+  let patch_meta_data_path = paths::patch_states_path(repo).map_err(|e| FetchPatchMetaDataError::FailedToGetPathToMetaData(e))?;
   let patch_meta_data = read_patch_states(patch_meta_data_path).map_err(|e| FetchPatchMetaDataError::FailedToReadMetaData(e))?;
   Ok(patch_meta_data.get(patch_id).cloned())
 }
