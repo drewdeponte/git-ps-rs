@@ -121,8 +121,8 @@ fn patch_status_to_string(patch_status: PatchStatus) -> String {
     PatchStatus::WithoutBranch => "   ",
     PatchStatus::BranchCreated => "b  ",
     PatchStatus::BranchCreatedButHasChanged => "b+ ",
-    PatchStatus::PushedToRemote => "p  ",
-    PatchStatus::PushedToRemoteButHasChanged => "p+ ",
+    PatchStatus::PushedToRemote => "s  ",
+    PatchStatus::PushedToRemoteButHasChanged => "s+ ",
     PatchStatus::RequestedReview => "rr ",
     PatchStatus::RequestedReviewButHasChanged => "rr+",
     PatchStatus::Integrated => "int"
