@@ -4,6 +4,7 @@
 // related to these responsibilities belongs here.
 
 pub mod request_review_branch;
+pub mod branch;
 pub mod checkout;
 pub mod isolate;
 pub mod integrate;

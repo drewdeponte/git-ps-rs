@@ -23,6 +23,18 @@ pub struct RequestReview {
 }
 
 #[derive(Debug, StructOpt)]
+pub struct BranchCmdOpts {
+  /// index of patch to cherry-pick to branch or starting index of patch
+  /// series to cherry-pick to the branch
+  pub start_patch_index: usize,
+  /// ending patch index of the patch series to cherry-pick to the branch
+  pub end_patch_index: Option<usize>,
+  /// Use the provided branch name instead of generating one
+  #[structopt(short = "n")]
+  pub branch_name: String
+}
+
+#[derive(Debug, StructOpt)]
 pub struct RequestReviewBranchCmdOpts {
   pub patch_index: usize,
   /// Use the provided branch name instead of generating one
@@ -70,6 +82,13 @@ pub struct CheckoutCmdOpts {
 
 #[derive(Debug, StructOpt)]
 pub enum Command {
+    /// Your bridge back to the world of normal git and git concepts.
+    /// Basically a utility to help you create a normal git branch from a
+    /// patch or series of patches that is based on the patch stack base (e.g.
+    /// origin/main). Because this is a bridge back to the normal git concepts
+    /// like branches and commits it does no state tracking of these branches
+    /// inside of git patch stack.
+    Branch(BranchCmdOpts),
     /// Create a request review branch on the patch stack base, cherry-pick
     /// the specified patch onto it, & record association between patch &
     /// branch
@@ -118,6 +137,7 @@ fn main() {
     let opt = ApplicationArguments::from_args();
 
     match opt.command {
+        Command::Branch(opts) => commands::branch::branch(opts.start_patch_index, opts.end_patch_index, opts.branch_name),
         Command::RequestReviewBranch(opts) => commands::request_review_branch::request_review_branch(opts.patch_index, opts.branch_name),
         Command::Integrate(opts) => commands::integrate::integrate(opts.patch_index, opts.force, opts.keep_branch, opts.branch_name),
         Command::List => commands::list::list(),
