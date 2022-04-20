@@ -30,7 +30,7 @@ pub enum IntegrateError {
   UpdatePatchMetaDataFailed(state_management::StorePatchStateError),
   DeleteLocalBranchFailed(git2::Error),
   DeleteRemoteBranchFailed(git::ExtDeleteRemoteBranchError),
-  BranchOperationFailed(ps::private::branch::BranchError),
+  BranchOperationFailed(ps::private::request_review_branch::RequestReviewBranchError),
   GetBranchNameFailed(git2::Error),
   CreatedBranchMissingName
 }
@@ -45,7 +45,7 @@ pub fn integrate(patch_index: usize, force: bool, keep_branch: bool, given_branc
   let ps_id = ps::commit_ps_id(&patch_commit).ok_or(IntegrateError::CommitPsIdMissing)?;
 
   if force {
-    let (branch, ps_id) = ps::private::branch::branch(&repo, patch_index, given_branch_name_option).map_err(IntegrateError::BranchOperationFailed)?;
+    let (branch, ps_id) = ps::private::request_review_branch::request_review_branch(&repo, patch_index, given_branch_name_option).map_err(IntegrateError::BranchOperationFailed)?;
 
     // publish the patch from the local rr branch up to uptstream
     let rr_branch_name = branch.name().map_err(IntegrateError::GetBranchNameFailed)?.ok_or(IntegrateError::CreatedBranchMissingName)?;
