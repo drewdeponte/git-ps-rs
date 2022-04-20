@@ -23,7 +23,7 @@ pub struct RequestReview {
 }
 
 #[derive(Debug, StructOpt)]
-pub struct BranchCmdOpts {
+pub struct RequestReviewBranchCmdOpts {
   pub patch_index: usize,
   /// Use the provided branch name instead of generating one
   #[structopt(short = "n")]
@@ -70,10 +70,11 @@ pub struct CheckoutCmdOpts {
 
 #[derive(Debug, StructOpt)]
 pub enum Command {
-    /// (br) - Create a request review branch & cherry-pick the specified
-    /// patch into it
-    #[structopt(name = "branch", alias = "br")]
-    Branch(BranchCmdOpts),
+    /// Create a request review branch on the patch stack base, cherry-pick
+    /// the specified patch onto it, & record association between patch &
+    /// branch
+    #[structopt(name = "request-review-branch")]
+    RequestReviewBranch(RequestReviewBranchCmdOpts),
     /// (int) - Integrate the specified patch into the patch stacks upstream
     /// remote
     #[structopt(name = "integrate", alias = "int")]
@@ -117,7 +118,7 @@ fn main() {
     let opt = ApplicationArguments::from_args();
 
     match opt.command {
-        Command::Branch(opts) => commands::branch::branch(opts.patch_index, opts.branch_name),
+        Command::RequestReviewBranch(opts) => commands::branch::branch(opts.patch_index, opts.branch_name),
         Command::Integrate(opts) => commands::integrate::integrate(opts.patch_index, opts.force, opts.keep_branch, opts.branch_name),
         Command::List => commands::list::list(),
         Command::Rebase => commands::rebase::rebase(),
