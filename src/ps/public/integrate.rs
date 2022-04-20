@@ -41,9 +41,6 @@ pub fn integrate(patch_index: usize, force: bool, keep_branch: bool, given_branc
   // verify that the patch-index has a corresponding commit
   let patch_commit = ps::find_patch_commit(&repo, patch_index).map_err(IntegrateError::FindPatchCommitFailed)?;
 
-  // verify that the commit has a patch stack id
-  let ps_id = ps::commit_ps_id(&patch_commit).ok_or(IntegrateError::CommitPsIdMissing)?;
-
   if force {
     let (branch, ps_id) = ps::private::request_review_branch::request_review_branch(&repo, patch_index, given_branch_name_option).map_err(IntegrateError::BranchOperationFailed)?;
 
@@ -69,6 +66,9 @@ pub fn integrate(patch_index: usize, force: bool, keep_branch: bool, given_branc
       local_branch.delete().map_err(IntegrateError::DeleteLocalBranchFailed)?;
     }
   } else {
+    // verify that the commit has a patch stack id
+    let ps_id = ps::commit_ps_id(&patch_commit).ok_or(IntegrateError::CommitPsIdMissing)?;
+
     // verify that the patch has an associated branch and has been synced
     let patch_meta_data = ps::get_patch_meta_data(&repo, ps_id).map_err(IntegrateError::GetPatchMetaDataFailed)?.ok_or(IntegrateError::PatchMetaDataMissing)?;
     if !patch_meta_data.state.has_been_pushed_to_remote() {
