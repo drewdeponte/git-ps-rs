@@ -118,7 +118,7 @@ fn main() {
     let opt = ApplicationArguments::from_args();
 
     match opt.command {
-        Command::RequestReviewBranch(opts) => commands::branch::branch(opts.patch_index, opts.branch_name),
+        Command::RequestReviewBranch(opts) => commands::request_review_branch::request_review_branch(opts.patch_index, opts.branch_name),
         Command::Integrate(opts) => commands::integrate::integrate(opts.patch_index, opts.force, opts.keep_branch, opts.branch_name),
         Command::List => commands::list::list(),
         Command::Rebase => commands::rebase::rebase(),
