@@ -13,7 +13,7 @@ pub enum PatchState {
   BranchCreated(String), // branch_name
   PushedToRemote(String, String), // remote, branch_name
   RequestedReview(String, String), // remote, branch_name
-  Published(String, String) // remote, branch_name
+  Integrated(String, String) // remote, branch_name
 }
 
 impl PatchState {
@@ -22,7 +22,7 @@ impl PatchState {
       Self::BranchCreated(branch_name) => branch_name.to_string(),
       Self::PushedToRemote(_, branch_name) => branch_name.to_string(),
       Self::RequestedReview(_, branch_name) => branch_name.to_string(),
-      Self::Published(_, branch_name) => branch_name.to_string()
+      Self::Integrated(_, branch_name) => branch_name.to_string()
     }
   }
 
@@ -31,7 +31,16 @@ impl PatchState {
       Self::BranchCreated(_) => false,
       Self::PushedToRemote(_, _) => true,
       Self::RequestedReview(_, _) => true,
-      Self::Published(_, _) => false
+      Self::Integrated(_, _) => false
+    }
+  }
+
+  pub fn has_requested_review(&self) -> bool {
+    match self {
+      Self::BranchCreated(_) => false,
+      Self::PushedToRemote(_, _) => false,
+      Self::RequestedReview(_, _) => true,
+      Self::Integrated(_, _) => true
     }
   }
 }

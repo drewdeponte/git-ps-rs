@@ -138,11 +138,11 @@ fn update_state(repo: &git2::Repository, remote_name: String, rr_branch_name: St
       match patch_meta_data_option {
         Some(patch_meta_data) => {
           match patch_meta_data.state {
-            state_management::PatchState::Published(_, _) => patch_meta_data.clone(),
+            state_management::PatchState::Integrated(_, _) => patch_meta_data.clone(),
             _ => {
               state_management::Patch {
                 patch_id: ps_id,
-                state: state_management::PatchState::Published(remote_name, rr_branch_name)
+                state: state_management::PatchState::Integrated(remote_name, rr_branch_name)
               }
             }
           }
@@ -150,7 +150,7 @@ fn update_state(repo: &git2::Repository, remote_name: String, rr_branch_name: St
         None => {
           state_management::Patch {
             patch_id: ps_id,
-            state: state_management::PatchState::Published(remote_name, rr_branch_name)
+            state: state_management::PatchState::Integrated(remote_name, rr_branch_name)
           }
         }
       }

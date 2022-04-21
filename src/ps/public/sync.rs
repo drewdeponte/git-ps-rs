@@ -1,6 +1,7 @@
 use super::super::private::git;
 use super::super::super::ps;
 use super::super::private::state_management;
+use uuid::Uuid;
 
 #[derive(Debug)]
 pub enum SyncError {
@@ -14,7 +15,7 @@ pub enum SyncError {
   StorePatchStateFailed(state_management::StorePatchStateError)
 }
 
-pub fn sync(patch_index: usize, given_branch_name: Option<String>) -> Result<(), SyncError> {
+pub fn sync(patch_index: usize, given_branch_name: Option<String>) -> Result<(String, Uuid), SyncError> {
   let repo = git::create_cwd_repo().map_err(|_| SyncError::RepositoryNotFound)?;
 
   // get remote name of current branch
@@ -32,16 +33,17 @@ pub fn sync(patch_index: usize, given_branch_name: Option<String>) -> Result<(),
   git::ext_push(true, remote_name.as_str().unwrap(), branch_ref_name, branch_ref_name).map_err(SyncError::ForcePushFailed)?;
 
   // associate the patch to the branch that was created
+  let rr_branch_name_copy = rr_branch_name.clone();
   state_management::update_patch_state(&repo, &ps_id, |patch_meta_data_option|
     match patch_meta_data_option {
       Some(patch_meta_data) => {
         match patch_meta_data.state {
-          state_management::PatchState::Published(_, _) => patch_meta_data,
+          state_management::PatchState::Integrated(_, _) => patch_meta_data,
           state_management::PatchState::RequestedReview(_, _) => patch_meta_data,
           _ => {
             state_management::Patch {
               patch_id: ps_id,
-              state: state_management::PatchState::PushedToRemote(remote_name.as_str().unwrap().to_string(), rr_branch_name)
+              state: state_management::PatchState::PushedToRemote(remote_name.as_str().unwrap().to_string(), rr_branch_name_copy)
             }
           }
         }
@@ -49,11 +51,11 @@ pub fn sync(patch_index: usize, given_branch_name: Option<String>) -> Result<(),
       None => {
         state_management::Patch {
           patch_id: ps_id,
-          state: state_management::PatchState::PushedToRemote(remote_name.as_str().unwrap().to_string(), rr_branch_name)
+          state: state_management::PatchState::PushedToRemote(remote_name.as_str().unwrap().to_string(), rr_branch_name_copy)
         }
       }
     }
   ).map_err(SyncError::StorePatchStateFailed)?;
 
-  Ok(())
+  Ok((rr_branch_name, ps_id))
 }

@@ -110,7 +110,7 @@ fn patch_status(patch_meta_data_option: Option<&state_management::Patch>, repo: 
             Ok(PatchStatus::RequestedReview)
           }
         },
-        state_management::PatchState::Published(_, _) => Ok(PatchStatus::Integrated)
+        state_management::PatchState::Integrated(_, _) => Ok(PatchStatus::Integrated)
       }
     }
   }
