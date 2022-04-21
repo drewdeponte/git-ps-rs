@@ -21,7 +21,6 @@ pub enum IntegrateError {
   RemoteRrBranchMissingTarget,
   CommonAncestorFailed(git::CommonAncestorError),
   GetRevWalkerFailed(git::GitError),
-  PatchBranchDoesntHaveExactlyOneCommit(String, usize), // (branch_name, num_of_commits)
   FindRrBranchCommitFailed(git2::Error),
   RrBranchCommitDiffPatchIdFailed(git::CommitDiffPatchIdError),
   PatchCommitDiffPatchIdFailed(git::CommitDiffPatchIdError),
@@ -32,7 +31,8 @@ pub enum IntegrateError {
   DeleteRemoteBranchFailed(git::ExtDeleteRemoteBranchError),
   BranchOperationFailed(ps::private::request_review_branch::RequestReviewBranchError),
   GetBranchNameFailed(git2::Error),
-  CreatedBranchMissingName
+  CreatedBranchMissingName,
+  SingularCommitOfBranchError(git::SingularCommitOfBranchError)
 }
 
 pub fn integrate(patch_index: usize, force: bool, keep_branch: bool, given_branch_name_option: Option<String>) -> Result<(), IntegrateError> {
@@ -85,22 +85,9 @@ pub fn integrate(patch_index: usize, force: bool, keep_branch: bool, given_branc
     let remote_name = repo.branch_remote_name(&branch_upstream_name).map_err(|_| IntegrateError::GetRemoteNameFailed)?;
 
     let remote_name_str = remote_name.as_str().ok_or(IntegrateError::ConvertStringToStrFailed)?;
-    let mainline_head_oid = repo.head().map_err(IntegrateError::GetHeadFailed)?.target().ok_or(IntegrateError::HeadMissingTarget)?;
     let remote_rr_branch_refspec = format!("{}/{}", remote_name_str, rr_branch_name.as_str());
-    let rr_branch_oid = repo.find_branch(&remote_rr_branch_refspec, git2::BranchType::Remote).map_err(IntegrateError::FindRemoteRrBranchFailed)?.get().target().ok_or(IntegrateError::RemoteRrBranchMissingTarget)?;
 
-    let common_ancestor_oid = git::common_ancestor(&repo, rr_branch_oid, mainline_head_oid).map_err(IntegrateError::CommonAncestorFailed)?;
-
-    let revwalk = git::get_revs(&repo, common_ancestor_oid, rr_branch_oid).map_err(IntegrateError::GetRevWalkerFailed)?;
-    let num_of_commits = revwalk.count();
-
-    if num_of_commits != 1 {
-      return Err(IntegrateError::PatchBranchDoesntHaveExactlyOneCommit(remote_rr_branch_refspec, num_of_commits))
-    }
-
-    // verify that the commit in the remote request-review branch and the
-    // identified patch are the same
-    let rr_branch_commit = repo.find_commit(rr_branch_oid).map_err(IntegrateError::FindRrBranchCommitFailed)?;
+    let rr_branch_commit = git::singular_commit_of_branch(&repo, &remote_rr_branch_refspec, git2::BranchType::Remote).map_err(IntegrateError::SingularCommitOfBranchError)?;
 
     let rr_branch_commit_diff_patch_id = git::commit_diff_patch_id(&repo, &rr_branch_commit).map_err(IntegrateError::RrBranchCommitDiffPatchIdFailed)?;
     let patch_commit_diff_patch_id = git::commit_diff_patch_id(&repo, &patch_commit).map_err(IntegrateError::PatchCommitDiffPatchIdFailed)?;

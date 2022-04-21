@@ -272,15 +272,7 @@ pub enum CommonAncestorError {
 
 pub fn common_ancestor(repo: &git2::Repository, one: git2::Oid, two: git2::Oid) -> Result<git2::Oid, CommonAncestorError> {
   let merge_base_oid = repo.merge_base(one, two).map_err(CommonAncestorError::MergeBaseFailed)?;
-  let merge_base_commit = repo.find_commit(merge_base_oid).map_err(CommonAncestorError::FindCommitFailed)?;
-  let common_ancestor_oid;
-  if merge_base_commit.parent_count() > 0 {
-    let common_ancestor_commit = merge_base_commit.parent(0).map_err(CommonAncestorError::GetParentZeroFailed)?;
-    common_ancestor_oid = common_ancestor_commit.id();
-  } else {
-    common_ancestor_oid = merge_base_commit.id();
-  }
-  Ok(common_ancestor_oid)
+  Ok(merge_base_oid)
 }
 
 #[derive(Debug)]
@@ -302,11 +294,12 @@ pub fn singular_commit_of_branch<'a>(repo: &'a git2::Repository, branch_name: &s
 
   let revwalk = get_revs(repo, common_ancestor_oid, branch_oid).map_err(SingularCommitOfBranchError::GetRevWalkerFailed)?;
   let num_of_commits = revwalk.count();
-  if num_of_commits != 1 {
-    return Err(SingularCommitOfBranchError::BranchDoesntHaveExactlyOneCommit(branch_name.to_string(), num_of_commits))
-  }
 
-  return repo.find_commit(branch_oid).map_err(SingularCommitOfBranchError::FindBranchCommitFailed);
+  if num_of_commits > 1 || num_of_commits == 0 && common_ancestor_oid != branch_oid {
+    Err(SingularCommitOfBranchError::BranchDoesntHaveExactlyOneCommit(branch_name.to_string(), num_of_commits))
+  } else {
+    repo.find_commit(branch_oid).map_err(SingularCommitOfBranchError::FindBranchCommitFailed)
+  }
 }
 
 #[cfg(test)]
