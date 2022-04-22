@@ -50,7 +50,7 @@ Patch Stack workflow.
 - `pull` - pull changes down from upstream & rebase the stack on top
 - `list (ls)` - list your patches in the stack you are on and their states
 - `rebase` - interactively rebase your stack of patches
-- `request-review (rr)` - request review of a patch
+- `request-review (rr)` - request review of a patch (Requires a [hook](#hooks) to be set up.)
 - `integrate (int)` - integrate the specified patch into the patch stack's upstream remote
 
 You can get a full breakdown of all the commands by running
@@ -69,6 +69,8 @@ gps request-review --help
 
 If you are on a platform other than macOS you will have to build your own
 version from source.
+
+#### **NOTE: In order to use `gps request-review`you must set up a [hook](#hooks) after installation.**
 
 ### macOS
 
