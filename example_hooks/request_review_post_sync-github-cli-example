@@ -8,6 +8,11 @@
 # In this particular case it is creating a pull request within GitHub by using
 # the GitHub CLI. Therefore, you need to make sure that you have the GitHub CLI
 # installed, in your PATH, and have logged into it for this hook to work.
+#
+# Setup
+#
+# - install github cli - on macOS - brew install gh
+# - login to github cli - gh auth login
 
 re_requesting_review=$1 # string of "true" or "false"
 branch_to_integrate=$2 # string of the branch name to integrate (e.g. ps/rr/your-patches-branch-name)
