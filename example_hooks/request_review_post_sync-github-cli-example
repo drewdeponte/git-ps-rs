@@ -1,0 +1,25 @@
+#!/bin/sh
+
+# request_review_post_sync hook using GitHub CLI (https://cli.github.com)
+#
+# This hook handles requesting review after the sync step of the request review
+# command has completed.
+#
+# In this particular case it is creating a pull request within GitHub by using
+# the GitHub CLI. Therefore, you need to make sure that you have the GitHub CLI
+# installed, in your PATH, and have logged into it for this hook to work.
+
+re_requesting_review=$1 # string of "true" or "false"
+branch_to_integrate=$2 # string of the branch name to integrate (e.g. ps/rr/your-patches-branch-name)
+branch_to_integrate_into=$3 # string of the branch name to integrate into (e.g. main)
+
+if [ "$re_requesting_review" != "true" ]; then
+	gh pr create --fill --base "$branch_to_integrate_into" --head "$branch_to_integrate"
+fi
+
+# Note: In the case where $re_requesting_review is true we don't want to do
+# anything in the hook other than exit successfully because all we want to
+# happen is that the remote branch is pushed up. The sync step of the
+# request review command takes care of. Hence, there is nothing for us to do
+# here. If this hook was implementing say an email based workflow then it would
+# likely create and send a new email.
