@@ -1,77 +1,130 @@
-# git-ps - Git Patch Stack
+# git-ps-rs - Git Patch Stack
 
-This is the official repository for the Rust implementation of `git-ps`. This
-is in heavy development and does not have all the `git-ps` functionality
-implemented yet. See the currently released `git-ps` implementation
-[here](https://github.com/uptech/git-ps).
+This is the official source repository for the Git Patch Stack command line
+interface, `gps`. 
 
-## Why a new implementation?
+The legacy command line tool for Git Patch Stack,
+[git-ps](https://github.com/uptech/git-ps) is no longer active and is only
+arround for historical reasons.
 
-There are a number of reasons why long term it makes sense to implement a new
-version of `git-ps` and more specifically implement it in Rust. However, the
-biggest reason is performance. The current implementation is in Swift which
-doesn't have decent bindings for libgit2. Therefore, we have to interacte with
-git by spinning up subprocesses and capturing and parsing the output. This
-results in the current implementation being extremely slow. Rust on the other
-hand has fantastic libgit2 bindings and all the same great feature benefits
-of Swift plus more.
+## What is Git Patch Stack?
 
-- **portability** - the current stable release is implemented in Swift which
-  isn't nearly as portable as Rust
-- **performance** - in general Rust is decently faster than Swift, but it also
-  has an ecosystem of libraries that facilitate making a significantly faster
-  implementation
-- **library ecosystem** - Rust provides a better ecosystem of libraries for
-  this use case
-- **safety** - Rust provides the same flexibility and language features as
-  Swift but with memory safety guarantees
-- **build dependencies** - the current stable version is implemented in Swift
-  which requires Xcode as a build dependency which fundamentally means that we
-  can only build it on macOS machines via Homebrew.
-- **not a spike** - the current stable release was implemented in Swift and was
-  implemented quick and dirty with no test coverage to simply validate the
-  workflow of Git Patch Stack which we have done at this point. This
-  implementation gives us the opportunity to actually design and implement it
-  in a respectable fashion.
-- **test coverage** - the current stable implementation has zero test coverage.
-  This implementation gives us an opportunity to make sure we have test
-  coverage from the get go.
-- **community support** - with the stable implementations code base being a
-  mess, it is hard for people to easily contribute to it.
+Git Patch Stack is a software development **methodology**, [Git][]
+**workflow**, and a **command line tool** to help make working in this manner
+as easy as possible.
 
-## Status
+It is focused around the idea of creating and managing a stack of individual
+logically chunked patches through the development & review workflow while still
+integrating with the peer review tools & platforms people are already
+comfortable with.
 
-Given that this project is currently under heavy development we are temporarily
-releasing it under `gps` rather than `git-ps` until we reach feature
-completion. This allows the current stable release of `git-ps` to be installed
-as well as this version. Enabling users to use the new implementation prior
-to it being feature complete.
+### The Methodology
 
-The following is a breakdown of the planned commands and their
-respective completion statuses.
+First and foremost Git Patch Stack is a software development methodology
+centralized around facilitating valuable [pre-commit][] code reviews while
+gaining as many of the benefits of the [Continuous Integration Methodology][]
+as possible. If you interested in how & why we came to this methodology please
+check out our article, [Journey to Small Pull Requests][].
 
-* `list - ls` - doneish
-	* doesn't include change detection since last sync
-* `rebase` - done
-* `pull` - done
-* `branch - br` - doneish
-	* doesn't support custom branch naming, `-n` option
-	* doesn't support patch series
-* `sync` - doneish
-	* doesn't support custom branch naming, `-n` option
-	* doesn't support patch series
-* `request-review - rr` - doneish
-	* doesn't support custom branch naming, `-n` option
-	* doesn't support patch series
-	* doesn't support hook
-* `integrate - int` - doneish
-	* doesn't support custom branch naming, `-n` option
-	* doesn't support request review verification check & bypass `-f` option)
-	* doesn't support patch series
-* `show` - done
-* `checkout - co` - done
-* `isolate - iso` - doneish
-	* but no way to get back to previous branch other than, `git checkout main`
+### The Git Workflow
+
+Given that [Git][] is the central tool we use for source control management, it
+is important to make sure that we use it in a manner that facilitates the goals
+we are trying to accomplish. This is where Git Patch Stack as a Git Workflow
+comes into play. To gain a deeper understanding of Git Patch Stack as a Git
+Workflow please checkout our article, [How we should be using Git][].
+
+### The Command Line Tool
+
+The Git Patch Stack command line tool is an extension of [Git][] designed to
+make creating & managing your stacks of patches throughout the development and
+review workflow as easy as possible and enabling you to think in terms of the
+concepts of the Git Patch Stack methodology rather than the concepts of
+[Git][].
+
+## Operation Summary
+
+The following are a quick summary of the main commands that enable the Git
+Patch Stack workflow.
+
+- `pull` - pull changes down from upstream & rebase the stack on top
+- `list (ls)` - list your patches in the stack you are on and their states
+- `rebase` - interactively rebase your stack of patches
+- `request-review (rr)` - request review of a patch
+- `integrate (int)` - integrate the specified patch into the patch stack's upstream remote
+
+You can get a full breakdown of all the commands by running
+
+```
+gps --help
+```
+
+You can also get detailed help about specific commands by use the `--help` switch with the command. Example:
+
+```
+gps request-review --help
+```
+
+## Installation 
+
+If you are on a platform other than macOS you will have to build your own
+version from source.
+
+### macOS
+
+To install on macOS we provide a [Homebrew][] tap which provides the
+`git-ps-rs` formula. You can use it by doing the following:
+
+#### Add the Tap
+
+	brew tap "uptech/homebrew-oss"
+
+#### brew install
+
+	brew install uptech/oss/git-ps-rs
+
+#### zsh & bash Completions
+
+Our [Homebrew][] formulae installs the zsh & bash completion scripts into the
+standard [Homebrew][] shell completions location. So you just need to make sure
+that path is configured in your shell configuration. For zsh it is generally
+something like the following:
+
+```zsh
+fpath=(/opt/homebrew/share/zsh/site-functions/ $fpath)
+autoload -Uz compinit
+compinit
+```
+
+### Build from Source
+
+If you are on another platform you will have to build from source. Given
+that `git-ps-rs` is managed via [Cargo][]. It can be built as follows:
+
+	cargo build --release
+
+Once you have built it successfully you can use the `mv` command to move the
+`target/release/gps` file into `/usr/local/bin/` or some other location in your
+`PATH` environment variable.
+
+#### zsh & bash completions
+
+The zsh and bash completion scripts are generated as part of the build process
+by [Cargo][]'s custom build script, `build.rs` at the root of the project.
+
+The scripts are output to the [Cargo -
+OUT_DIR](https://doc.rust-lang.org/cargo/reference/environment-variables.html)
+location, generally `target/release/build/gps-*/out` where the `*` is a hash
+value. The files are named as follows.
+
+- `gps.bash` - bash completion script
+- `_gps` - zsh completion script
+
+## Getting Started
+
+## Product
+
+To find details on the concept of the product and questions & answers in that space see [PRODUCT.md](PRODUCT.md).
 
 ## Development
 
@@ -79,7 +132,7 @@ To find details on contributing and developing this project see [DEVELOPMENT.md]
 
 ## License
 
-`git-ps` is Copyright © 2020 UpTech Works, LLC. It is free software, and
+`git-ps-rs` is Copyright © 2020 UpTech Works, LLC. It is free software, and
 may be redistributed under the terms specified in the LICENSE file.
 
 ## About <img src="https://uploads-ssl.webflow.com/6222b1faf83d05669ca63972/624dc2dea4bbe5dd1d21a04c_uptechstudio-logo.svg" alt="Uptech Studio">
@@ -93,3 +146,10 @@ We love open source software. See [our other projects][community] or
 [community]: https://github.com/uptech
 [hire]: https://www.uptechstudio.com/careers
 [uptech]: https://uptechstudio.com
+[Cargo]: https://doc.rust-lang.org/cargo/
+[Homebrew]: https://brew.sh
+[Git]: https://git-scm.com
+[Continuous Integration Methodology]: https://en.wikipedia.org/wiki/Continuous_integration
+[pre-commit]: https://www.devart.com/review-assistant/learnmore/pre-commit-vs-post-commit.html
+[Journey to Small Pull Requests]: https://engineering.uptechstudio.com/blog/journey-to-small-pull-requests/
+[How we should be using Git]: https://engineering.uptechstudio.com/blog/how-we-should-be-using-git/
