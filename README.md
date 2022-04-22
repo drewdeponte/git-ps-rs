@@ -120,7 +120,35 @@ value. The files are named as follows.
 - `gps.bash` - bash completion script
 - `_gps` - zsh completion script
 
-## Getting Started
+## Hooks
+
+Git Patch Stack takes the stance that it shouldn't be bound to a specific
+source control management platform (GitHub, Bitbucket, GitLab, etc.) or a
+particular request review process. Even across projects.
+
+To give our users this flexibility we have created a **hooks** system for the
+`request-review` command allowing the users to configure & customize what the
+`request-review` command does.
+
+A hook is simply an executable file (script, binary, etc.) that is named
+according to the particular hook name and location in one of the two general
+locations for hooks.
+
+- `.git/git-ps/hooks/` - repository specific hooks
+- `~/.config/git-ps/hooks/` - user global hooks
+
+Repository specific hooks are searched for first, and if not found then
+it searches in the user's global hooks. This allows users to have a sane default
+configuration globally while also being able to configure specific repositories
+with different hooks.
+
+The following is a list of currently supported hooks (their expected filenames).
+
+- `request_review_post_sync` - hook executed by `request-review` command after succesfully syncing the patch to remote - generally used to create a pull request / patch email & send it
+
+You can find examples of hooks that you can straight up use or just use as a starting point in [example_hooks](tree/main/example_hooks).
+
+Here is an [example hook](blob/main/example_hooks/request_review_post_sync-github-cli-example) that uses [GitHub CLI][] to create a pull request.
 
 ## Product
 
@@ -153,3 +181,4 @@ We love open source software. See [our other projects][community] or
 [pre-commit]: https://www.devart.com/review-assistant/learnmore/pre-commit-vs-post-commit.html
 [Journey to Small Pull Requests]: https://engineering.uptechstudio.com/blog/journey-to-small-pull-requests/
 [How we should be using Git]: https://engineering.uptechstudio.com/blog/how-we-should-be-using-git/
+[GitHub CLI]: https://cli.github.com
