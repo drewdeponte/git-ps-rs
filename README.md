@@ -152,6 +152,21 @@ You can find examples of hooks that you can straight up use or just use as a sta
 
 Here is an [example hook](/example_hooks/request_review_post_sync-github-cli-example) that uses [GitHub CLI][] to create a pull request.
 
+### Setup Global Hook Directory
+
+Make sure that the Global Hook Directory is created with the following:
+
+```
+mkdir -p ~/.config/git-ps/hooks
+```
+
+Copy the example hook of your choice to the Global Hooks Directory and give it execute permissions. The following is an example.
+
+```
+curl -fsSL https://raw.githubusercontent.com/uptech/git-ps-rs/main/example_hooks/request_review_post_sync-github-cli-example --output ~/.config/git-ps/hooks/request_review_post_sync
+chmod u+x ~/.config/git-ps/hooks/request_review_post_sync
+```
+
 ## Product
 
 To find details on the concept of the product and questions & answers in that space see [PRODUCT.md](PRODUCT.md).
