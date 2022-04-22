@@ -117,7 +117,7 @@ dependencies = [
 
 [[package]]
 name = "gps"
-version = "3.0.1"
+version = "3.1.0"
 dependencies = [
  "git2",
  "home-dir",
