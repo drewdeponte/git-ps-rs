@@ -113,7 +113,7 @@ pub enum Command {
 }
 
 #[derive(Debug, StructOpt)]
-#[structopt(name = "git-ps")]
+#[structopt(name = "gps")]
 pub struct ApplicationArguments {
     #[structopt(subcommand)]
     pub command: Command
