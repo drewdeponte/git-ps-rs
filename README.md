@@ -146,9 +146,9 @@ The following is a list of currently supported hooks (their expected filenames).
 
 - `request_review_post_sync` - hook executed by `request-review` command after succesfully syncing the patch to remote - generally used to create a pull request / patch email & send it
 
-You can find examples of hooks that you can straight up use or just use as a starting point in [example_hooks](tree/main/example_hooks).
+You can find examples of hooks that you can straight up use or just use as a starting point in [example_hooks](/uptech/git-ps-rs/tree/main/example_hooks).
 
-Here is an [example hook](blob/main/example_hooks/request_review_post_sync-github-cli-example) that uses [GitHub CLI][] to create a pull request.
+Here is an [example hook](/uptech/git-ps-rs/blob/main/example_hooks/request_review_post_sync-github-cli-example) that uses [GitHub CLI][] to create a pull request.
 
 ## Product
 
