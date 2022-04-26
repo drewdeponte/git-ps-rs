@@ -9,7 +9,7 @@ use gps as ps;
 
 pub fn list() {
   match ps::list() {
-    Ok(_) => return,
+    Ok(_) => {},
     Err(e) => eprintln!("Error: {:?}", e)
   };
 }
