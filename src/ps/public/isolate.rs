@@ -19,12 +19,15 @@ pub enum IsolateError {
   GetCurrentBranchFailed,
   GetIsolateLastBranchPathFailed(paths::PathsError),
   StoreLastBranchFailed(WriteStrToFileError),
-  ReadLastBranchFailed(ReadStringFromFileError)
+  ReadLastBranchFailed(ReadStringFromFileError),
+  OpenGitConfigFailed(git2::Error)
 }
 
 pub fn isolate(patch_index_optional: Option<usize>) -> Result<(), IsolateError> {
   let isolate_branch_name = "ps/tmp/isolate";
   let repo = ps::private::git::create_cwd_repo().map_err(IsolateError::OpenGitRepositoryFailed)?;
+  let config = git2::Config::open_default().map_err(IsolateError::OpenGitConfigFailed)?;
+
   match patch_index_optional {
     Some(patch_index) => {
       let patch_stack = ps::get_patch_stack(&repo).map_err(IsolateError::GetPatchStackFailed)?;
@@ -37,7 +40,7 @@ pub fn isolate(patch_index_optional: Option<usize>) -> Result<(), IsolateError> 
       let branch_ref_name = branch.get().name().ok_or(IsolateError::BranchNameNotUtf8)?;
 
       // - cherry pick the patch onto new rr branch
-      git::cherry_pick_no_working_copy(&repo, patch_oid, branch_ref_name).map_err(|_| IsolateError::CherryPickFailed)?;
+      git::cherry_pick_no_working_copy(&repo, &config, patch_oid, branch_ref_name).map_err(|_| IsolateError::CherryPickFailed)?;
 
       // get currently checked out branch name
       let checked_out_branch = git::get_current_branch_shorthand(&repo).ok_or(IsolateError::GetCurrentBranchFailed)?;

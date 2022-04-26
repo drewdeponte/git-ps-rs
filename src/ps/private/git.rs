@@ -28,8 +28,10 @@
 // All code fitting that description belongs here.
 
 use git2;
+use gpgme;
 use super::utils;
 use std::result::Result;
+use std::str;
 
 #[derive(Debug)]
 pub enum GitError {
@@ -110,7 +112,7 @@ pub fn get_current_branch_shorthand(repo: &git2::Repository) -> Option<String> {
 // also important to understand that `start` should be the most recent commit
 // in history and the `end` should be the least recent commit in the range.
 // Think you are starting at the top of the tree going down.
-pub fn cherry_pick_no_working_copy_range<'a>(repo: &'a git2::Repository, start: git2::Oid, end: git2::Oid, dest_ref_name: &str) -> Result<(), GitError> {
+pub fn cherry_pick_no_working_copy_range<'a>(repo: &'a git2::Repository, config: &git2::Config, start: git2::Oid, end: git2::Oid, dest_ref_name: &str) -> Result<(), GitError> {
   let mut rev_walk = repo.revwalk()?;
   rev_walk.set_sorting(git2::Sort::REVERSE)?;
   rev_walk.push(start)?;
@@ -125,14 +127,186 @@ pub fn cherry_pick_no_working_copy_range<'a>(repo: &'a git2::Repository, start: 
       repo
         .find_commit(r)
         .map_err(|e| GitError::GitError(e))
-        .and_then(|commit| cherry_pick_no_working_copy(repo, commit.id(), dest_ref_name))?;
+        .and_then(|commit| cherry_pick_no_working_copy(repo, config, commit.id(), dest_ref_name))?;
     }
   }
 
   return Ok(());
 }
 
-pub fn cherry_pick_no_working_copy<'a>(repo: &'a git2::Repository, oid: git2::Oid, dest_ref_name: &str) -> Result<git2::Oid, GitError> {
+#[derive(Debug)]
+pub enum ConfigGetError {
+  Failed(git2::Error)
+}
+
+pub fn config_get_to_option<T>(res_val: Result<T, git2::Error>) -> Result<Option<T>, ConfigGetError> {
+  match res_val {
+    Ok(v) => Ok(Some(v)),
+    Err(e) => {
+      if e.class() == git2::ErrorClass::Config && e.code() == git2::ErrorCode::NotFound {
+        Ok(None)
+      } else {
+        Err(ConfigGetError::Failed(e))
+      }
+    }
+  }
+}
+
+pub fn config_get_bool(config: &git2::Config, name: &str) -> Result<Option<bool>, ConfigGetError> {
+  config_get_to_option(config.get_bool(name))
+}
+
+pub fn config_get_string(config: &git2::Config, name: &str) -> Result<Option<String>, ConfigGetError> {
+  config_get_to_option(config.get_string(name))
+}
+
+#[derive(Debug)]
+pub enum CreateCommitError {
+  GetCommitGpgsignFailed(ConfigGetError),
+  GetGpgFormatFailed(ConfigGetError),
+  GetUserSigningKeyFailed(ConfigGetError),
+  CreateGpgSignedCommitFailed(CreateGpgSignedCommitError),
+  CreateUnsignedCommitFailed(CreateUnsignedCommitError),
+  UserSigningKeyNotFoundInGitConfig
+}
+
+pub fn create_commit(
+  repo: &'_ git2::Repository,
+  config: &'_ git2::Config,
+  dest_ref_name: &str,
+  author: &git2::Signature<'_>,
+  committer: &git2::Signature<'_>,
+  message: &str,
+  tree: &git2::Tree<'_>,
+  parents: &[&git2::Commit<'_>]
+) -> Result<git2::Oid, CreateCommitError>{
+
+  // let config = git2::Config::open_default().unwrap();
+  // let sign_commit_flag_result = config.get_bool("commit.gpgsign");
+
+  let sign_commit_flag = config_get_bool(config, "commit.gpgsign")
+    .map_err(CreateCommitError::GetCommitGpgsignFailed)?
+    .unwrap_or(false);
+
+  if sign_commit_flag {
+    let gpg_format_option = config_get_string(config, "gpg.format")
+      .map_err(CreateCommitError::GetGpgFormatFailed)?;
+    let sign_with_gpg = match gpg_format_option {
+      Some(v) => (v == "openpgp"),
+      None => true
+    };
+
+    if sign_with_gpg {
+      let signing_key = config_get_string(config, "user.signingkey")
+        .map_err(CreateCommitError::GetUserSigningKeyFailed)?
+        .ok_or(CreateCommitError::UserSigningKeyNotFoundInGitConfig)?;
+      create_gpg_signed_commit(repo, signing_key, dest_ref_name, author, committer, message, tree, parents)
+        .map_err(CreateCommitError::CreateGpgSignedCommitFailed)
+    } else {
+      eprintln!("Warning: gps currently only supports GPG signatures. See issues #44 & #45 - https://github.com/uptech/git-ps-rs/issues");
+      eprintln!("The commits have been created unsigned!");
+      create_unsigned_commit(repo, dest_ref_name, author, committer, message, tree, parents)
+        .map_err(CreateCommitError::CreateUnsignedCommitFailed)
+    }
+  } else {
+    create_unsigned_commit(repo, dest_ref_name, author, committer, message, tree, parents)
+      .map_err(CreateCommitError::CreateUnsignedCommitFailed)
+  }
+}
+
+#[derive(Debug)]
+pub enum CreateGpgSignedCommitError {
+  CreateCommitBufferFailed(git2::Error),
+  FromUtf8Failed(str::Utf8Error),
+  GpgSignStringFailed(GpgSignStringError),
+  FindDestinationReferenceFailed(git2::Error),
+  CommitSignedFailed(git2::Error),
+  SetReferenceTargetFailed(git2::Error)
+}
+
+pub fn create_gpg_signed_commit(
+  repo: &'_ git2::Repository,
+  signing_key: String,
+  dest_ref_name: &str,
+  author: &git2::Signature<'_>,
+  committer: &git2::Signature<'_>,
+  message: &str,
+  tree: &git2::Tree<'_>,
+  parents: &[&git2::Commit<'_>]
+) -> Result<git2::Oid, CreateGpgSignedCommitError> {
+
+  // create commit buffer as a string so that we can sign it
+  let commit_buf = repo.commit_create_buffer(author, committer, message, tree, parents)
+    .map_err(CreateGpgSignedCommitError::CreateCommitBufferFailed)?;
+  let commit_as_str = str::from_utf8(&commit_buf)
+    .map_err(CreateGpgSignedCommitError::FromUtf8Failed)?
+    .to_string();
+
+  // create digital signature from commit buf
+  let sig = gpg_sign_string(commit_as_str.clone(), signing_key)
+    .map_err(CreateGpgSignedCommitError::GpgSignStringFailed)?;
+
+  // lookup the given reference
+  let mut destination_ref = repo.find_reference(dest_ref_name)
+    .map_err(CreateGpgSignedCommitError::FindDestinationReferenceFailed)?;
+
+  let new_commit_oid = repo.commit_signed(&commit_as_str, &sig, Some("gpgsig"))
+    .map_err(CreateGpgSignedCommitError::CommitSignedFailed)?;
+
+  // set the ref target
+  destination_ref.set_target(new_commit_oid, "create commit signed commit")
+    .map_err(CreateGpgSignedCommitError::SetReferenceTargetFailed)?;
+
+  Ok(new_commit_oid)
+}
+
+#[derive(Debug)]
+pub enum GpgSignStringError {
+  GetGpgContextFailed,
+  GetSecretKeyFailed,
+  AddSignerFailed,
+  CreateDetachedSignatureFailed,
+  FromUtf8Failed(std::string::FromUtf8Error)
+}
+
+pub fn gpg_sign_string(commit: String, signing_key: String) -> Result<String, GpgSignStringError> {
+    let mut ctx = gpgme::Context::from_protocol(gpgme::Protocol::OpenPgp).map_err(|_| GpgSignStringError::GetGpgContextFailed)?;
+    ctx.set_armor(true);
+    let key = ctx.get_secret_key(signing_key).map_err(|_| GpgSignStringError::GetSecretKeyFailed)?;
+
+    ctx.add_signer(&key).map_err(|_| GpgSignStringError::AddSignerFailed)?;
+    let mut output = Vec::new();
+    ctx.sign_detached(commit, &mut output).map_err(|_| GpgSignStringError::CreateDetachedSignatureFailed)?;
+
+    String::from_utf8(output).map_err(GpgSignStringError::FromUtf8Failed)
+}
+
+#[derive(Debug)]
+pub enum CreateUnsignedCommitError {
+  FindDestinationReferenceFailed(git2::Error),
+  DestinationReferenceNameNotFound,
+  CreateCommitFailed(git2::Error)
+}
+
+pub fn create_unsigned_commit(
+  repo: &'_ git2::Repository,
+  dest_ref_name: &str,
+  author: &git2::Signature<'_>,
+  committer: &git2::Signature<'_>,
+  message: &str,
+  tree: &git2::Tree<'_>,
+  parents: &[&git2::Commit<'_>]
+) -> Result<git2::Oid, CreateUnsignedCommitError> {
+  let destination_ref = repo.find_reference(dest_ref_name)
+    .map_err(CreateUnsignedCommitError::FindDestinationReferenceFailed)?;
+  let destination_ref_name = destination_ref.name()
+    .ok_or(CreateUnsignedCommitError::DestinationReferenceNameNotFound)?;
+  let new_commit_oid = repo.commit(Option::Some(destination_ref_name), author, committer, message, tree, parents)
+    .map_err(CreateUnsignedCommitError::CreateCommitFailed)?;
+  Ok(new_commit_oid)
+}
+
+pub fn cherry_pick_no_working_copy<'a>(repo: &'a git2::Repository, config: &'a git2::Config, oid: git2::Oid, dest_ref_name: &str) -> Result<git2::Oid, GitError> {
   // https://www.pygit2.org/recipes/git-cherry-pick.html#cherry-picking-a-commit-without-a-working-copy
   let commit = repo.find_commit(oid)?;
   let commit_tree = commit.tree()?;
@@ -153,19 +327,18 @@ pub fn cherry_pick_no_working_copy<'a>(repo: &'a git2::Repository, oid: git2::Oi
   let mut index = repo.merge_trees(&commit_parent_tree, &destination_tree, &commit_tree, None)?;
   let tree_oid = index.write_tree_to(repo)?;
   let tree = repo.find_tree(tree_oid)?;
-
-  let destination_ref_name = destination_ref.name().ok_or(GitError::ReferenceNameMissing)?;
 
   let author = commit.author();
   let committer = commit.committer();
   let message = commit.message().unwrap();
 
-  let new_commit_oid = repo.commit(Option::Some(destination_ref_name), &author, &committer, message, &tree, &[&destination_commit])?;
+  // let new_commit_oid = repo.commit(Option::Some(destination_ref_name), &author, &committer, message, &tree, &[&destination_commit])?;
+  let new_commit_oid = create_commit(repo, config, dest_ref_name, &author, &committer, message, &tree, &[&destination_commit]).unwrap();
 
-  return Ok(new_commit_oid);
+  Ok(new_commit_oid)
 }
 
-pub fn cherry_pick_no_working_copy_amend_message<'a>(repo: &'a git2::Repository, oid: git2::Oid, dest_ref_name: &str, message_amendment: &str) -> Result<git2::Oid, GitError> {
+pub fn cherry_pick_no_working_copy_amend_message<'a>(repo: &'a git2::Repository, config: &git2::Config, oid: git2::Oid, dest_ref_name: &str, message_amendment: &str) -> Result<git2::Oid, GitError> {
   // https://www.pygit2.org/recipes/git-cherry-pick.html#cherry-picking-a-commit-without-a-working-copy
   let commit = repo.find_commit(oid)?;
   let commit_tree = commit.tree()?;
@@ -186,17 +359,16 @@ pub fn cherry_pick_no_working_copy_amend_message<'a>(repo: &'a git2::Repository,
   let mut index = repo.merge_trees(&commit_parent_tree, &destination_tree, &commit_tree, None)?;
   let tree_oid = index.write_tree_to(repo)?;
   let tree = repo.find_tree(tree_oid)?;
-
-  let destination_ref_name = destination_ref.name().ok_or(GitError::ReferenceNameMissing)?;
 
   let author = commit.author();
   let committer = commit.committer();
   let message = commit.message().ok_or(GitError::CommitMessageMissing)?;
   let amended_message = format!("{}{}", message, message_amendment);
 
-  let new_commit_oid = repo.commit(Option::Some(destination_ref_name), &author, &committer, amended_message.as_str(), &tree, &[&destination_commit])?;
+  // let new_commit_oid = repo.commit(Option::Some(destination_ref_name), &author, &committer, amended_message.as_str(), &tree, &[&destination_commit])?;
+  let new_commit_oid = create_commit(repo, config, dest_ref_name, &author, &committer, amended_message.as_str(), &tree, &[&destination_commit]).unwrap();
 
-  return Ok(new_commit_oid);
+  Ok(new_commit_oid)
 }
 
 #[derive(Debug)]

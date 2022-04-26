@@ -22,7 +22,8 @@ pub enum RequestReviewBranchError {
   GetPatchListFailed(ps::GetPatchListError),
   GetPatchMetaDataPathFailed(paths::PathsError),
   ReadPatchMetaDataFailed(state_management::ReadPatchStatesError),
-  WritePatchMetaDataFailed(state_management::WritePatchStatesError)
+  WritePatchMetaDataFailed(state_management::WritePatchStatesError),
+  OpenGitConfigFailed(git2::Error)
 }
 
 impl From<git::CreateCwdRepositoryError> for RequestReviewBranchError {
@@ -64,13 +65,16 @@ impl fmt::Display for RequestReviewBranchError {
       RequestReviewBranchError::GetPatchListFailed(_patch_list_error) => write!(f, "Failed to get patch list"),
       RequestReviewBranchError::GetPatchMetaDataPathFailed(_patch_meta_data_path_error) => write!(f, "Failed to get patch meta data path {:?}", _patch_meta_data_path_error),
       RequestReviewBranchError::ReadPatchMetaDataFailed(_read_patch_meta_data_error) => write!(f, "Failed to read patch meta data {:?}", _read_patch_meta_data_error),
-      RequestReviewBranchError::WritePatchMetaDataFailed(_write_patch_meta_data_error) => write!(f, "Failed to write patch meta data {:?}", _write_patch_meta_data_error)
+      RequestReviewBranchError::WritePatchMetaDataFailed(_write_patch_meta_data_error) => write!(f, "Failed to write patch meta data {:?}", _write_patch_meta_data_error),
+      RequestReviewBranchError::OpenGitConfigFailed(_) => write!(f, "Failed to open git config")
     }
   }
 }
 
 
 pub fn request_review_branch<'a>(repo: &'a git2::Repository, patch_index: usize, given_branch_name_option: Option<String>) -> Result<(git2::Branch<'a>, Uuid), RequestReviewBranchError>  {
+  let config = git2::Config::open_default().map_err(RequestReviewBranchError::OpenGitConfigFailed)?;
+
   // - find the patch identified by the patch_index
   let patch_stack = ps::get_patch_stack(&repo)?;
   let patch_stack_base_commit = patch_stack.base.peel_to_commit().map_err(|_| RequestReviewBranchError::PatchStackBaseNotFound)?;
@@ -88,7 +92,7 @@ pub fn request_review_branch<'a>(repo: &'a git2::Repository, patch_index: usize,
     new_patch_oid = patch_oid;
   } else {
     ps_id = Uuid::new_v4();
-    new_patch_oid = ps::add_ps_id(&repo, patch_oid, ps_id)?;
+    new_patch_oid = ps::add_ps_id(&repo, &config, patch_oid, ps_id)?;
   }
 
   // fetch patch meta data given repo and patch_id
@@ -107,7 +111,7 @@ pub fn request_review_branch<'a>(repo: &'a git2::Repository, patch_index: usize,
   let branch_ref_name = branch.get().name().ok_or(RequestReviewBranchError::RrBranchNameNotUtf8)?;
 
   // - cherry pick the patch onto new rr branch
-  git::cherry_pick_no_working_copy(&repo, new_patch_oid, branch_ref_name).map_err(RequestReviewBranchError::CherryPickFailed)?;
+  git::cherry_pick_no_working_copy(&repo, &config, new_patch_oid, branch_ref_name).map_err(RequestReviewBranchError::CherryPickFailed)?;
 
   // record patch state if there is no record
   if patch_meta_data.get(&ps_id).is_none() {

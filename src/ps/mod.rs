@@ -127,7 +127,7 @@ impl From<git::GitError> for AddPsIdError {
     }
 }
 
-pub fn add_ps_id(repo: &git2::Repository, commit_oid: git2::Oid, ps_id: Uuid) -> Result<git2::Oid, AddPsIdError> {
+pub fn add_ps_id(repo: &git2::Repository, config: &git2::Config, commit_oid: git2::Oid, ps_id: Uuid) -> Result<git2::Oid, AddPsIdError> {
   // Get currently checked out branch
   let branch_ref_name = git::get_current_branch(&repo).ok_or(AddPsIdError::FailedToGetCurrentBranch)?;
   let mut branch_ref = repo.find_reference(&branch_ref_name)?;
@@ -145,14 +145,14 @@ pub fn add_ps_id(repo: &git2::Repository, commit_oid: git2::Oid, ps_id: Uuid) ->
   let add_id_rework_branch_ref_name = add_id_rework_branch.get().name().ok_or(AddPsIdError::FailedToGetReferenceName)?;
 
   // cherry pick
-  git::cherry_pick_no_working_copy_range(&repo, commit_oid, upstream_branch_oid, add_id_rework_branch_ref_name)?;
+  git::cherry_pick_no_working_copy_range(&repo, config, commit_oid, upstream_branch_oid, add_id_rework_branch_ref_name)?;
 
   let message_amendment = format!("\nps-id: {}", ps_id.to_hyphenated().to_string());
-  let amended_patch_oid = git::cherry_pick_no_working_copy_amend_message(&repo, commit_oid, add_id_rework_branch_ref_name, message_amendment.as_str())?;
+  let amended_patch_oid = git::cherry_pick_no_working_copy_amend_message(&repo, config, commit_oid, add_id_rework_branch_ref_name, message_amendment.as_str())?;
 
   if cur_branch_oid != commit_oid {
-    git::cherry_pick_no_working_copy_range(&repo, cur_branch_oid, commit_oid, add_id_rework_branch_ref_name)?;
-    let cherry_picked_commit_oid = git::cherry_pick_no_working_copy(&repo, cur_branch_oid, add_id_rework_branch_ref_name)?;
+    git::cherry_pick_no_working_copy_range(&repo, config, cur_branch_oid, commit_oid, add_id_rework_branch_ref_name)?;
+    let cherry_picked_commit_oid = git::cherry_pick_no_working_copy(&repo, config, cur_branch_oid, add_id_rework_branch_ref_name)?;
     branch_ref.set_target(cherry_picked_commit_oid, "swap branch to add_id_rework")?;
   } else {
     branch_ref.set_target(amended_patch_oid, "swap branch to add_id_rework")?;

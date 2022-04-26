@@ -14,11 +14,13 @@ pub enum BranchError {
   BranchNameNotUtf8,
   FindCommitFailed(git2::Error),
   GetCommitParentZeroFailed(git2::Error),
-  CherryPickFailed(git::GitError)
+  CherryPickFailed(git::GitError),
+  OpenGitConfigFailed(git2::Error)
 }
 
 pub fn branch(start_patch_index: usize, end_patch_index_option: Option<usize>, branch_name: String) -> Result<(), BranchError>  {
   let repo = git::create_cwd_repo().map_err(BranchError::OpenRepositoryFailed)?;
+  let config = git2::Config::open_default().map_err(BranchError::OpenGitConfigFailed)?;
 
   // find the base of the current patch stack
   let patch_stack = ps::get_patch_stack(&repo).map_err(BranchError::GetPatchStackFailed)?;
@@ -40,8 +42,8 @@ pub fn branch(start_patch_index: usize, end_patch_index_option: Option<usize>, b
     let branch_ref_name = branch.get().name().ok_or(BranchError::BranchNameNotUtf8)?;
 
     // cherry-pick the series of patches into the new branch
-    git::cherry_pick_no_working_copy_range(&repo, end_patch_oid, start_patch_parent_oid, branch_ref_name).map_err(BranchError::CherryPickFailed)?;
-    git::cherry_pick_no_working_copy(&repo, end_patch_oid, branch_ref_name).map_err(BranchError::CherryPickFailed)?;
+    git::cherry_pick_no_working_copy_range(&repo, &config, end_patch_oid, start_patch_parent_oid, branch_ref_name).map_err(BranchError::CherryPickFailed)?;
+    git::cherry_pick_no_working_copy(&repo, &config, end_patch_oid, branch_ref_name).map_err(BranchError::CherryPickFailed)?;
   } else {
     // find the patch in the patch stack
     let patches_vec = ps::get_patch_list(&repo, patch_stack).map_err(BranchError::GetPatchListFailed)?;
@@ -52,7 +54,7 @@ pub fn branch(start_patch_index: usize, end_patch_index_option: Option<usize>, b
     let branch_ref_name = branch.get().name().ok_or(BranchError::BranchNameNotUtf8)?;
 
     // cherry-pick the single patch into the new branch
-    git::cherry_pick_no_working_copy(&repo, patch_oid, branch_ref_name).map_err(BranchError::CherryPickFailed)?;
+    git::cherry_pick_no_working_copy(&repo, &config, patch_oid, branch_ref_name).map_err(BranchError::CherryPickFailed)?;
   }
 
   Ok(())
