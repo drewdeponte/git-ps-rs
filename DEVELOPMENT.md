@@ -15,6 +15,19 @@ contributing to the project.
 		* `private` - internal cmds & shared functionality & utilities
 		* `public` - library public interfaces for the commands
 
+### System Dependencies
+
+In order to build git-ps-rs it needs to have the [gpgme][] library installed
+including the headers, etc.
+
+On macOS this can be installed by `brew install gpgme`.
+
+On Ubunto this can be installed by `apt-get install libgpgme-dev`.
+
+As part of the Cargo build process it will try and get the correct
+configuration informating using `gpgme-config`. This dependency is what enables
+us to support GPG commit signing.
+
 ### Build
 
 To build the application for local development and debug simply run the
@@ -37,3 +50,5 @@ To run the test suite simply run the following.
 ```text
 cargo test
 ```
+
+[gpgme]: https://gnupg.org/software/gpgme/index.html
