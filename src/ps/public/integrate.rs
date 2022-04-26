@@ -125,7 +125,7 @@ fn update_state(repo: &git2::Repository, remote_name: String, rr_branch_name: St
       match patch_meta_data_option {
         Some(patch_meta_data) => {
           match patch_meta_data.state {
-            state_management::PatchState::Integrated(_, _) => patch_meta_data.clone(),
+            state_management::PatchState::Integrated(_, _) => patch_meta_data,
             _ => {
               state_management::Patch {
                 patch_id: ps_id,
