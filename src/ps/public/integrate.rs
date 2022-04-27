@@ -33,7 +33,8 @@ pub enum IntegrateError {
   GetBranchNameFailed(git2::Error),
   CreatedBranchMissingName,
   SingularCommitOfBranchError(git::SingularCommitOfBranchError),
-  UpdateLocalRequestReviewBranchFailed(ps::private::request_review_branch::RequestReviewBranchError)
+  UpdateLocalRequestReviewBranchFailed(ps::private::request_review_branch::RequestReviewBranchError),
+  FetchFailed(git::ExtFetchError)
 }
 
 pub fn integrate(patch_index: usize, force: bool, keep_branch: bool, given_branch_name_option: Option<String>) -> Result<(), IntegrateError> {
@@ -75,6 +76,9 @@ pub fn integrate(patch_index: usize, force: bool, keep_branch: bool, given_branc
     if !patch_meta_data.state.has_been_pushed_to_remote() {
       return Err(IntegrateError::PatchHasNotBeenPushed)
     }
+
+    // fetch so we get new remote state
+    git::ext_fetch().map_err(IntegrateError::FetchFailed)?;
 
     // TODO: verify that the patch has been requested-review
 
