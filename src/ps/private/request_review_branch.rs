@@ -72,13 +72,13 @@ impl fmt::Display for RequestReviewBranchError {
 }
 
 
-pub fn request_review_branch<'a>(repo: &'a git2::Repository, patch_index: usize, given_branch_name_option: Option<String>) -> Result<(git2::Branch<'a>, Uuid), RequestReviewBranchError>  {
+pub fn request_review_branch(repo: &git2::Repository, patch_index: usize, given_branch_name_option: Option<String>) -> Result<(git2::Branch<'_>, Uuid), RequestReviewBranchError>  {
   let config = git2::Config::open_default().map_err(RequestReviewBranchError::OpenGitConfigFailed)?;
 
   // - find the patch identified by the patch_index
-  let patch_stack = ps::get_patch_stack(&repo)?;
+  let patch_stack = ps::get_patch_stack(repo)?;
   let patch_stack_base_commit = patch_stack.base.peel_to_commit().map_err(|_| RequestReviewBranchError::PatchStackBaseNotFound)?;
-  let patches_vec = ps::get_patch_list(&repo, patch_stack).map_err(|e| RequestReviewBranchError::GetPatchListFailed(e))?;
+  let patches_vec = ps::get_patch_list(repo, patch_stack).map_err(RequestReviewBranchError::GetPatchListFailed)?;
   let patch_oid = patches_vec.get(patch_index).ok_or(RequestReviewBranchError::PatchIndexNotFound)?.oid;
   let patch_commit = repo.find_commit(patch_oid).map_err(|_| RequestReviewBranchError::PatchCommitNotFound)?;
 
@@ -92,7 +92,7 @@ pub fn request_review_branch<'a>(repo: &'a git2::Repository, patch_index: usize,
     new_patch_oid = patch_oid;
   } else {
     ps_id = Uuid::new_v4();
-    new_patch_oid = ps::add_ps_id(&repo, &config, patch_oid, ps_id)?;
+    new_patch_oid = ps::add_ps_id(repo, &config, patch_oid, ps_id)?;
   }
 
   // fetch patch meta data given repo and patch_id
@@ -102,7 +102,8 @@ pub fn request_review_branch<'a>(repo: &'a git2::Repository, patch_index: usize,
     Some(patch_meta_data) => patch_meta_data.state.branch_name(),
     None => {
       let patch_summary = patch_commit.summary().ok_or(RequestReviewBranchError::PatchSummaryMissing)?;
-      given_branch_name_option.unwrap_or(ps::generate_rr_branch_name(patch_summary))
+      let default_branch_name = ps::generate_rr_branch_name(patch_summary);
+      given_branch_name_option.unwrap_or(default_branch_name)
     }
   };
 
@@ -111,7 +112,7 @@ pub fn request_review_branch<'a>(repo: &'a git2::Repository, patch_index: usize,
   let branch_ref_name = branch.get().name().ok_or(RequestReviewBranchError::RrBranchNameNotUtf8)?;
 
   // - cherry pick the patch onto new rr branch
-  git::cherry_pick_no_working_copy(&repo, &config, new_patch_oid, branch_ref_name).map_err(RequestReviewBranchError::CherryPickFailed)?;
+  git::cherry_pick_no_working_copy(repo, &config, new_patch_oid, branch_ref_name).map_err(RequestReviewBranchError::CherryPickFailed)?;
 
   // record patch state if there is no record
   if patch_meta_data.get(&ps_id).is_none() {
