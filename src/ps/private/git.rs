@@ -397,6 +397,16 @@ pub fn ext_delete_remote_branch(remote_name: &str, branch_name: &str) -> Result<
 }
 
 #[derive(Debug)]
+pub enum ExtFetchError {
+  ExecuteFailed(utils::ExecuteError)
+}
+
+pub fn ext_fetch() -> Result<(), ExtFetchError> {
+  utils::execute("git", &["fetch"]).map_err(ExtFetchError::ExecuteFailed)?;
+  Ok(())
+}
+
+#[derive(Debug)]
 pub enum CommitDiffError {
   MergeCommit,
   CommitParentCountZero,
