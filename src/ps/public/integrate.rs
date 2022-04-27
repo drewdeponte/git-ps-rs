@@ -32,7 +32,8 @@ pub enum IntegrateError {
   BranchOperationFailed(ps::private::request_review_branch::RequestReviewBranchError),
   GetBranchNameFailed(git2::Error),
   CreatedBranchMissingName,
-  SingularCommitOfBranchError(git::SingularCommitOfBranchError)
+  SingularCommitOfBranchError(git::SingularCommitOfBranchError),
+  UpdateLocalRequestReviewBranchFailed(ps::private::request_review_branch::RequestReviewBranchError)
 }
 
 pub fn integrate(patch_index: usize, force: bool, keep_branch: bool, given_branch_name_option: Option<String>) -> Result<(), IntegrateError> {
@@ -89,6 +90,8 @@ pub fn integrate(patch_index: usize, force: bool, keep_branch: bool, given_branc
 
     let rr_branch_commit = git::singular_commit_of_branch(&repo, &remote_rr_branch_refspec, git2::BranchType::Remote).map_err(IntegrateError::SingularCommitOfBranchError)?;
 
+    // verify that the remote rr branche's patche's diff hash matches that of
+    // the local patch in the patch stack
     let rr_branch_commit_diff_patch_id = git::commit_diff_patch_id(&repo, &rr_branch_commit).map_err(IntegrateError::RrBranchCommitDiffPatchIdFailed)?;
     let patch_commit_diff_patch_id = git::commit_diff_patch_id(&repo, &patch_commit).map_err(IntegrateError::PatchCommitDiffPatchIdFailed)?;
 
@@ -96,14 +99,18 @@ pub fn integrate(patch_index: usize, force: bool, keep_branch: bool, given_branc
       return Err(IntegrateError::PatchesDiffer)
     }
 
+    // reset the local rr branch to be based on the current upstream remote
+    // base (e.g. origin/main)
+    ps::private::request_review_branch::request_review_branch(&repo, patch_index, given_branch_name_option)
+      .map_err(IntegrateError::UpdateLocalRequestReviewBranchFailed)?;
+
     // At this point we are pretty confident that things are properly in sync
     // and therefore we allow the actually act of integrating into to upstream
     // happen.
     let pattern = format!("refs/remotes/{}/", remote_name_str);
     let upstream_branch_shorthand = str::replace(&branch_upstream_name, pattern.as_str(), "");
-    let remote_rr_branch_name = format!("{}/{}", remote_name_str, rr_branch_name);
-    // e.g. git push origin origin/ps/rr/whatever-branch:main
-    git::ext_push(false, remote_name_str, &remote_rr_branch_name, &upstream_branch_shorthand).map_err(IntegrateError::PushFailed)?;
+    // e.g. git push origin ps/rr/whatever-branch:main
+    git::ext_push(false, remote_name_str, &rr_branch_name, &upstream_branch_shorthand).map_err(IntegrateError::PushFailed)?;
 
     // Update state so that it is aware of the fact that this patch has been
     // integrated into upstream
