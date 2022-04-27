@@ -4,6 +4,7 @@ use super::super::super::ps;
 use super::super::private::utils;
 use super::super::private::string_file_io::{write_str_to_file, WriteStrToFileError, read_str_from_file, ReadStringFromFileError};
 use super::super::private::paths;
+use super::super::private::hooks;
 
 #[derive(Debug)]
 pub enum IsolateError {
@@ -20,7 +21,11 @@ pub enum IsolateError {
   GetIsolateLastBranchPathFailed(paths::PathsError),
   StoreLastBranchFailed(WriteStrToFileError),
   ReadLastBranchFailed(ReadStringFromFileError),
-  OpenGitConfigFailed(git2::Error)
+  OpenGitConfigFailed(git2::Error),
+  GetRepoRootPathFailed(paths::PathsError),
+  PathNotUtf8,
+  HookNotFound(hooks::FindHookError),
+  HookExecutionFailed(utils::ExecuteError)
 }
 
 pub fn isolate(patch_index_optional: Option<usize>) -> Result<(), IsolateError> {
@@ -50,6 +55,16 @@ pub fn isolate(patch_index_optional: Option<usize>) -> Result<(), IsolateError> 
 
       // checkout the ps/tmp/checkout branch
       utils::execute("git", &["checkout", isolate_branch_name]).map_err(IsolateError::FailedToCheckout)?;
+
+      let repo_root_path = paths::repo_root_path(&repo).map_err(IsolateError::GetRepoRootPathFailed)?;
+      let repo_root_str = repo_root_path.to_str().ok_or(IsolateError::PathNotUtf8)?;
+      match hooks::find_hook(repo_root_str, "isolate_post_checkout") {
+        Ok(hook_path) => utils::execute(hook_path.to_str().ok_or(IsolateError::PathNotUtf8)?, &[]).map_err(IsolateError::HookExecutionFailed)?,
+        Err(hooks::FindHookError::NotFound) => eprintln!("Warning: isolate_post_checkout hook not found. Skipping hook execution."),
+        Err(hooks::FindHookError::NotExecutable(hook_path)) => eprintln!("Warning: hook {} found, but is not executable. Skipping hook execution.", hook_path.to_str().ok_or(IsolateError::PathNotUtf8)?),
+        Err(e) => return Err(IsolateError::HookNotFound(e))
+      }
+
       Ok(())
     },
     None => {

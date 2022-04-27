@@ -147,6 +147,7 @@ with different hooks.
 The following is a list of currently supported hooks (their expected filenames).
 
 - `request_review_post_sync` - hook executed by `request-review` command after succesfully syncing the patch to remote - generally used to create a pull request / patch email & send it
+- `isolate_post_checkout` - hook executed by `isolate` command after successfully creating the temporary branch, cherry-picking the patch to it, and checking the branch out
 
 You can find examples of hooks that you can straight up use or just use as a starting point in [example_hooks](/example_hooks).
 
