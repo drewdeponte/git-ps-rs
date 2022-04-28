@@ -21,5 +21,5 @@ pub fn pull() -> Result<(), PullError> {
 
   git::ext_fetch().map_err(PullError::FetchFailed)?;
 
-  utils::execute("git", &["rebase", "--onto", upstream_branch_name.as_str(), upstream_branch_name.as_str(), head_branch_shorthand]).map_err(PullError::RebaseFailed)
+  utils::execute("git", &["rebase", "--no-reapply-cherry-picks", "--onto", upstream_branch_name.as_str(), upstream_branch_name.as_str(), head_branch_shorthand]).map_err(PullError::RebaseFailed)
 }
