@@ -25,13 +25,19 @@ pub enum IsolateError {
   GetRepoRootPathFailed(paths::PathsError),
   PathNotUtf8,
   HookNotFound(hooks::FindHookError),
-  HookExecutionFailed(utils::ExecuteError)
+  HookExecutionFailed(utils::ExecuteError),
+  UncommittedChangesExistFailure(git::UncommittedChangesError),
+  UncommittedChangesExist
 }
 
 pub fn isolate(patch_index_optional: Option<usize>) -> Result<(), IsolateError> {
   let isolate_branch_name = "ps/tmp/isolate";
   let repo = ps::private::git::create_cwd_repo().map_err(IsolateError::OpenGitRepositoryFailed)?;
   let config = git2::Config::open_default().map_err(IsolateError::OpenGitConfigFailed)?;
+
+  if git::uncommitted_changes_exist(&repo).map_err(IsolateError::UncommittedChangesExistFailure)? {
+    return Err(IsolateError::UncommittedChangesExist);
+  }
 
   match patch_index_optional {
     Some(patch_index) => {
