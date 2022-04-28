@@ -484,6 +484,19 @@ pub fn singular_commit_of_branch<'a>(repo: &'a git2::Repository, branch_name: &s
   }
 }
 
+#[derive(Debug)]
+pub enum UncommittedChangesError {
+  StatusesFailed(git2::Error)
+}
+
+pub fn uncommitted_changes_exist(repo: &git2::Repository) -> Result<bool, UncommittedChangesError> {
+  let mut status_options = git2::StatusOptions::default();
+  status_options.show(git2::StatusShow::Workdir);
+  status_options.include_untracked(true);
+  let statuses = repo.statuses(Some(&mut status_options)).map_err(UncommittedChangesError::StatusesFailed)?;
+  Ok(!statuses.is_empty())
+}
+
 #[cfg(test)]
 mod tests {
   use tempfile::TempDir;
