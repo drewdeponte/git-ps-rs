@@ -9,6 +9,10 @@ use std::process::Command;
 use std::io;
 use std::result::Result;
 
+pub trait Mergable {
+  fn merge(&self, b: &Self) -> Self;
+}
+
 #[derive(Debug)]
 pub enum ExecuteError {
   SpawnFailure(io::Error),
