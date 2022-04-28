@@ -6,3 +6,4 @@ pub mod request_review_branch;
 pub mod checkout;
 pub mod string_file_io;
 pub mod hooks;
+pub mod config;
