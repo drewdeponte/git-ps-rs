@@ -183,7 +183,7 @@ The following is an example of config format with the default values. *Note:* Al
 
 ```
 [pull]
-show_list_post_pull = true  # list patches after successful pull
+show_list_post_pull = false # list patches after successful pull
 
 [request_review]
 verify_isolation = true     # run isolation check & any isolation hooks
