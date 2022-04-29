@@ -14,3 +14,4 @@ pub mod rebase;
 pub mod request_review;
 pub mod show;
 pub mod sync;
+pub mod create_patch;
