@@ -17,3 +17,4 @@ pub mod sync;
 pub mod create_patch;
 pub mod amend_patch;
 pub mod status;
+pub mod add_changes_to_stage;
