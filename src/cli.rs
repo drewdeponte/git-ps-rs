@@ -128,7 +128,11 @@ pub enum Command {
     CreatePatch,
     /// (a) - amend the top most patch with the currently staged changes
     #[structopt(name = "amend-patch", alias = "a")]
-    AmendPatch
+    AmendPatch,
+
+    /// (s) - get the status of local changes & staged changes
+    #[structopt(name = "status", alias = "s")]
+    Status
 }
 
 #[derive(Debug, StructOpt)]

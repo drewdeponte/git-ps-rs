@@ -31,6 +31,7 @@ fn main() {
         cli::Command::Isolate(opts) => commands::isolate::isolate(opts.patch_index),
         cli::Command::Checkout(opts) => commands::checkout::checkout(opts.patch_index),
         cli::Command::CreatePatch => commands::create_patch::create_patch(),
-        cli::Command::AmendPatch => commands::amend_patch::amend_patch()
+        cli::Command::AmendPatch => commands::amend_patch::amend_patch(),
+        cli::Command::Status => commands::status::status()
     };
 }
