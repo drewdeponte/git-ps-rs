@@ -7,3 +7,4 @@ pub mod checkout;
 pub mod string_file_io;
 pub mod hooks;
 pub mod config;
+pub mod verify_isolation;

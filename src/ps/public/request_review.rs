@@ -4,6 +4,8 @@ use super::super::private::git;
 use super::super::private::paths;
 use super::super::private::utils;
 use super::super::private::state_management;
+use super::super::private::config;
+use super::super::private::verify_isolation;
 use std::result::Result;
 
 #[derive(Debug)]
@@ -20,7 +22,9 @@ pub enum RequestReviewError {
   GetUpstreamBranchNameFailed,
   GetRemoteBranchNameFailed,
   HookExecutionFailed(utils::ExecuteError),
-  StorePatchStateFailed(state_management::StorePatchStateError)
+  StorePatchStateFailed(state_management::StorePatchStateError),
+  GetConfigFailed(config::GetConfigError),
+  IsolationVerificationFailed(verify_isolation::VerifyIsolationError)
 }
 
 pub fn request_review(patch_index: usize, given_branch_name: Option<String>) -> Result<(), RequestReviewError> {
@@ -31,6 +35,12 @@ pub fn request_review(patch_index: usize, given_branch_name: Option<String>) -> 
   let repo_root_path = paths::repo_root_path(&repo).map_err(RequestReviewError::GetRepoRootPathFailed)?;
   let repo_root_str = repo_root_path.to_str().ok_or(RequestReviewError::PathNotUtf8)?;
   let hook_path = hooks::find_hook(repo_root_str, "request_review_post_sync").map_err(RequestReviewError::HookNotFound)?;
+
+  let config = config::get_config(repo_root_str).map_err(RequestReviewError::GetConfigFailed)?;
+
+  if config.request_review.verify_isolation {
+    verify_isolation::verify_isolation(patch_index).map_err(RequestReviewError::IsolationVerificationFailed)?;
+  }
 
   // sync patch up to remote
   let (created_branch_name, ps_id) = ps::public::sync::sync(patch_index, given_branch_name).map_err(RequestReviewError::SyncFailed)?;

@@ -1,6 +1,9 @@
 use super::super::private::git;
 use super::super::super::ps;
 use super::super::private::state_management;
+use super::super::private::paths;
+use super::super::private::config;
+use super::super::private::verify_isolation;
 use uuid::Uuid;
 
 #[derive(Debug)]
@@ -34,7 +37,11 @@ pub enum IntegrateError {
   CreatedBranchMissingName,
   SingularCommitOfBranchError(git::SingularCommitOfBranchError),
   UpdateLocalRequestReviewBranchFailed(ps::private::request_review_branch::RequestReviewBranchError),
-  FetchFailed(git::ExtFetchError)
+  FetchFailed(git::ExtFetchError),
+  GetRepoRootPathFailed(paths::PathsError),
+  PathNotUtf8,
+  GetConfigFailed(config::GetConfigError),
+  IsolationVerificationFailed(verify_isolation::VerifyIsolationError)
 }
 
 pub fn integrate(patch_index: usize, force: bool, keep_branch: bool, given_branch_name_option: Option<String>) -> Result<(), IntegrateError> {
@@ -42,6 +49,14 @@ pub fn integrate(patch_index: usize, force: bool, keep_branch: bool, given_branc
 
   // verify that the patch-index has a corresponding commit
   let patch_commit = ps::find_patch_commit(&repo, patch_index).map_err(IntegrateError::FindPatchCommitFailed)?;
+
+  let repo_root_path = paths::repo_root_path(&repo).map_err(IntegrateError::GetRepoRootPathFailed)?;
+  let repo_root_str = repo_root_path.to_str().ok_or(IntegrateError::PathNotUtf8)?;
+  let config = config::get_config(repo_root_str).map_err(IntegrateError::GetConfigFailed)?;
+
+  if config.integrate.verify_isolation {
+    verify_isolation::verify_isolation(patch_index).map_err(IntegrateError::IsolationVerificationFailed)?;
+  }
 
   if force {
     let (branch, ps_id) = ps::private::request_review_branch::request_review_branch(&repo, patch_index, given_branch_name_option).map_err(IntegrateError::BranchOperationFailed)?;
