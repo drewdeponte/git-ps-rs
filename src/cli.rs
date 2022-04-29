@@ -109,7 +109,10 @@ pub enum Command {
     /// (co) - Checkout the patch identified by the patch-index, leaving you
     /// in a headless state.
     #[structopt(name = "checkout", alias = "co")]
-    Checkout(CheckoutCmdOpts)
+    Checkout(CheckoutCmdOpts),
+    /// (c) - create a patch from the currently staged changes
+    #[structopt(name = "create-patch", alias = "c")]
+    CreatePatch
 }
 
 #[derive(Debug, StructOpt)]

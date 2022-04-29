@@ -29,6 +29,7 @@ fn main() {
         cli::Command::Show(opts) => commands::show::show(opts.patch_index),
         cli::Command::Sync(opts) => commands::sync::sync(opts.patch_index, opts.branch_name),
         cli::Command::Isolate(opts) => commands::isolate::isolate(opts.patch_index),
-        cli::Command::Checkout(opts) => commands::checkout::checkout(opts.patch_index)
+        cli::Command::Checkout(opts) => commands::checkout::checkout(opts.patch_index),
+        cli::Command::CreatePatch => commands::create_patch::create_patch()
     };
 }
