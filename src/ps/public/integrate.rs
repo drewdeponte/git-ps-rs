@@ -4,6 +4,7 @@ use super::super::private::state_management;
 use super::super::private::paths;
 use super::super::private::config;
 use super::super::private::verify_isolation;
+use super::super::public::show;
 use uuid::Uuid;
 
 #[derive(Debug)]
@@ -41,7 +42,9 @@ pub enum IntegrateError {
   GetRepoRootPathFailed(paths::PathsError),
   PathNotUtf8,
   GetConfigFailed(config::GetConfigError),
-  IsolationVerificationFailed(verify_isolation::VerifyIsolationError)
+  IsolationVerificationFailed(verify_isolation::VerifyIsolationError),
+  UserVerificationFailed(GetVerificationError),
+  ShowFailed(show::ShowError)
 }
 
 pub fn integrate(patch_index: usize, force: bool, keep_branch: bool, given_branch_name_option: Option<String>) -> Result<(), IntegrateError> {
@@ -83,6 +86,11 @@ pub fn integrate(patch_index: usize, force: bool, keep_branch: bool, given_branc
       local_branch.delete().map_err(IntegrateError::DeleteLocalBranchFailed)?;
     }
   } else {
+    if config.integrate.require_verification {
+      show::show(patch_index).map_err(IntegrateError::ShowFailed)?;
+      get_verification().map_err(IntegrateError::UserVerificationFailed)?;
+    }
+
     // verify that the commit has a patch stack id
     let ps_id = ps::commit_ps_id(&patch_commit).ok_or(IntegrateError::CommitPsIdMissing)?;
 
@@ -169,4 +177,22 @@ fn update_state(repo: &git2::Repository, remote_name: String, rr_branch_name: St
       }
     ).map_err(IntegrateError::UpdatePatchMetaDataFailed)?;
     Ok(())
+}
+
+#[derive(Debug)]
+pub enum GetVerificationError {
+  ReadLineFailed(std::io::Error),
+  UserRejected(String)
+}
+
+fn get_verification() -> Result<(), GetVerificationError> {
+  let mut answer = String::new();
+  println!("\n\nAre you sure you want to integrate this patch? (Yes/No)");
+  std::io::stdin().read_line(&mut answer).map_err(GetVerificationError::ReadLineFailed)?;
+  let normalized_answer = answer.to_lowercase().trim().to_string();
+  if normalized_answer == "yes" {
+    Ok(())
+  } else {
+    Err(GetVerificationError::UserRejected(normalized_answer))
+  }
 }
