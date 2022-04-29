@@ -168,6 +168,31 @@ curl -fsSL https://raw.githubusercontent.com/uptech/git-ps-rs/main/example_hooks
 chmod u+x ~/.config/git-ps/hooks/request_review_post_sync
 ```
 
+## Configs
+
+Git Patch Stack supports three layers of configuration files that can all have
+the same configuration options in them.
+
+- `~/.config/git-ps/config.toml` - user global preferences (useful for setting sane defaults for repos without configs)
+- `repo_root/.git/git-ps/config.toml` - personal preferences specific to the repository
+- `repo_root/.git-ps/config.toml` - communal preferences specific to the repository (useful for enforcing certain preferences for all devs of a repo)
+
+The **communal repo config** takes precedence over the **repo specific personal config** which takes precedence over the **user global config**.
+
+The following is an example of config format with the default values. *Note:* All sections and settings are optional.
+
+```
+[pull]
+show_list_post_pull = true  # list patches after successful pull
+
+[request_review]
+verify_isolation = true     # run isolation check & any isolation hooks
+
+[integrate]
+verify_isolation = true	    # run isolation check & any isolation hooks
+require_verification = true # require user to approve integration
+```
+
 ## Product
 
 To find details on the concept of the product and questions & answers in that space see [PRODUCT.md](PRODUCT.md).
