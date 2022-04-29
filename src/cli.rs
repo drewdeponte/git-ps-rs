@@ -67,6 +67,24 @@ pub struct CheckoutCmdOpts {
 }
 
 #[derive(Debug, StructOpt)]
+pub struct AddCmdOpts {
+  /// interactive picking
+  #[structopt(short = "i", long = "interactive")]
+  pub interactive: bool,
+  /// select hunks interactively
+  #[structopt(short = "p", long = "patch")]
+  pub patch: bool,
+  /// edit current diff and apply
+  #[structopt(short = "e", long = "edit")]
+  pub edit: bool,
+  /// add changes from all tracked and untracked files
+  #[structopt(short = "A", long = "all")]
+  pub all: bool,
+  /// specific files to add changes from, . for all files
+  pub files: Vec<String>
+}
+
+#[derive(Debug, StructOpt)]
 pub enum Command {
     /// Your bridge back to the world of normal git and git concepts.
     /// Basically a utility to help you create a normal git branch from a
@@ -132,7 +150,10 @@ pub enum Command {
 
     /// (s) - get the status of local changes & staged changes
     #[structopt(name = "status", alias = "s")]
-    Status
+    Status,
+
+    /// add changes to the stage (a.k.a stage local changes)
+    Add(AddCmdOpts)
 }
 
 #[derive(Debug, StructOpt)]
