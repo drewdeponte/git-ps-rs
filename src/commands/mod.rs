@@ -15,3 +15,4 @@ pub mod request_review;
 pub mod show;
 pub mod sync;
 pub mod create_patch;
+pub mod amend_patch;
