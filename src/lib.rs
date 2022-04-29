@@ -15,3 +15,4 @@ pub use ps::public::integrate;
 pub use ps::public::checkout::checkout;
 pub use ps::public::isolate::isolate;
 pub use ps::public::create_patch::create_patch;
+pub use ps::public::amend_patch::amend_patch;
