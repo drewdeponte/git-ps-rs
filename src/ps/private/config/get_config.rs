@@ -1,7 +1,10 @@
 use super::super::paths;
-use super::{read_config_or_default::*, PsRequestReviewConfig, RequestReviewConfigDto};
+use super::read_config_or_default::*;
 use super::config_dto::ConfigDto;
-use super::ps_config::PsConfig;
+use super::pull_config_dto::PullConfigDto;
+use super::request_review_config_dto::RequestReviewConfigDto;
+use super::integrate_config_dto::IntegrateConfigDto;
+use super::ps_config::{PsConfig, PsPullConfig, PsRequestReviewConfig, PsIntegrateConfig};
 use super::super::utils::*;
 
 #[derive(Debug)]
@@ -31,15 +34,32 @@ pub fn get_config(repo_root: &str) -> Result<PsConfig, GetConfigError> {
   Ok(apply_config_defaults(&config_dto))
 }
 
-pub fn apply_config_defaults(config_dto: &ConfigDto) -> PsConfig {
+fn apply_config_defaults(config_dto: &ConfigDto) -> PsConfig {
   let default_rr_config = apply_request_review_config_defaults(&RequestReviewConfigDto::default());
+  let default_pull_config = apply_pull_config_defaults(&PullConfigDto::default());
+  let default_integrate_config = apply_integrate_config_defaults(&IntegrateConfigDto::default());
   PsConfig {
-    request_review: config_dto.request_review.as_ref().map(apply_request_review_config_defaults).unwrap_or(default_rr_config)
+    request_review: config_dto.request_review.as_ref().map(apply_request_review_config_defaults).unwrap_or(default_rr_config),
+    pull: config_dto.pull.as_ref().map(apply_pull_config_defaults).unwrap_or(default_pull_config),
+    integrate: config_dto.integrate.as_ref().map(apply_integrate_config_defaults).unwrap_or(default_integrate_config)
   }
 }
 
-pub fn apply_request_review_config_defaults(rr_config_dto: &RequestReviewConfigDto) -> PsRequestReviewConfig {
+fn apply_request_review_config_defaults(rr_config_dto: &RequestReviewConfigDto) -> PsRequestReviewConfig {
   PsRequestReviewConfig {
-    require_verification: rr_config_dto.require_verification.unwrap_or(true)
+    verify_isolation: rr_config_dto.verify_isolation.unwrap_or(true)
+  }
+}
+
+fn apply_pull_config_defaults(pull_config_dto: &PullConfigDto) -> PsPullConfig {
+  PsPullConfig {
+    show_list_post_pull: pull_config_dto.show_list_post_pull.unwrap_or(false)
+  }
+}
+
+fn apply_integrate_config_defaults(integrate_config_dto: &IntegrateConfigDto) -> PsIntegrateConfig {
+  PsIntegrateConfig {
+    require_verification: integrate_config_dto.require_verification.unwrap_or(true),
+    verify_isolation: integrate_config_dto.verify_isolation.unwrap_or(true)
   }
 }
