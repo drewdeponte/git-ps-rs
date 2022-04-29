@@ -9,13 +9,13 @@ arround for historical reasons.
 
 ## What is Git Patch Stack?
 
-Git Patch Stack is a software development **methodology**, [Git][]
+Git Patch Stack is a software development **methodology**, a [Git][]
 **workflow**, and a **command line tool** to help make working in this manner
 as easy as possible.
 
 It is focused around the idea of creating and managing a stack of individual
-logically chunked patches through the development & review workflow while still
-integrating with the peer review tools & platforms people are already
+logically chunked patches through the development & review lifecycle while
+still integrating with the peer review tools & platforms people are already
 comfortable with.
 
 ### The Methodology
@@ -23,8 +23,8 @@ comfortable with.
 First and foremost Git Patch Stack is a software development methodology
 centralized around facilitating valuable [pre-commit][] code reviews while
 gaining as many of the benefits of the [Continuous Integration Methodology][]
-as possible. If you interested in how & why we came to this methodology please
-check out our article, [Journey to Small Pull Requests][].
+as possible. If you are interested in how & why we came to this methodology
+please check out our article, [Journey to Small Pull Requests][].
 
 ### The Git Workflow
 
@@ -38,14 +38,15 @@ Workflow please checkout our article, [How we should be using Git][].
 
 The Git Patch Stack command line tool is an extension of [Git][] designed to
 make creating & managing your stacks of patches throughout the development and
-review workflow as easy as possible and enabling you to think in terms of the
-concepts of the Git Patch Stack methodology rather than the concepts of
-[Git][].
+review lifecycle as easy as possible. It does this by enabling you to take
+actions while thinking in terms of the concepts and operations of the Git Patch
+Stack methodology rather than the concepts & operations of [Git][] and tools
+like [GitHub][].
 
 ## Operation Summary
 
-The following are a quick summary of the main commands that enable the Git
-Patch Stack workflow.
+The following is a quick summary of some of the core commands that enable the
+Git Patch Stack workflow.
 
 - `pull` - pull changes down from upstream & rebase the stack on top
 - `list (ls)` - list your patches in the stack you are on and their states
@@ -55,53 +56,64 @@ Patch Stack workflow.
 
 You can get a full breakdown of all the commands by running
 
-```
-gps --help
-```
+	gps --help
 
-You can also get detailed help about specific commands by use the `--help` switch with the command. Example:
+You can also get detailed help about specific commands by use the `--help`
+switch with the command. Example:
 
-```
-gps request-review --help
-```
+	gps request-review --help
 
 ## Installation 
 
-If you are on a platform other than macOS you will have to build your own
-version from source.
+As Git Patch Stack is written in [Rust][] it can be compiled and installed on
+many different platforms. However, currently we only provide package management
+of it on macOS. So if you are on another platform you will have to follow the
+**Build from Source** instructions below.
 
-#### **NOTE: In order to use `gps request-review`you must set up a [hook](#hooks) after installation.**
+**Note:** In order to use the `request-review` command you **must** set up the `request_review_post_sync` [hook](#hooks) after installation.
 
 ### macOS
 
 To install on macOS we provide a [Homebrew][] tap which provides the
-`git-ps-rs` formula. You can use it by doing the following:
-
-#### Add the Tap
+`git-ps-rs` formula. To use it first you need to add the tap as follows.
 
 	brew tap "uptech/homebrew-oss"
 
-#### brew install
+This basically registers our tap as another source for packages for your
+[Homebrew][]. Enabling you to do things like install the Git Patch Stack
+command line tool as follows.
 
 	brew install uptech/oss/git-ps-rs
 
+Because you have registered the tap you can also do useful things like upgrade
+your version of the Git Patch Stack command line tool as follows.
+
+	brew update
+	brew upgrade git-ps-rs
+
 #### zsh & bash Completions
 
-Our [Homebrew][] formulae installs the zsh & bash completion scripts into the
+Our [Homebrew][] formula installs the zsh & bash completion scripts into the
 standard [Homebrew][] shell completions location. So you just need to make sure
 that path is configured in your shell configuration. For zsh it is generally
 something like the following:
 
-```zsh
-fpath=(/opt/homebrew/share/zsh/site-functions/ $fpath)
-autoload -Uz compinit
-compinit
-```
+	# add the Homebrew zsh completion scripts folder so it will be searched
+	fpath=(/opt/homebrew/share/zsh/site-functions/ $fpath)
+	# enable completion in zsh
+	autoload -Uz compinit
+	compinit
 
 ### Build from Source
 
-If you are on another platform you will have to build from source. Given
-that `git-ps-rs` is managed via [Cargo][]. It can be built as follows:
+If you are on a platform other than macOS or you just want to build from source don't fret.
+You will just have to make sure you have the following build dependencies installed.
+
+- [Rust][] (macOS: `brew install rust`)
+- gpgme (macOS: `brew install gpgme`, Ubuntu: `apt-get install -y libgpgme-dev`)
+
+Once you have the build dependencies installed all should need to do is run
+theh following command to build the release version of the command line tool.
 
 	cargo build --release
 
@@ -122,7 +134,17 @@ value. The files are named as follows.
 - `gps.bash` - bash completion script
 - `_gps` - zsh completion script
 
-## Hooks
+Simply move the files to whatever location on your system you are sourcing for
+completion scripts.
+
+## Customization
+
+We understand that not everyone likes to work exactly the same way and use
+exactly the same tools. That is why Git Patch Stack has two main avenues for
+customing your experience and the command lines behavior, **hooks** &
+**settings**.
+
+### Hooks
 
 Git Patch Stack takes the stance that it shouldn't be bound to a specific
 source control management platform (GitHub, Bitbucket, GitLab, etc.) or a
@@ -146,14 +168,14 @@ with different hooks.
 
 The following is a list of currently supported hooks (their expected filenames).
 
-- `request_review_post_sync` - hook executed by `request-review` command after succesfully syncing the patch to remote - generally used to create a pull request / patch email & send it
+- `request_review_post_sync` - hook executed by `request-review` command after succesfully syncing the patch to remote - generally used to create a pull request / patch email & send it - **Note: This hook is required to be able to use the `request-review` command.**
 - `isolate_post_checkout` - hook executed by `isolate` command after successfully creating the temporary branch, cherry-picking the patch to it, and checking the branch out
 
 You can find examples of hooks that you can straight up use or just use as a starting point in [example_hooks](/example_hooks).
 
 Here is an [example hook](/example_hooks/request_review_post_sync-github-cli-example) that uses [GitHub CLI][] to create a pull request.
 
-### Setup Global Hook Directory
+#### Setup Global Hook Directory
 
 Make sure that the Global Hook Directory is created with the following:
 
@@ -168,30 +190,35 @@ curl -fsSL https://raw.githubusercontent.com/uptech/git-ps-rs/main/example_hooks
 chmod u+x ~/.config/git-ps/hooks/request_review_post_sync
 ```
 
-## Configs
+### Settings
 
-Git Patch Stack supports three layers of configuration files that can all have
-the same configuration options in them.
+Git Patch Stack supports various settings via three layers of configuration
+files.
 
-- `~/.config/git-ps/config.toml` - user global preferences (useful for setting sane defaults for repos without configs)
-- `repo_root/.git/git-ps/config.toml` - personal preferences specific to the repository
-- `repo_root/.git-ps/config.toml` - communal preferences specific to the repository (useful for enforcing certain preferences for all devs of a repo)
+- **personal global settings** - `~/.config/git-ps/config.toml` - intended to allow you to define default personal settings for when a repository doesn't specify a setting
+- **personal repository settings** - `repo_root/.git/git-ps/config.toml` - intended to allow you to define personal settings constrained to a repository. *Note:* Settings defined in here **override** any values defined in the **personal global settings**.
+- **communal repository settings** - `repo_root/.git-ps/config.toml` intended to allow a team to enforce settings for everyone working on a repository. *Note:* Settings defined in here **override** any values defined in the **personal repository settings** or in the **personal global settings**.
 
-The **communal repo config** takes precedence over the **repo specific personal config** which takes precedence over the **user global config**.
-
-The following is an example of config format with the default values. *Note:* All sections and settings are optional.
+The following is an example of a config defining all of the settings. All sections and settings are optional so you don't need to specify them all in each config.
 
 ```
 [pull]
-show_list_post_pull = false # list patches after successful pull
+show_list_post_pull = false
 
 [request_review]
-verify_isolation = true     # run isolation check & any isolation hooks
+verify_isolation = true
 
 [integrate]
-verify_isolation = true	    # run isolation check & any isolation hooks
-require_verification = true # require user to approve integration
+verify_isolation = true
+require_verification = true
 ```
+
+The following is a breakdown of the supported settings.
+
+- `pull.show_list_post_pull` - (**true**/**false** default: **false**) - controls whether the `pull` command will show the patch list after successfully pulling
+- `request_review.verify_isolation` - (**true**/**false** default: **true**) - if **yes** the `request-review` command will run the `isolation` command & it's hooks to verify the patch is isolated prior to requesting review. If the isolation verification fails it errors preventing you from requesting review.
+- `integrate.verify_isolation` - (**true**/**false** default: **true**) - if **yes** the `integrate` command will run the `isolation` command & it's hooks to verify the patch is isolated prior to integrating it. If the isolation verification fails it errors preventing you from integrating the patch.
+- `integrate.require_verification` - (**true**/**false** default: **true**) - if **yes** the `integrate` command will present the user with the patch details and prompt the user asking them if they are sure they want to integrate the patch. If they say yes, then it moves on the with integration. If not it aborts the integration.
 
 ## Product
 
@@ -220,8 +247,10 @@ We love open source software. See [our other projects][community] or
 [Cargo]: https://doc.rust-lang.org/cargo/
 [Homebrew]: https://brew.sh
 [Git]: https://git-scm.com
+[GitHub]: https://github.com
 [Continuous Integration Methodology]: https://en.wikipedia.org/wiki/Continuous_integration
 [pre-commit]: https://www.devart.com/review-assistant/learnmore/pre-commit-vs-post-commit.html
 [Journey to Small Pull Requests]: https://engineering.uptechstudio.com/blog/journey-to-small-pull-requests/
 [How we should be using Git]: https://engineering.uptechstudio.com/blog/how-we-should-be-using-git/
 [GitHub CLI]: https://cli.github.com
+[Rust]: https://www.rust-lang.org
