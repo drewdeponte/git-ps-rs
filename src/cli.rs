@@ -102,8 +102,21 @@ pub enum Command {
     /// Synchronize patch with the remote
     #[structopt(name = "sync")]
     Sync(SyncCmdOpts),
-    /// (iso) - Isolate a patch by creating a temporary branch based on
-    /// upstream, cherry-picking the patch to it, & checking it out
+
+    /// (iso) - isolate a patch for manual testing or evaluation.
+    ///
+    /// The `isolate` command isolates a patch for manual testing or
+    /// evaluation by making sure no uncommitted changes exist, creating a
+    /// temporary branch based on the patch stacks base, cherry-picking the
+    /// patch to it, and then checking out that branch.
+    ///
+    /// If you have the `isolate_post_checkout` hook setup then that will be
+    /// executed after successfully checking out the branch.
+    ///
+    /// When you are done manually testing or evaluating the patch in
+    /// isolation you can return to the stack that you were on when you
+    /// switch into isolation mode by running `gps iso`, basically leaving the
+    /// index off.
     #[structopt(name = "isolate", alias = "iso")]
     Isolate(IsolateCmdOpts),
     /// (co) - Checkout the patch identified by the patch-index, leaving you
