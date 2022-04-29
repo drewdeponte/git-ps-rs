@@ -27,7 +27,9 @@ pub enum IsolateError {
   HookNotFound(hooks::FindHookError),
   HookExecutionFailed(utils::ExecuteError),
   UncommittedChangesExistFailure(git::UncommittedChangesError),
-  UncommittedChangesExist
+  UncommittedChangesExist,
+  FindIsolateBranchFailed(git2::Error),
+  DeleteIsolateBranchFailed(git2::Error)
 }
 
 pub fn isolate(patch_index_optional: Option<usize>) -> Result<(), IsolateError> {
@@ -80,6 +82,10 @@ pub fn isolate(patch_index_optional: Option<usize>) -> Result<(), IsolateError> 
 
       // check it out
       utils::execute("git", &["checkout", &last_branch]).map_err(IsolateError::FailedToCheckout)?;
+
+      let mut isolate_branch = repo.find_branch(isolate_branch_name, git2::BranchType::Local).map_err(IsolateError::FindIsolateBranchFailed)?;
+      isolate_branch.delete().map_err(IsolateError::DeleteIsolateBranchFailed)?;
+
       Ok(())
     }
   }
