@@ -112,7 +112,10 @@ pub enum Command {
     Checkout(CheckoutCmdOpts),
     /// (c) - create a patch from the currently staged changes
     #[structopt(name = "create-patch", alias = "c")]
-    CreatePatch
+    CreatePatch,
+    /// (a) - amend the top most patch with the currently staged changes
+    #[structopt(name = "amend-patch", alias = "a")]
+    AmendPatch
 }
 
 #[derive(Debug, StructOpt)]
