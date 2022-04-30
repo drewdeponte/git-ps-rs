@@ -17,6 +17,7 @@ is_executable = "1.0.1"
 home-dir = "0.1.0"
 gpgme = "0.10.0"
 toml = "0.5.9"
+ansi_term = "0.12.1"
 
 [dev-dependencies]
 tempfile = "3.2.0"
