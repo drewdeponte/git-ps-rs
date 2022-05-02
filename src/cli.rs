@@ -92,6 +92,12 @@ pub struct RebaseCmdOpts {
 }
 
 #[derive(Debug, StructOpt)]
+pub struct UnstageCmdOpts {
+  /// specific files to unstage changes for, leave blank for all staged files
+  pub files: Vec<String>
+}
+
+#[derive(Debug, StructOpt)]
 pub enum Command {
     /// Your bridge back to the world of normal git and git concepts.
     /// Basically a utility to help you create a normal git branch from a
@@ -177,7 +183,10 @@ pub enum Command {
     Add(AddCmdOpts),
 
     /// display a log of integrated patches
-    Log
+    Log,
+
+    /// unstage currently staged changes
+    Unstage(UnstageCmdOpts)
 }
 
 #[derive(Debug, StructOpt)]
