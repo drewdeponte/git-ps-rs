@@ -85,6 +85,13 @@ pub struct AddCmdOpts {
 }
 
 #[derive(Debug, StructOpt)]
+pub struct RebaseCmdOpts {
+  /// continue a rebase that was paused
+  #[structopt(long = "continue")]
+  pub r#continue: bool
+}
+
+#[derive(Debug, StructOpt)]
 pub enum Command {
     /// Your bridge back to the world of normal git and git concepts.
     /// Basically a utility to help you create a normal git branch from a
@@ -105,9 +112,23 @@ pub enum Command {
     /// (ls) - List the stack of patches and their associated state info
     #[structopt(name = "list", alias = "ls")]
     List,
+
     /// Interactively rebase your stack of patches
+    ///
+    /// The `rebase` command initiates an interactive rebase to allow you to
+    /// modify your stack of patches. This could be simply re-ordering them or
+    /// modifying a particular patch in the stack. Or doing a plethora of
+    /// other things that interactive rebases support.
+    ///
+    /// Some of those operations drop you out to the working copy in a rebase
+    /// paused state so that you can make changes. This happens for example
+    /// with the `edit` command in the interactive rebase.
+    ///
+    /// To resume the rebase after making your necessary changes you can do so
+    /// by running `gps rebase --continue`.
     #[structopt(name = "rebase")]
-    Rebase,
+    Rebase(RebaseCmdOpts),
+
     /// Pull changes down from upstream and rebase stack on top
     #[structopt(name = "pull")]
     Pull,

@@ -23,7 +23,7 @@ fn main() {
         cli::Command::RequestReviewBranch(opts) => commands::request_review_branch::request_review_branch(opts.patch_index, opts.branch_name),
         cli::Command::Integrate(opts) => commands::integrate::integrate(opts.patch_index, opts.force, opts.keep_branch, opts.branch_name),
         cli::Command::List => commands::list::list(),
-        cli::Command::Rebase => commands::rebase::rebase(),
+        cli::Command::Rebase(opts) => commands::rebase::rebase(opts.r#continue),
         cli::Command::Pull => commands::pull::pull(),
         cli::Command::RequestReview(opts) => commands::request_review::request_review(opts.patch_index, opts.branch_name),
         cli::Command::Show(opts) => commands::show::show(opts.patch_index),
