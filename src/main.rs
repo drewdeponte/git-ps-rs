@@ -33,6 +33,7 @@ fn main() {
         cli::Command::CreatePatch => commands::create_patch::create_patch(),
         cli::Command::AmendPatch => commands::amend_patch::amend_patch(),
         cli::Command::Status => commands::status::status(),
-        cli::Command::Add(opts) => commands::add_changes_to_stage::add_changes_to_stage(opts.interactive, opts.patch, opts.edit, opts.all, opts.files)
+        cli::Command::Add(opts) => commands::add_changes_to_stage::add_changes_to_stage(opts.interactive, opts.patch, opts.edit, opts.all, opts.files),
+        cli::Command::Log => commands::log::log()
     };
 }

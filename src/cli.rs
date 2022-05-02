@@ -174,7 +174,10 @@ pub enum Command {
     Status,
 
     /// add changes to the stage (a.k.a stage local changes)
-    Add(AddCmdOpts)
+    Add(AddCmdOpts),
+
+    /// display a log of integrated patches
+    Log
 }
 
 #[derive(Debug, StructOpt)]
