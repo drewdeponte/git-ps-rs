@@ -19,3 +19,4 @@ pub use ps::public::amend_patch::amend_patch;
 pub use ps::public::status::status;
 pub use ps::public::add_changes_to_stage::add_changes_to_stage;
 pub use ps::public::log::log;
+pub use ps::public::unstage::unstage;
