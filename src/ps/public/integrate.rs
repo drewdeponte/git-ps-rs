@@ -90,7 +90,7 @@ pub fn integrate(patch_index: usize, force: bool, keep_branch: bool, given_branc
       local_branch.delete().map_err(IntegrateError::DeleteLocalBranchFailed)?;
     }
   } else {
-    if config.integrate.require_verification {
+    if config.integrate.prompt_for_reassurance {
       show::show(patch_index).map_err(IntegrateError::ShowFailed)?;
       get_verification().map_err(IntegrateError::UserVerificationFailed)?;
     }

@@ -59,7 +59,7 @@ fn apply_pull_config_defaults(pull_config_dto: &PullConfigDto) -> PsPullConfig {
 
 fn apply_integrate_config_defaults(integrate_config_dto: &IntegrateConfigDto) -> PsIntegrateConfig {
   PsIntegrateConfig {
-    require_verification: integrate_config_dto.require_verification.unwrap_or(true),
+    prompt_for_reassurance: integrate_config_dto.prompt_for_reassurance.unwrap_or(true),
     verify_isolation: integrate_config_dto.verify_isolation.unwrap_or(true)
   }
 }

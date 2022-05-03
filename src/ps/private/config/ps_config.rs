@@ -17,6 +17,6 @@ pub struct PsPullConfig {
 
 #[derive(Debug)]
 pub struct PsIntegrateConfig {
-  pub require_verification: bool,
+  pub prompt_for_reassurance: bool,
   pub verify_isolation: bool
 }

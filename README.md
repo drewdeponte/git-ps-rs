@@ -210,7 +210,7 @@ verify_isolation = true
 
 [integrate]
 verify_isolation = true
-require_verification = true
+prompt_for_reassurance = true
 ```
 
 The following is a breakdown of the supported settings.
@@ -218,7 +218,7 @@ The following is a breakdown of the supported settings.
 - `pull.show_list_post_pull` - (**true**/**false** default: **false**) - controls whether the `pull` command will show the patch list after successfully pulling
 - `request_review.verify_isolation` - (**true**/**false** default: **true**) - if **yes** the `request-review` command will run the `isolate` command & it's hooks to verify the patch is isolated prior to requesting review. If the isolation verification fails it errors preventing you from requesting review.
 - `integrate.verify_isolation` - (**true**/**false** default: **true**) - if **yes** the `integrate` command will run the `isolate` command & it's hooks to verify the patch is isolated prior to integrating it. If the isolation verification fails it errors preventing you from integrating the patch.
-- `integrate.require_verification` - (**true**/**false** default: **true**) - if **yes** the `integrate` command will present the user with the patch details and prompt the user asking them if they are sure they want to integrate the patch. If they say yes, then it moves on the with integration. If not it aborts the integration.
+- `integrate.prompt_for_reassurance` - (**true**/**false** default: **true**) - if **yes** the `integrate` command will present the user with the patch details and prompt the user asking them if they are sure they want to integrate the patch. If they say yes, then it moves on the with integration. If not it aborts the integration.
 
 ## Product
 
