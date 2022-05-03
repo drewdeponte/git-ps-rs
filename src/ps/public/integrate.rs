@@ -193,7 +193,7 @@ fn get_verification() -> Result<(), GetVerificationError> {
   println!("\n\nAre you sure you want to integrate this patch? (Yes/No)");
   std::io::stdin().read_line(&mut answer).map_err(GetVerificationError::ReadLineFailed)?;
   let normalized_answer = answer.to_lowercase().trim().to_string();
-  if normalized_answer == "yes" {
+  if normalized_answer == "yes" || normalized_answer == "y" {
     Ok(())
   } else {
     Err(GetVerificationError::UserRejected(normalized_answer))
