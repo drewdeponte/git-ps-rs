@@ -17,7 +17,7 @@ pub enum PullError {
   ListFailed(list::ListError)
 }
 
-pub fn pull() -> Result<(), PullError> {
+pub fn pull(color: bool) -> Result<(), PullError> {
   let repo = git::create_cwd_repo().map_err(|_| PullError::RepositoryMissing)?;
 
   let repo_root_path = paths::repo_root_path(&repo).map_err(PullError::GetRepoRootPathFailed)?;
@@ -35,7 +35,7 @@ pub fn pull() -> Result<(), PullError> {
   utils::execute("git", &["rebase", "--no-reapply-cherry-picks", "--onto", upstream_branch_name.as_str(), upstream_branch_name.as_str(), head_branch_shorthand]).map_err(PullError::RebaseFailed)?;
 
   if config.pull.show_list_post_pull {
-    list::list().map_err(PullError::ListFailed)?
+    list::list(color).map_err(PullError::ListFailed)?
   }
 
   Ok(())

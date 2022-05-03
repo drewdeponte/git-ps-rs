@@ -4,6 +4,7 @@ use uuid::Uuid;
 use serde::{Serialize, Deserialize};
 use super::super::private::state_management;
 use super::super::private::paths;
+use ansi_term::Colour::{Green, Yellow, Cyan};
 
 #[derive(Serialize, Deserialize, Debug)]
 struct RequestReviewRecord {
@@ -43,7 +44,7 @@ pub enum PatchStatus {
   Integrated
 }
 
-pub fn list() -> Result<(), ListError> {
+pub fn list(color: bool) -> Result<(), ListError> {
     let repo = git::create_cwd_repo().map_err(|_| ListError::RepositoryNotFound)?;
 
     let patch_stack = ps::get_patch_stack(&repo).map_err(ListError::GetPatchStackFailed)?;
@@ -63,7 +64,15 @@ pub fn list() -> Result<(), ListError> {
         let patch_status = patch_status(patch_state, &repo, commit_diff_patch_id).map_err(ListError::PatchStatusFailed)?;
         let patch_status_string = patch_status_to_string(patch_status);
 
-        println!("{:<4} {:<6} {:.6} {}", patch.index, patch_status_string, patch.oid, patch.summary);
+        let patch_str = format!("{:<4}", patch.index);
+        let patch_status_str = format!("{:<6}", patch_status_string);
+        let patch_oid_str = format!("{:.6}", patch.oid);
+
+        if color {
+          println!("{:<4} {:<6} {:.6} {}", Green.paint(patch_str), Cyan.paint(patch_status_str), Yellow.paint(patch_oid_str), patch.summary);
+        } else {
+          println!("{:<4} {:<6} {:.6} {}", patch_str, patch_status_str, patch_oid_str, patch.summary);
+        }
     }
 
     Ok(())

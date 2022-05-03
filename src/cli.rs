@@ -192,6 +192,10 @@ pub enum Command {
 #[derive(Debug, StructOpt)]
 #[structopt(name = "gps")]
 pub struct ApplicationArguments {
-    #[structopt(subcommand)]
-    pub command: Command
+  /// disable color output
+  #[structopt(long = "no-color", parse(from_flag = std::ops::Not::not))]
+  pub color: bool,
+
+  #[structopt(subcommand)]
+  pub command: Command
 }

@@ -7,8 +7,8 @@
 
 use gps as ps;
 
-pub fn list() {
-  match ps::list() {
+pub fn list(color: bool) {
+  match ps::list(color) {
     Ok(_) => {},
     Err(e) => eprintln!("Error: {:?}", e)
   };
