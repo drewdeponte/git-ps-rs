@@ -52,6 +52,7 @@ pub fn integrate(patch_index: usize, force: bool, keep_branch: bool, given_branc
 
   // verify that the patch-index has a corresponding commit
   let patch_commit = ps::find_patch_commit(&repo, patch_index).map_err(IntegrateError::FindPatchCommitFailed)?;
+  let patch_commit_diff_patch_id = git::commit_diff_patch_id(&repo, &patch_commit).map_err(IntegrateError::PatchCommitDiffPatchIdFailed)?;
 
   let repo_root_path = paths::repo_root_path(&repo).map_err(IntegrateError::GetRepoRootPathFailed)?;
   let repo_root_str = repo_root_path.to_str().ok_or(IntegrateError::PathNotUtf8)?;
@@ -74,11 +75,14 @@ pub fn integrate(patch_index: usize, force: bool, keep_branch: bool, given_branc
 
     let pattern = format!("refs/remotes/{}/", remote_name_str);
     let upstream_branch_shorthand = str::replace(&branch_upstream_name, pattern.as_str(), "");
+
+
+
     // e.g. git push origin ps/rr/whatever-branch:main
     git::ext_push(false, remote_name_str, rr_branch_name, &upstream_branch_shorthand).map_err(IntegrateError::PushFailed)?;
 
     // update state of the patch to indicate it has been integrated
-    update_state(&repo, remote_name_str.to_string(), rr_branch_name.to_string(), ps_id)?;
+    update_state(&repo, remote_name_str.to_string(), rr_branch_name.to_string(), patch_commit_diff_patch_id.to_string(), ps_id)?;
     
     // clean up the local rr branch
     if !keep_branch {
@@ -120,7 +124,6 @@ pub fn integrate(patch_index: usize, force: bool, keep_branch: bool, given_branc
     // verify that the remote rr branche's patche's diff hash matches that of
     // the local patch in the patch stack
     let rr_branch_commit_diff_patch_id = git::commit_diff_patch_id(&repo, &rr_branch_commit).map_err(IntegrateError::RrBranchCommitDiffPatchIdFailed)?;
-    let patch_commit_diff_patch_id = git::commit_diff_patch_id(&repo, &patch_commit).map_err(IntegrateError::PatchCommitDiffPatchIdFailed)?;
 
     if patch_commit_diff_patch_id != rr_branch_commit_diff_patch_id {
       return Err(IntegrateError::PatchesDiffer)
@@ -141,7 +144,7 @@ pub fn integrate(patch_index: usize, force: bool, keep_branch: bool, given_branc
 
     // Update state so that it is aware of the fact that this patch has been
     // integrated into upstream
-    update_state(&repo, remote_name_str.to_string(), rr_branch_name.clone(), ps_id)?;
+    update_state(&repo, remote_name_str.to_string(), rr_branch_name.clone(), patch_commit_diff_patch_id.to_string(), ps_id)?;
 
     // Cleanup the local and remote branches associated with this patch
     if !keep_branch {
@@ -154,16 +157,16 @@ pub fn integrate(patch_index: usize, force: bool, keep_branch: bool, given_branc
   Ok(())
 }
 
-fn update_state(repo: &git2::Repository, remote_name: String, rr_branch_name: String, ps_id: Uuid) -> Result<(), IntegrateError> {
+fn update_state(repo: &git2::Repository, remote_name: String, rr_branch_name: String, diff_hash: String, ps_id: Uuid) -> Result<(), IntegrateError> {
     state_management::update_patch_state(repo, &ps_id, |patch_meta_data_option|
       match patch_meta_data_option {
         Some(patch_meta_data) => {
           match patch_meta_data.state {
-            state_management::PatchState::Integrated(_, _) => patch_meta_data,
+            state_management::PatchState::Integrated(_, _, _) => patch_meta_data,
             _ => {
               state_management::Patch {
                 patch_id: ps_id,
-                state: state_management::PatchState::Integrated(remote_name, rr_branch_name)
+                state: state_management::PatchState::Integrated(remote_name, rr_branch_name, diff_hash)
               }
             }
           }
@@ -171,7 +174,7 @@ fn update_state(repo: &git2::Repository, remote_name: String, rr_branch_name: St
         None => {
           state_management::Patch {
             patch_id: ps_id,
-            state: state_management::PatchState::Integrated(remote_name, rr_branch_name)
+            state: state_management::PatchState::Integrated(remote_name, rr_branch_name, diff_hash)
           }
         }
       }

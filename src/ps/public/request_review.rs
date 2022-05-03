@@ -24,12 +24,17 @@ pub enum RequestReviewError {
   HookExecutionFailed(utils::ExecuteError),
   StorePatchStateFailed(state_management::StorePatchStateError),
   GetConfigFailed(config::GetConfigError),
-  IsolationVerificationFailed(verify_isolation::VerifyIsolationError)
+  IsolationVerificationFailed(verify_isolation::VerifyIsolationError),
+  FindPatchCommitFailed(ps::FindPatchCommitError),
+  PatchCommitDiffPatchIdFailed(git::CommitDiffPatchIdError)
 }
 
 pub fn request_review(patch_index: usize, given_branch_name: Option<String>) -> Result<(), RequestReviewError> {
   // check if post_request_review hook exists
   let repo = git::create_cwd_repo().map_err(RequestReviewError::OpenRepositoryFailed)?;
+
+  let patch_commit = ps::find_patch_commit(&repo, patch_index).map_err(RequestReviewError::FindPatchCommitFailed)?;
+  let patch_commit_diff_patch_id = git::commit_diff_patch_id(&repo, &patch_commit).map_err(RequestReviewError::PatchCommitDiffPatchIdFailed)?;
 
   // find post_request_review hook
   let repo_root_path = paths::repo_root_path(&repo).map_err(RequestReviewError::GetRepoRootPathFailed)?;
@@ -60,7 +65,7 @@ pub fn request_review(patch_index: usize, given_branch_name: Option<String>) -> 
 
   // update patch state to indicate that we have requested review
   let mut new_patch_meta_data = patch_meta_data;
-  new_patch_meta_data.state = state_management::PatchState::RequestedReview(remote_name.as_str().ok_or(RequestReviewError::BranchNameNotUtf8)?.to_string(), created_branch_name);
+  new_patch_meta_data.state = state_management::PatchState::RequestedReview(remote_name.as_str().ok_or(RequestReviewError::BranchNameNotUtf8)?.to_string(), created_branch_name, patch_commit_diff_patch_id.to_string());
   state_management::store_patch_state(&repo, &new_patch_meta_data).map_err(RequestReviewError::StorePatchStateFailed)?;
 
   Ok(())

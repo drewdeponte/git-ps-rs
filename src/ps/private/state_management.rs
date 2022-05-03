@@ -10,37 +10,37 @@ use super::paths;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum PatchState {
-  BranchCreated(String), // branch_name
-  PushedToRemote(String, String), // remote, branch_name
-  RequestedReview(String, String), // remote, branch_name
-  Integrated(String, String) // remote, branch_name
+  BranchCreated(String, String), // branch_name, diff_hash
+  PushedToRemote(String, String, String), // remote, branch_name, diff_hash
+  RequestedReview(String, String, String), // remote, branch_name, diff_hash
+  Integrated(String, String, String) // remote, branch_name, diff_hash
 }
 
 impl PatchState {
   pub fn branch_name(&self) -> String {
     match self {
-      Self::BranchCreated(branch_name) => branch_name.to_string(),
-      Self::PushedToRemote(_, branch_name) => branch_name.to_string(),
-      Self::RequestedReview(_, branch_name) => branch_name.to_string(),
-      Self::Integrated(_, branch_name) => branch_name.to_string()
+      Self::BranchCreated(branch_name, _) => branch_name.to_string(),
+      Self::PushedToRemote(_, branch_name, _) => branch_name.to_string(),
+      Self::RequestedReview(_, branch_name, _) => branch_name.to_string(),
+      Self::Integrated(_, branch_name, _) => branch_name.to_string()
     }
   }
 
   pub fn has_been_pushed_to_remote(&self) -> bool {
     match self {
-      Self::BranchCreated(_) => false,
-      Self::PushedToRemote(_, _) => true,
-      Self::RequestedReview(_, _) => true,
-      Self::Integrated(_, _) => false
+      Self::BranchCreated(_, _) => false,
+      Self::PushedToRemote(_, _, _) => true,
+      Self::RequestedReview(_, _, _) => true,
+      Self::Integrated(_, _, _) => false
     }
   }
 
   pub fn has_requested_review(&self) -> bool {
     match self {
-      Self::BranchCreated(_) => false,
-      Self::PushedToRemote(_, _) => false,
-      Self::RequestedReview(_, _) => true,
-      Self::Integrated(_, _) => true
+      Self::BranchCreated(_, _) => false,
+      Self::PushedToRemote(_, _, _) => false,
+      Self::RequestedReview(_, _, _) => true,
+      Self::Integrated(_, _, _) => true
     }
   }
 }

@@ -29,11 +29,17 @@ pub enum ListError {
 pub enum PatchStatus {
   WithoutBranch,
   BranchCreated,
-  BranchCreatedButHasChanged,
+  BranchCreatedButLocalHasChanged,
+  BranchCreatedButRemoteHasChanged,
+  BranchCreatedButBothHaveChanged,
   PushedToRemote,
-  PushedToRemoteButHasChanged,
+  PushedToRemoteButLocalHasChanged,
+  PushedToRemoteButRemoteHasChanged,
+  PushedToRemoteButBothHaveChanged,
   RequestedReview,
-  RequestedReviewButHasChanged,
+  RequestedReviewButLocalHasChanged,
+  RequestedReviewButRemoteHasChanged,
+  RequestedReviewButBothHaveChanged,
   Integrated
 }
 
@@ -66,7 +72,44 @@ pub fn list() -> Result<(), ListError> {
 #[derive(Debug)]
 pub enum PatchStatusError {
   SingularCommitOfBrachFailure(git::SingularCommitOfBranchError),
-  GetCommitDiffPatchIdFailed(git::CommitDiffPatchIdError)
+  GetCommitDiffPatchIdFailed(git::CommitDiffPatchIdError),
+  PatchIdFromPatchIdStringFailed(git2::Error)
+}
+
+fn compute_branched_status(local_patch_has_changed: bool, remote_patch_has_changed: bool) -> PatchStatus {
+  if local_patch_has_changed && remote_patch_has_changed {
+    PatchStatus::BranchCreatedButBothHaveChanged
+  } else if local_patch_has_changed {
+    PatchStatus::BranchCreatedButLocalHasChanged
+  } else if remote_patch_has_changed {
+    PatchStatus::BranchCreatedButRemoteHasChanged
+  } else {
+    PatchStatus::BranchCreated
+  }
+}
+
+fn compute_pushed_to_remote_status(local_patch_has_changed: bool, remote_patch_has_changed: bool) -> PatchStatus {
+  if local_patch_has_changed && remote_patch_has_changed {
+    PatchStatus::PushedToRemoteButBothHaveChanged
+  } else if local_patch_has_changed {
+    PatchStatus::PushedToRemoteButLocalHasChanged
+  } else if remote_patch_has_changed {
+    PatchStatus::PushedToRemoteButRemoteHasChanged
+  } else {
+    PatchStatus::PushedToRemote
+  }
+}
+
+fn compute_request_reviewed_status(local_patch_has_changed: bool, remote_patch_has_changed: bool) -> PatchStatus {
+  if local_patch_has_changed && remote_patch_has_changed {
+    PatchStatus::RequestedReviewButBothHaveChanged
+  } else if local_patch_has_changed {
+    PatchStatus::RequestedReviewButLocalHasChanged
+  } else if remote_patch_has_changed {
+    PatchStatus::RequestedReviewButRemoteHasChanged
+  } else {
+    PatchStatus::RequestedReview
+  }
 }
 
 fn patch_status(patch_meta_data_option: Option<&state_management::Patch>, repo: &git2::Repository, commit_diff_patch_id: git2::Oid) -> Result<PatchStatus, PatchStatusError> {
@@ -74,43 +117,58 @@ fn patch_status(patch_meta_data_option: Option<&state_management::Patch>, repo: 
     None => Ok(PatchStatus::WithoutBranch),
     Some(patch_meta_data) => {
       match &patch_meta_data.state {
-        state_management::PatchState::BranchCreated(rr_branch_name) => {
-          // get the singular commit (a.k.a) patch that should be the head of rr_branch_name
-          let commit = git::singular_commit_of_branch(repo, rr_branch_name, git2::BranchType::Local).map_err(PatchStatusError::SingularCommitOfBrachFailure)?;
-          // get it's diff_patch_id
-          let remote_commit_diff_patch_id = git::commit_diff_patch_id(repo, &commit).map_err(PatchStatusError::GetCommitDiffPatchIdFailed)?;
-          // compare it to the diff_patch_id of the current patch
-          if remote_commit_diff_patch_id != commit_diff_patch_id {
-            Ok(PatchStatus::BranchCreatedButHasChanged)
-          } else {
-            Ok(PatchStatus::BranchCreated)
+        state_management::PatchState::BranchCreated(rr_branch_name, operation_diff_patch_id_string) => {
+          let operation_diff_patch_id = git2::Oid::from_str(operation_diff_patch_id_string).map_err(PatchStatusError::PatchIdFromPatchIdStringFailed)?;
+          let local_patch_has_changed = commit_diff_patch_id != operation_diff_patch_id;
+
+          match git::singular_commit_of_branch(repo, rr_branch_name, git2::BranchType::Local) {
+            Ok(commit) => {
+              let remote_commit_diff_patch_id = git::commit_diff_patch_id(repo, &commit).map_err(PatchStatusError::GetCommitDiffPatchIdFailed)?;
+              let remote_patch_has_changed = remote_commit_diff_patch_id != operation_diff_patch_id; 
+              Ok(compute_branched_status(local_patch_has_changed, remote_patch_has_changed))
+            },
+            Err(git::SingularCommitOfBranchError::BranchDoesntHaveExactlyOneCommit(_, _)) => {
+              let remote_patch_has_changed = true;
+              Ok(compute_branched_status(local_patch_has_changed, remote_patch_has_changed))
+            },
+            Err(e) => Err(PatchStatusError::SingularCommitOfBrachFailure(e))
           }
         },
-        state_management::PatchState::PushedToRemote(remote, rr_branch_name) => {
-          // get the singular commit (a.k.a) patch that should be the head of rr_branch_name
-          let commit = git::singular_commit_of_branch(repo, format!("{}/{}", remote, rr_branch_name).as_str(), git2::BranchType::Remote).map_err(PatchStatusError::SingularCommitOfBrachFailure)?;
-          // get it's diff_patch_id
-          let remote_commit_diff_patch_id = git::commit_diff_patch_id(repo, &commit).map_err(PatchStatusError::GetCommitDiffPatchIdFailed)?;
-          // compare it to the diff_patch_id of the current patch
-          if remote_commit_diff_patch_id != commit_diff_patch_id {
-            Ok(PatchStatus::PushedToRemoteButHasChanged)
-          } else {
-            Ok(PatchStatus::PushedToRemote)
+        state_management::PatchState::PushedToRemote(remote, rr_branch_name, operation_diff_patch_id_string) => {
+          let operation_diff_patch_id = git2::Oid::from_str(operation_diff_patch_id_string).map_err(PatchStatusError::PatchIdFromPatchIdStringFailed)?;
+          let local_patch_has_changed = commit_diff_patch_id != operation_diff_patch_id;
+
+          match git::singular_commit_of_branch(repo, format!("{}/{}", remote, rr_branch_name).as_str(), git2::BranchType::Remote) {
+            Ok(commit) => {
+              let remote_commit_diff_patch_id = git::commit_diff_patch_id(repo, &commit).map_err(PatchStatusError::GetCommitDiffPatchIdFailed)?;
+              let remote_patch_has_changed = remote_commit_diff_patch_id != operation_diff_patch_id; 
+              Ok(compute_pushed_to_remote_status(local_patch_has_changed, remote_patch_has_changed))
+            },
+            Err(git::SingularCommitOfBranchError::BranchDoesntHaveExactlyOneCommit(_, _)) => {
+              let remote_patch_has_changed = true;
+              Ok(compute_pushed_to_remote_status(local_patch_has_changed, remote_patch_has_changed))
+            },
+            Err(e) => Err(PatchStatusError::SingularCommitOfBrachFailure(e))
           }
         },
-        state_management::PatchState::RequestedReview(remote, rr_branch_name) => {
-          // get the singular commit (a.k.a) patch that should be the head of rr_branch_name
-          let commit = git::singular_commit_of_branch(repo, format!("{}/{}", remote, rr_branch_name).as_str(), git2::BranchType::Remote).map_err(PatchStatusError::SingularCommitOfBrachFailure)?;
-          // get it's diff_patch_id
-          let remote_commit_diff_patch_id = git::commit_diff_patch_id(repo, &commit).map_err(PatchStatusError::GetCommitDiffPatchIdFailed)?;
-          // compare it to the diff_patch_id of the current patch
-          if remote_commit_diff_patch_id != commit_diff_patch_id {
-            Ok(PatchStatus::RequestedReviewButHasChanged)
-          } else {
-            Ok(PatchStatus::RequestedReview)
+        state_management::PatchState::RequestedReview(remote, rr_branch_name, operation_diff_patch_id_string) => {
+          let operation_diff_patch_id = git2::Oid::from_str(operation_diff_patch_id_string).map_err(PatchStatusError::PatchIdFromPatchIdStringFailed)?;
+          let local_patch_has_changed = commit_diff_patch_id != operation_diff_patch_id;
+
+          match git::singular_commit_of_branch(repo, format!("{}/{}", remote, rr_branch_name).as_str(), git2::BranchType::Remote) {
+            Ok(commit) => {
+              let remote_commit_diff_patch_id = git::commit_diff_patch_id(repo, &commit).map_err(PatchStatusError::GetCommitDiffPatchIdFailed)?;
+              let remote_patch_has_changed = remote_commit_diff_patch_id != operation_diff_patch_id; 
+              Ok(compute_request_reviewed_status(local_patch_has_changed, remote_patch_has_changed))
+            },
+            Err(git::SingularCommitOfBranchError::BranchDoesntHaveExactlyOneCommit(_, _)) => {
+              let remote_patch_has_changed = true;
+              Ok(compute_request_reviewed_status(local_patch_has_changed, remote_patch_has_changed))
+            },
+            Err(e) => Err(PatchStatusError::SingularCommitOfBrachFailure(e))
           }
         },
-        state_management::PatchState::Integrated(_, _) => Ok(PatchStatus::Integrated)
+        state_management::PatchState::Integrated(_, _, _) => Ok(PatchStatus::Integrated)
       }
     }
   }
@@ -118,13 +176,19 @@ fn patch_status(patch_meta_data_option: Option<&state_management::Patch>, repo: 
 
 fn patch_status_to_string(patch_status: PatchStatus) -> String {
   match patch_status {
-    PatchStatus::WithoutBranch => "   ",
-    PatchStatus::BranchCreated => "b  ",
-    PatchStatus::BranchCreatedButHasChanged => "b+ ",
-    PatchStatus::PushedToRemote => "s  ",
-    PatchStatus::PushedToRemoteButHasChanged => "s+ ",
-    PatchStatus::RequestedReview => "rr ",
-    PatchStatus::RequestedReviewButHasChanged => "rr+",
-    PatchStatus::Integrated => "int"
+    PatchStatus::WithoutBranch                      => "    ",
+    PatchStatus::BranchCreated                      => "b   ",
+    PatchStatus::BranchCreatedButLocalHasChanged    => "b+  ",
+    PatchStatus::BranchCreatedButRemoteHasChanged   => "b  !",
+    PatchStatus::BranchCreatedButBothHaveChanged    => "b+ !",
+    PatchStatus::PushedToRemote                     => "s   ",
+    PatchStatus::PushedToRemoteButLocalHasChanged   => "s+  ",
+    PatchStatus::PushedToRemoteButRemoteHasChanged  => "s  !",
+    PatchStatus::PushedToRemoteButBothHaveChanged   => "s+ !",
+    PatchStatus::RequestedReview                    => "rr  ",
+    PatchStatus::RequestedReviewButLocalHasChanged  => "rr+ ",
+    PatchStatus::RequestedReviewButRemoteHasChanged => "rr !",
+    PatchStatus::RequestedReviewButBothHaveChanged  => "rr+!",
+    PatchStatus::Integrated                         => "int "
   }.to_string()
 }

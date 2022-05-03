@@ -23,7 +23,8 @@ pub enum RequestReviewBranchError {
   GetPatchMetaDataPathFailed(paths::PathsError),
   ReadPatchMetaDataFailed(state_management::ReadPatchStatesError),
   WritePatchMetaDataFailed(state_management::WritePatchStatesError),
-  OpenGitConfigFailed(git2::Error)
+  OpenGitConfigFailed(git2::Error),
+  PatchCommitDiffPatchIdFailed(git::CommitDiffPatchIdError)
 }
 
 impl From<git::CreateCwdRepositoryError> for RequestReviewBranchError {
@@ -66,7 +67,8 @@ impl fmt::Display for RequestReviewBranchError {
       RequestReviewBranchError::GetPatchMetaDataPathFailed(_patch_meta_data_path_error) => write!(f, "Failed to get patch meta data path {:?}", _patch_meta_data_path_error),
       RequestReviewBranchError::ReadPatchMetaDataFailed(_read_patch_meta_data_error) => write!(f, "Failed to read patch meta data {:?}", _read_patch_meta_data_error),
       RequestReviewBranchError::WritePatchMetaDataFailed(_write_patch_meta_data_error) => write!(f, "Failed to write patch meta data {:?}", _write_patch_meta_data_error),
-      RequestReviewBranchError::OpenGitConfigFailed(_) => write!(f, "Failed to open git config")
+      RequestReviewBranchError::OpenGitConfigFailed(_) => write!(f, "Failed to open git config"),
+      RequestReviewBranchError::PatchCommitDiffPatchIdFailed(_) => write!(f, "Failed to get commit diff patch id")
     }
   }
 }
@@ -81,6 +83,7 @@ pub fn request_review_branch(repo: &git2::Repository, patch_index: usize, given_
   let patches_vec = ps::get_patch_list(repo, patch_stack).map_err(RequestReviewBranchError::GetPatchListFailed)?;
   let patch_oid = patches_vec.get(patch_index).ok_or(RequestReviewBranchError::PatchIndexNotFound)?.oid;
   let patch_commit = repo.find_commit(patch_oid).map_err(|_| RequestReviewBranchError::PatchCommitNotFound)?;
+  let patch_commit_diff_patch_id = git::commit_diff_patch_id(&repo, &patch_commit).map_err(RequestReviewBranchError::PatchCommitDiffPatchIdFailed)?;
 
   let patch_message = patch_commit.message().ok_or(RequestReviewBranchError::PatchMessageMissing)?;
 
@@ -118,7 +121,7 @@ pub fn request_review_branch(repo: &git2::Repository, patch_index: usize, given_
   if patch_meta_data.get(&ps_id).is_none() {
     let new_patch_meta_data = state_management::Patch {
       patch_id: ps_id,
-      state: state_management::PatchState::BranchCreated(branch_name)
+      state: state_management::PatchState::BranchCreated(branch_name, patch_commit_diff_patch_id.to_string())
     };
     patch_meta_data.insert(ps_id, new_patch_meta_data);
     state_management::write_patch_states(&patch_meta_data_path, &patch_meta_data).map_err(RequestReviewBranchError::WritePatchMetaDataFailed)?;
