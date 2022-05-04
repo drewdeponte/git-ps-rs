@@ -7,6 +7,7 @@ use super::super::private::state_management;
 use super::super::private::config;
 use super::super::private::verify_isolation;
 use std::result::Result;
+use std::fmt;
 
 #[derive(Debug)]
 pub enum RequestReviewError {
@@ -20,13 +21,37 @@ pub enum RequestReviewError {
   PatchMetaDataMissing,
   CurrentBranchNameMissing,
   GetUpstreamBranchNameFailed,
-  GetRemoteBranchNameFailed,
+  GetRemoteNameFailed,
   HookExecutionFailed(utils::ExecuteError),
   StorePatchStateFailed(state_management::StorePatchStateError),
   GetConfigFailed(config::GetConfigError),
   IsolationVerificationFailed(verify_isolation::VerifyIsolationError),
   FindPatchCommitFailed(ps::FindPatchCommitError),
   PatchCommitDiffPatchIdFailed(git::CommitDiffPatchIdError)
+}
+
+impl fmt::Display for RequestReviewError {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Self::OpenRepositoryFailed(e) => write!(f, "Repository not found in current working directory - {:?}", e),
+      Self::GetRepoRootPathFailed(e) => write!(f, "Get repository path failed - {:?}", e),
+      Self::PathNotUtf8 => write!(f, "Failed to process repository root path as it is NOT utf8"),
+      Self::BranchNameNotUtf8 => write!(f, "Failed to process remote name as it is NOT utf8"),
+      Self::HookNotFound(e) => write!(f, "request_review_post_sync hook not found - {:?}", e),
+      Self::SyncFailed(e) => write!(f, "Failed to sync patch to remote - {:?}", e),
+      Self::FetchPatchMetaDataFailed(e) => write!(f, "Failed to fetch patch meta data - {:?}", e),
+      Self::PatchMetaDataMissing => write!(f, "Patch meta data unexpectedly missing"),
+      Self::CurrentBranchNameMissing => write!(f, "Current branch name unexpectedly missin"),
+      Self::GetUpstreamBranchNameFailed => write!(f, "Failed to get upstream branch name"),
+      Self::GetRemoteNameFailed => write!(f, "Failed te get remote name"),
+      Self::HookExecutionFailed(e) => write!(f, "Execution of the request_review_post_sync hook failed - {:?}", e),
+      Self::StorePatchStateFailed(e) => write!(f, "Failed to store updated patch state - {:?}", e),
+      Self::GetConfigFailed(e) => write!(f, "Failed to get Git Patch Stack config - {:?}", e),
+      Self::IsolationVerificationFailed(e) => write!(f, "Isolation verification failed - {:?}", e),
+      Self::FindPatchCommitFailed(e) => write!(f, "Failed to find patch commit - {:?}", e),
+      Self::PatchCommitDiffPatchIdFailed(e) => write!(f, "Failed to get diff patch identifier - {:?}", e)
+    }
+  }
 }
 
 pub fn request_review(patch_index: usize, given_branch_name: Option<String>) -> Result<(), RequestReviewError> {
@@ -55,7 +80,7 @@ pub fn request_review(patch_index: usize, given_branch_name: Option<String>) -> 
 
   let cur_branch_name = git::get_current_branch(&repo).ok_or(RequestReviewError::CurrentBranchNameMissing)?;
   let branch_upstream_name = git::branch_upstream_name(&repo, cur_branch_name.as_str()).map_err(|_| RequestReviewError::GetUpstreamBranchNameFailed)?;
-  let remote_name = repo.branch_remote_name(&branch_upstream_name).map_err(|_| RequestReviewError::GetRemoteBranchNameFailed)?;
+  let remote_name = repo.branch_remote_name(&branch_upstream_name).map_err(|_| RequestReviewError::GetRemoteNameFailed)?;
 
   let pattern = format!("refs/remotes/{}/", remote_name.as_str().ok_or(RequestReviewError::BranchNameNotUtf8)?);
   let upstream_branch_shorthand = str::replace(&branch_upstream_name, pattern.as_str(), "");
