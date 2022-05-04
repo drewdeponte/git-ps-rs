@@ -6,10 +6,18 @@
 // inside of the `ps` module.
 
 use gps as ps;
+use ansi_term::Colour::Red;
 
-pub fn request_review(patch_index: usize, branch_name: Option<String>) {
+pub fn request_review(patch_index: usize, branch_name: Option<String>, color: bool) {
   match ps::request_review(patch_index, branch_name) {
     Ok(_) => {},
-    Err(e) => eprintln!("Error: {:?}", e)
+    Err(e) => {
+      let error_string = format!("\n\n{}\n\n", e);
+      if color {
+        eprintln!("{}", Red.paint(error_string))
+      } else {
+        eprintln!("{}", error_string)
+      }
+    }
   };
 }

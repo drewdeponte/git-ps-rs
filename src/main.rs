@@ -25,7 +25,7 @@ fn main() {
         cli::Command::List => commands::list::list(opt.color),
         cli::Command::Rebase(opts) => commands::rebase::rebase(opts.r#continue),
         cli::Command::Pull => commands::pull::pull(opt.color),
-        cli::Command::RequestReview(opts) => commands::request_review::request_review(opts.patch_index, opts.branch_name),
+        cli::Command::RequestReview(opts) => commands::request_review::request_review(opts.patch_index, opts.branch_name, opt.color),
         cli::Command::Show(opts) => commands::show::show(opts.patch_index),
         cli::Command::Sync(opts) => commands::sync::sync(opts.patch_index, opts.branch_name),
         cli::Command::Isolate(opts) => commands::isolate::isolate(opts.patch_index),
