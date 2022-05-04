@@ -8,6 +8,7 @@ use super::super::private::config;
 use super::super::private::verify_isolation;
 use std::result::Result;
 use std::fmt;
+use std::path::PathBuf;
 
 #[derive(Debug)]
 pub enum RequestReviewError {
@@ -15,7 +16,9 @@ pub enum RequestReviewError {
   GetRepoRootPathFailed(paths::PathsError),
   PathNotUtf8,
   BranchNameNotUtf8,
-  HookNotFound(hooks::FindHookError),
+  PostSyncHookNotFound,
+  PostSyncHookNotExecutable(PathBuf),
+  FindHookFailed(hooks::FindHookError),
   SyncFailed(ps::public::sync::SyncError),
   FetchPatchMetaDataFailed(state_management::FetchPatchMetaDataError),
   PatchMetaDataMissing,
@@ -30,6 +33,16 @@ pub enum RequestReviewError {
   PatchCommitDiffPatchIdFailed(git::CommitDiffPatchIdError)
 }
 
+impl From<hooks::FindHookError> for RequestReviewError {
+  fn from(e: hooks::FindHookError) -> Self {
+    match e {
+      hooks::FindHookError::NotFound => Self::PostSyncHookNotFound,
+      hooks::FindHookError::NotExecutable(path) => Self::PostSyncHookNotExecutable(path),
+      hooks::FindHookError::PathExpandHomeFailed(_) => Self::FindHookFailed(e)
+    }
+  }
+}
+
 impl fmt::Display for RequestReviewError {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
@@ -37,7 +50,9 @@ impl fmt::Display for RequestReviewError {
       Self::GetRepoRootPathFailed(e) => write!(f, "Get repository path failed - {:?}", e),
       Self::PathNotUtf8 => write!(f, "Failed to process repository root path as it is NOT utf8"),
       Self::BranchNameNotUtf8 => write!(f, "Failed to process remote name as it is NOT utf8"),
-      Self::HookNotFound(e) => write!(f, "request_review_post_sync hook not found - {:?}", e),
+      Self::PostSyncHookNotFound => write!(f, "request_review_post_sync hook not found"),
+      Self::PostSyncHookNotExecutable(path) => write!(f, "request_review_post_sync hook - {} - is not executable", path.to_str().unwrap_or("unknown path")),
+      Self::FindHookFailed(e) => write!(f, "failed to find request_review_post_sync hook - {:?}", e),
       Self::SyncFailed(e) => write!(f, "Failed to sync patch to remote - {:?}", e),
       Self::FetchPatchMetaDataFailed(e) => write!(f, "Failed to fetch patch meta data - {:?}", e),
       Self::PatchMetaDataMissing => write!(f, "Patch meta data unexpectedly missing"),
@@ -64,7 +79,7 @@ pub fn request_review(patch_index: usize, given_branch_name: Option<String>) -> 
   // find post_request_review hook
   let repo_root_path = paths::repo_root_path(&repo).map_err(RequestReviewError::GetRepoRootPathFailed)?;
   let repo_root_str = repo_root_path.to_str().ok_or(RequestReviewError::PathNotUtf8)?;
-  let hook_path = hooks::find_hook(repo_root_str, "request_review_post_sync").map_err(RequestReviewError::HookNotFound)?;
+  let hook_path = hooks::find_hook(repo_root_str, "request_review_post_sync")?;
 
   let config = config::get_config(repo_root_str).map_err(RequestReviewError::GetConfigFailed)?;
 

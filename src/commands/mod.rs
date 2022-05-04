@@ -20,3 +20,4 @@ pub mod status;
 pub mod add_changes_to_stage;
 pub mod log;
 pub mod unstage;
+pub mod utils;
