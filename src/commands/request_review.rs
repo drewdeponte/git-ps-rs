@@ -9,7 +9,7 @@ use gps as ps;
 use super::utils::print_err;
 
 pub fn request_review(patch_index: usize, branch_name: Option<String>, color: bool) {
-  match ps::request_review(patch_index, branch_name) {
+match ps::request_review(patch_index, branch_name, color) {
     Ok(_) => {},
     Err(ps::RequestReviewError::PostSyncHookNotFound) => {
       print_err(color,
@@ -55,6 +55,6 @@ r#"
 "#, path_str, path_str);
       print_err(color, &msg);
     },
-    Err(e) => print_err(color, format!("\n{}\n", e).as_str())
+    Err(e) => print_err(color, format!("\nError: {}\n", e).as_str())
   };
 }

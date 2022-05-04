@@ -32,7 +32,7 @@ pub enum IsolateError {
   DeleteIsolateBranchFailed(git2::Error)
 }
 
-pub fn isolate(patch_index_optional: Option<usize>) -> Result<(), IsolateError> {
+pub fn isolate(patch_index_optional: Option<usize>, color: bool) -> Result<(), IsolateError> {
   let isolate_branch_name = "ps/tmp/isolate";
   let repo = ps::private::git::create_cwd_repo().map_err(IsolateError::OpenGitRepositoryFailed)?;
   let config = git2::Config::open_default().map_err(IsolateError::OpenGitConfigFailed)?;
@@ -68,8 +68,44 @@ pub fn isolate(patch_index_optional: Option<usize>) -> Result<(), IsolateError> 
       let repo_root_str = repo_root_path.to_str().ok_or(IsolateError::PathNotUtf8)?;
       match hooks::find_hook(repo_root_str, "isolate_post_checkout") {
         Ok(hook_path) => utils::execute(hook_path.to_str().ok_or(IsolateError::PathNotUtf8)?, &[]).map_err(IsolateError::HookExecutionFailed)?,
-        Err(hooks::FindHookError::NotFound) => eprintln!("Warning: isolate_post_checkout hook not found. Skipping hook execution."),
-        Err(hooks::FindHookError::NotExecutable(hook_path)) => eprintln!("Warning: hook {} found, but is not executable. Skipping hook execution.", hook_path.to_str().ok_or(IsolateError::PathNotUtf8)?),
+        Err(hooks::FindHookError::NotFound) => {
+          utils::print_warn(color,
+r#"
+  The isolate_post_checkout hook was not found!
+
+  This hook is NOT required but it is strongly recommended that you set it
+  up. It is executed after the temporary isolation branch has been created,
+  the patch cherry-picked into it and the isolation branch checked out.
+
+  It is intended to be used to further verify patch isolation by verifying
+  that your code bases build succeeds and your test suite passes.
+
+  You can effectively have it do whatever you want as it is just a hook.
+  An exit status of 0, success, informs gps that the further isolation
+  verification was successful. Any non-zero exit status will indicate failure
+  and cause gps to abort.
+
+  You can find more information and examples of this hook and others at
+  the following.
+
+  https://github.com/uptech/git-ps-rs#hooks
+"#)
+        },
+        Err(hooks::FindHookError::NotExecutable(hook_path)) => {
+          let path_str = hook_path.to_str().unwrap_or("unknow path");
+          let msg = format!(
+r#"
+  The isolate_post_checkout hook was found at
+
+    {}
+
+  but it is NOT executable. Due to this the hook is being skipped. Generally
+  this can be corrected with the following.
+
+    chmod u+x {}
+"#, path_str, path_str);
+          utils::print_warn(color, &msg);
+        },
         Err(e) => return Err(IsolateError::HookNotFound(e))
       }
 

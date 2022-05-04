@@ -47,7 +47,7 @@ pub enum IntegrateError {
   ShowFailed(show::ShowError)
 }
 
-pub fn integrate(patch_index: usize, force: bool, keep_branch: bool, given_branch_name_option: Option<String>) -> Result<(), IntegrateError> {
+pub fn integrate(patch_index: usize, force: bool, keep_branch: bool, given_branch_name_option: Option<String>, color: bool) -> Result<(), IntegrateError> {
   let repo = git::create_cwd_repo().map_err(|_| IntegrateError::RepositoryNotFound)?;
 
   // verify that the patch-index has a corresponding commit
@@ -59,7 +59,7 @@ pub fn integrate(patch_index: usize, force: bool, keep_branch: bool, given_branc
   let config = config::get_config(repo_root_str).map_err(IntegrateError::GetConfigFailed)?;
 
   if config.integrate.verify_isolation {
-    verify_isolation::verify_isolation(patch_index).map_err(IntegrateError::IsolationVerificationFailed)?;
+    verify_isolation::verify_isolation(patch_index, color).map_err(IntegrateError::IsolationVerificationFailed)?;
   }
 
   if force {

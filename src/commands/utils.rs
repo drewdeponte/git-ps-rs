@@ -7,4 +7,3 @@ pub fn print_err(color: bool, message: &str) {
     eprintln!("{}", message)
   }
 }
-

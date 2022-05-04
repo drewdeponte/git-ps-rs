@@ -69,7 +69,7 @@ impl fmt::Display for RequestReviewError {
   }
 }
 
-pub fn request_review(patch_index: usize, given_branch_name: Option<String>) -> Result<(), RequestReviewError> {
+pub fn request_review(patch_index: usize, given_branch_name: Option<String>, color: bool) -> Result<(), RequestReviewError> {
   // check if post_request_review hook exists
   let repo = git::create_cwd_repo().map_err(RequestReviewError::OpenRepositoryFailed)?;
 
@@ -84,7 +84,7 @@ pub fn request_review(patch_index: usize, given_branch_name: Option<String>) -> 
   let config = config::get_config(repo_root_str).map_err(RequestReviewError::GetConfigFailed)?;
 
   if config.request_review.verify_isolation {
-    verify_isolation::verify_isolation(patch_index).map_err(RequestReviewError::IsolationVerificationFailed)?;
+    verify_isolation::verify_isolation(patch_index, color).map_err(RequestReviewError::IsolationVerificationFailed)?;
   }
 
   // sync patch up to remote
