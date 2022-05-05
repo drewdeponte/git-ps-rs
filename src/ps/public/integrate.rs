@@ -63,6 +63,9 @@ pub fn integrate(patch_index: usize, force: bool, keep_branch: bool, given_branc
   }
 
   if force {
+    // fetch so we get new remote state
+    git::ext_fetch().map_err(IntegrateError::FetchFailed)?;
+
     let (branch, ps_id) = ps::private::request_review_branch::request_review_branch(&repo, patch_index, given_branch_name_option).map_err(IntegrateError::BranchOperationFailed)?;
 
     // publish the patch from the local rr branch up to uptstream
@@ -75,8 +78,6 @@ pub fn integrate(patch_index: usize, force: bool, keep_branch: bool, given_branc
 
     let pattern = format!("refs/remotes/{}/", remote_name_str);
     let upstream_branch_shorthand = str::replace(&branch_upstream_name, pattern.as_str(), "");
-
-
 
     // e.g. git push origin ps/rr/whatever-branch:main
     git::ext_push(false, remote_name_str, rr_branch_name, &upstream_branch_shorthand).map_err(IntegrateError::PushFailed)?;
