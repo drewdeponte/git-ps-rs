@@ -329,7 +329,7 @@ pub fn cherry_pick_no_working_copy<'a>(repo: &'a git2::Repository, config: &'a g
   let tree = repo.find_tree(tree_oid)?;
 
   let author = commit.author();
-  let committer = commit.committer();
+  let committer = repo.signature().unwrap();
   let message = commit.message().unwrap();
 
   // let new_commit_oid = repo.commit(Option::Some(destination_ref_name), &author, &committer, message, &tree, &[&destination_commit])?;
@@ -361,7 +361,7 @@ pub fn cherry_pick_no_working_copy_amend_message<'a>(repo: &'a git2::Repository,
   let tree = repo.find_tree(tree_oid)?;
 
   let author = commit.author();
-  let committer = commit.committer();
+  let committer = repo.signature().unwrap();
   let message = commit.message().ok_or(GitError::CommitMessageMissing)?;
   let amended_message = format!("{}{}", message, message_amendment);
 
