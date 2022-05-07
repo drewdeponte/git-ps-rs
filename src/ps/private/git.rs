@@ -278,7 +278,7 @@ pub fn gpg_sign_string(commit: String, signing_key: String) -> Result<String, Gp
     let mut output = Vec::new();
     ctx.sign_detached(commit, &mut output).map_err(|_| GpgSignStringError::CreateDetachedSignatureFailed)?;
 
-    String::from_utf8(output).map_err(GpgSignStringError::FromUtf8Failed)
+    String::from_utf8(output).map(|s| s.trim().to_string()).map_err(GpgSignStringError::FromUtf8Failed)
 }
 
 #[derive(Debug)]
