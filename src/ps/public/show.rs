@@ -31,7 +31,7 @@ pub fn show(patch_index: usize) -> Result<(), ShowError> {
   let repo = git::create_cwd_repo().map_err(|_| ShowError::RepositoryMissing)?;
 
   let patch_stack = ps::get_patch_stack(&repo).map_err(|e| ShowError::GetPatchStackFailed(e))?;
-  let patches_vec = ps::get_patch_list(&repo, patch_stack).map_err(|e| ShowError::GetPatchListFailed(e))?;
+  let patches_vec = ps::get_patch_list(&repo, &patch_stack).map_err(|e| ShowError::GetPatchListFailed(e))?;
   let patch_oid = patches_vec.get(patch_index).ok_or(ShowError::PatchIndexNotFound)?.oid;
 
   utils::execute("git", &["show", "--pretty=raw", format!("{}", patch_oid).as_str()]).map_err(ShowError::from)

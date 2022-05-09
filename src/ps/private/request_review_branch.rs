@@ -80,7 +80,7 @@ pub fn request_review_branch(repo: &git2::Repository, patch_index: usize, given_
   // - find the patch identified by the patch_index
   let patch_stack = ps::get_patch_stack(repo)?;
   let patch_stack_base_commit = patch_stack.base.peel_to_commit().map_err(|_| RequestReviewBranchError::PatchStackBaseNotFound)?;
-  let patches_vec = ps::get_patch_list(repo, patch_stack).map_err(RequestReviewBranchError::GetPatchListFailed)?;
+  let patches_vec = ps::get_patch_list(repo, &patch_stack).map_err(RequestReviewBranchError::GetPatchListFailed)?;
   let patch_oid = patches_vec.get(patch_index).ok_or(RequestReviewBranchError::PatchIndexNotFound)?.oid;
   let patch_commit = repo.find_commit(patch_oid).map_err(|_| RequestReviewBranchError::PatchCommitNotFound)?;
   let patch_commit_diff_patch_id = git::commit_diff_patch_id(&repo, &patch_commit).map_err(RequestReviewBranchError::PatchCommitDiffPatchIdFailed)?;

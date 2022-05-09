@@ -28,7 +28,7 @@ pub fn branch(start_patch_index: usize, end_patch_index_option: Option<usize>, b
 
   if let Some(end_patch_index) = end_patch_index_option {
     // find the patch series in the patch stack
-    let patches_vec = ps::get_patch_list(&repo, patch_stack).map_err(BranchError::GetPatchListFailed)?;
+    let patches_vec = ps::get_patch_list(&repo, &patch_stack).map_err(BranchError::GetPatchListFailed)?;
     let start_patch_oid = patches_vec.get(start_patch_index).ok_or(BranchError::PatchIndexNotFound)?.oid;
     let end_patch_oid = patches_vec.get(end_patch_index).ok_or(BranchError::PatchIndexNotFound)?.oid;
 
@@ -46,7 +46,7 @@ pub fn branch(start_patch_index: usize, end_patch_index_option: Option<usize>, b
     git::cherry_pick_no_working_copy(&repo, &config, end_patch_oid, branch_ref_name).map_err(BranchError::CherryPickFailed)?;
   } else {
     // find the patch in the patch stack
-    let patches_vec = ps::get_patch_list(&repo, patch_stack).map_err(BranchError::GetPatchListFailed)?;
+    let patches_vec = ps::get_patch_list(&repo, &patch_stack).map_err(BranchError::GetPatchListFailed)?;
     let patch_oid = patches_vec.get(start_patch_index).ok_or(BranchError::PatchIndexNotFound)?.oid;
 
     // create a branch on the base of the current patch stack

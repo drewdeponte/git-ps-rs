@@ -65,7 +65,7 @@ pub enum GetPatchListError {
   StackBaseTargetMissing
 }
 
-pub fn get_patch_list(repo: &git2::Repository, patch_stack: PatchStack) -> Result<Vec<ListPatch>, GetPatchListError> {
+pub fn get_patch_list(repo: &git2::Repository, patch_stack: &PatchStack) -> Result<Vec<ListPatch>, GetPatchListError> {
     let mut rev_walk = repo.revwalk().map_err(|e| GetPatchListError::CreateRevWalkFailed(e))?;
     rev_walk.push(patch_stack.head.target().ok_or(GetPatchListError::StackHeadTargetMissing)?).map_err(|e| GetPatchListError::CreateRevWalkFailed(e))?;
     rev_walk.hide(patch_stack.base.target().ok_or(GetPatchListError::StackBaseTargetMissing)?).map_err(|e| GetPatchListError::CreateRevWalkFailed(e))?;
@@ -175,7 +175,7 @@ pub enum FindPatchCommitError {
 
 pub fn find_patch_commit(repo: &git2::Repository, patch_index: usize) -> Result<git2::Commit, FindPatchCommitError> {
   let patch_stack = get_patch_stack(repo).map_err(FindPatchCommitError::GetPatchStackDescFailed)?;
-  let patches_vec = get_patch_list(repo, patch_stack).map_err(FindPatchCommitError::GetPatchListFailed)?;
+  let patches_vec = get_patch_list(repo, &patch_stack).map_err(FindPatchCommitError::GetPatchListFailed)?;
   let patch_oid = patches_vec.get(patch_index).ok_or(FindPatchCommitError::PatchWithIndexNotFound(patch_index))?.oid;
   repo.find_commit(patch_oid).map_err(|e| FindPatchCommitError::FindCommitWithOidFailed(patch_oid, e))
 }

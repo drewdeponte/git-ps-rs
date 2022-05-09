@@ -141,6 +141,7 @@ Each of the states can have any of the following modifiers.
 
 +    - the patch in your patch stack has changed since the operation
 !    - the remote patch has changed since the operation
+↓    - patch is behind, the patch stack base has been updated since the operation
 
 To fully understand this lets look at an example. Let say you see the status
 `rr+!` when you ran the `list` command. This is telling you that the current
@@ -164,6 +165,14 @@ changes there you want to keep. If so you should cherry-pick the ones you want
 into your patch stack and squash/fix them up into the logical patch using the
 `rebase` command. Then you should `sync` or `request-review` of that patch
 again to get it back in sync.
+
+The `↓` modifier indicates that the patch is conceptually behind. What this
+means is that when the last rr/sync operation was performed the base of the
+patch stack was at one point in the git tree but now it has progressed forward
+as someone integrated changes into it. This can be addressed by doing a `gps
+pull` to make sure that your local stack is up to date and integrates
+everything from upstream and then doing a `gps sync` or `gps rr` to update the
+remote with newly rebased patch.
 ")]
     List,
 

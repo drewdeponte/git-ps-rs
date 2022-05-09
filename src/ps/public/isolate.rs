@@ -45,7 +45,7 @@ pub fn isolate(patch_index_optional: Option<usize>, color: bool) -> Result<(), I
     Some(patch_index) => {
       let patch_stack = ps::get_patch_stack(&repo).map_err(IsolateError::GetPatchStackFailed)?;
       let patch_stack_base_commit = patch_stack.base.peel_to_commit().map_err(|_| IsolateError::PatchStackBaseNotFound)?;
-      let patches_vec = ps::get_patch_list(&repo, patch_stack).map_err(IsolateError::GetPatchListFailed)?;
+      let patches_vec = ps::get_patch_list(&repo, &patch_stack).map_err(IsolateError::GetPatchListFailed)?;
       let patch_oid = patches_vec.get(patch_index).ok_or(IsolateError::PatchIndexNotFound)?.oid;
 
       let branch = repo.branch(isolate_branch_name, &patch_stack_base_commit, true).map_err(|_| IsolateError::CreateBranchFailed)?;
