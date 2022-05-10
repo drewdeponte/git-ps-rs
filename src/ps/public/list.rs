@@ -4,6 +4,7 @@ use uuid::Uuid;
 use serde::{Serialize, Deserialize};
 use super::super::private::state_management;
 use super::super::private::paths;
+use super::super::private::commit_is_behind::{commit_is_behind, CommitIsBehindError};
 use ansi_term::Colour::{Green, Yellow, Cyan};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -158,7 +159,7 @@ fn patch_status(patch_meta_data_option: Option<&state_management::Patch>, repo: 
 
           match git::singular_commit_of_branch(repo, format!("{}/{}", remote, rr_branch_name).as_str(), git2::BranchType::Remote, patch_stack_base_oid) {
             Ok(commit) => {
-              let is_behind = singular_branch_commit_is_behind(&commit, patch_stack_base_oid).map_err(PatchStatusError::GetCommitIsBehindFailed)?;
+              let is_behind = commit_is_behind(&commit, patch_stack_base_oid).map_err(PatchStatusError::GetCommitIsBehindFailed)?;
 
               let remote_commit_diff_patch_id = git::commit_diff_patch_id(repo, &commit).map_err(PatchStatusError::GetCommitDiffPatchIdFailed)?;
               let remote_patch_has_changed = remote_commit_diff_patch_id != operation_diff_patch_id; 
@@ -178,7 +179,7 @@ fn patch_status(patch_meta_data_option: Option<&state_management::Patch>, repo: 
 
           match git::singular_commit_of_branch(repo, format!("{}/{}", remote, rr_branch_name).as_str(), git2::BranchType::Remote, patch_stack_base_oid) {
             Ok(commit) => {
-              let is_behind = singular_branch_commit_is_behind(&commit, patch_stack_base_oid).map_err(PatchStatusError::GetCommitIsBehindFailed)?;
+              let is_behind = commit_is_behind(&commit, patch_stack_base_oid).map_err(PatchStatusError::GetCommitIsBehindFailed)?;
 
               let remote_commit_diff_patch_id = git::commit_diff_patch_id(repo, &commit).map_err(PatchStatusError::GetCommitDiffPatchIdFailed)?;
               let remote_patch_has_changed = remote_commit_diff_patch_id != operation_diff_patch_id; 
@@ -194,19 +195,6 @@ fn patch_status(patch_meta_data_option: Option<&state_management::Patch>, repo: 
         state_management::PatchState::Integrated(_, _, _) => Ok(PatchStatus::Integrated)
       }
     }
-  }
-}
-
-#[derive(Debug)]
-pub enum CommitIsBehindError {
-  GetCommitsParentZeroIdFailed(git2::Error)
-}
-
-fn singular_branch_commit_is_behind(commit: &git2::Commit, base_oid: git2::Oid) -> Result<bool, CommitIsBehindError> {
-  if commit.parent_id(0).map_err(CommitIsBehindError::GetCommitsParentZeroIdFailed)? != base_oid {
-    Ok(true)
-  } else {
-    Ok(false)
   }
 }
 
