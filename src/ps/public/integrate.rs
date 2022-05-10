@@ -4,6 +4,7 @@ use super::super::private::state_management;
 use super::super::private::paths;
 use super::super::private::config;
 use super::super::private::verify_isolation;
+use super::super::private::commit_is_behind;
 use super::super::public::show;
 use uuid::Uuid;
 
@@ -47,6 +48,8 @@ pub enum IntegrateError {
   ShowFailed(show::ShowError),
   GetPatchStackFailed(ps::PatchStackError),
   GetPatchStackBaseTargetFailed,
+  GetCommitIsBehindFailed(commit_is_behind::CommitIsBehindError),
+  PatchIsBehind
 }
 
 pub fn integrate(patch_index: usize, force: bool, keep_branch: bool, given_branch_name_option: Option<String>, color: bool) -> Result<(), IntegrateError> {
@@ -54,6 +57,7 @@ pub fn integrate(patch_index: usize, force: bool, keep_branch: bool, given_branc
 
   let patch_stack = ps::get_patch_stack(&repo).map_err(IntegrateError::GetPatchStackFailed)?;
   let patch_stack_base_oid = patch_stack.base.target().ok_or(IntegrateError::GetPatchStackBaseTargetFailed)?;
+
   // verify that the patch-index has a corresponding commit
   let patch_commit = ps::find_patch_commit(&repo, patch_index).map_err(IntegrateError::FindPatchCommitFailed)?;
   let patch_commit_diff_patch_id = git::commit_diff_patch_id(&repo, &patch_commit).map_err(IntegrateError::PatchCommitDiffPatchIdFailed)?;
@@ -134,18 +138,19 @@ pub fn integrate(patch_index: usize, force: bool, keep_branch: bool, given_branc
       return Err(IntegrateError::PatchesDiffer)
     }
 
-    // reset the local rr branch to be based on the current upstream remote
-    // base (e.g. origin/main)
-    ps::private::request_review_branch::request_review_branch(&repo, patch_index, given_branch_name_option)
-      .map_err(IntegrateError::UpdateLocalRequestReviewBranchFailed)?;
+    // verify that upstream base hasn't left the remote patch behind
+    let is_behind = commit_is_behind::commit_is_behind(&rr_branch_commit, patch_stack_base_oid).map_err(IntegrateError::GetCommitIsBehindFailed)?;
+    if is_behind {
+      return Err(IntegrateError::PatchIsBehind)
+    }
 
     // At this point we are pretty confident that things are properly in sync
-    // and therefore we allow the actually act of integrating into to upstream
+    // and therefore we allow the actual act of integrating into to upstream
     // happen.
     let pattern = format!("refs/remotes/{}/", remote_name_str);
     let upstream_branch_shorthand = str::replace(&branch_upstream_name, pattern.as_str(), "");
-    // e.g. git push origin ps/rr/whatever-branch:main
-    git::ext_push(false, remote_name_str, &rr_branch_name, &upstream_branch_shorthand).map_err(IntegrateError::PushFailed)?;
+    // e.g. git push origin origin/ps/rr/whatever-branch:main
+    git::ext_push(false, remote_name_str, &remote_rr_branch_refspec, &upstream_branch_shorthand).map_err(IntegrateError::PushFailed)?;
 
     // Update state so that it is aware of the fact that this patch has been
     // integrated into upstream
