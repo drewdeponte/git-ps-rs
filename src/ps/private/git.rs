@@ -460,8 +460,6 @@ pub fn common_ancestor(repo: &git2::Repository, one: git2::Oid, two: git2::Oid) 
 #[derive(Debug)]
 pub enum SingularCommitOfBranchError {
   CommonAncestorFailed(CommonAncestorError),
-  GetHeadFailed(git2::Error),
-  HeadMissingTarget,
   FindBranchFailed(git2::Error),
   BranchMissingTarget,
   GetRevWalkerFailed(GitError),
@@ -469,10 +467,9 @@ pub enum SingularCommitOfBranchError {
   FindBranchCommitFailed(git2::Error)
 }
 
-pub fn singular_commit_of_branch<'a>(repo: &'a git2::Repository, branch_name: &str, branch_type: git2::BranchType) -> Result<git2::Commit<'a>, SingularCommitOfBranchError> {
-  let mainline_head_oid = repo.head().map_err(SingularCommitOfBranchError::GetHeadFailed)?.target().ok_or(SingularCommitOfBranchError::HeadMissingTarget)?;
+pub fn singular_commit_of_branch<'a>(repo: &'a git2::Repository, branch_name: &str, branch_type: git2::BranchType, base_oid: git2::Oid) -> Result<git2::Commit<'a>, SingularCommitOfBranchError> {
   let branch_oid = repo.find_branch(branch_name, branch_type).map_err(SingularCommitOfBranchError::FindBranchFailed)?.get().target().ok_or(SingularCommitOfBranchError::BranchMissingTarget)?;
-  let common_ancestor_oid = common_ancestor(&repo, branch_oid, mainline_head_oid).map_err(SingularCommitOfBranchError::CommonAncestorFailed)?;
+  let common_ancestor_oid = common_ancestor(repo, branch_oid, base_oid).map_err(SingularCommitOfBranchError::CommonAncestorFailed)?;
 
   let revwalk = get_revs(repo, common_ancestor_oid, branch_oid).map_err(SingularCommitOfBranchError::GetRevWalkerFailed)?;
   let num_of_commits = revwalk.count();

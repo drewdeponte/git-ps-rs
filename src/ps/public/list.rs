@@ -142,7 +142,7 @@ fn patch_status(patch_meta_data_option: Option<&state_management::Patch>, repo: 
           let operation_diff_patch_id = git2::Oid::from_str(operation_diff_patch_id_string).map_err(PatchStatusError::PatchIdFromPatchIdStringFailed)?;
           let local_patch_has_changed = commit_diff_patch_id != operation_diff_patch_id;
 
-          match git::singular_commit_of_branch(repo, rr_branch_name, git2::BranchType::Local) {
+          match git::singular_commit_of_branch(repo, rr_branch_name, git2::BranchType::Local, patch_stack_base_oid) {
             Ok(_) => {
               Ok(compute_branched_status(local_patch_has_changed))
             },
@@ -156,7 +156,7 @@ fn patch_status(patch_meta_data_option: Option<&state_management::Patch>, repo: 
           let operation_diff_patch_id = git2::Oid::from_str(operation_diff_patch_id_string).map_err(PatchStatusError::PatchIdFromPatchIdStringFailed)?;
           let local_patch_has_changed = commit_diff_patch_id != operation_diff_patch_id;
 
-          match git::singular_commit_of_branch(repo, format!("{}/{}", remote, rr_branch_name).as_str(), git2::BranchType::Remote) {
+          match git::singular_commit_of_branch(repo, format!("{}/{}", remote, rr_branch_name).as_str(), git2::BranchType::Remote, patch_stack_base_oid) {
             Ok(commit) => {
               let is_behind = singular_branch_commit_is_behind(&commit, patch_stack_base_oid).map_err(PatchStatusError::GetCommitIsBehindFailed)?;
 
@@ -176,7 +176,7 @@ fn patch_status(patch_meta_data_option: Option<&state_management::Patch>, repo: 
           let operation_diff_patch_id = git2::Oid::from_str(operation_diff_patch_id_string).map_err(PatchStatusError::PatchIdFromPatchIdStringFailed)?;
           let local_patch_has_changed = commit_diff_patch_id != operation_diff_patch_id;
 
-          match git::singular_commit_of_branch(repo, format!("{}/{}", remote, rr_branch_name).as_str(), git2::BranchType::Remote) {
+          match git::singular_commit_of_branch(repo, format!("{}/{}", remote, rr_branch_name).as_str(), git2::BranchType::Remote, patch_stack_base_oid) {
             Ok(commit) => {
               let is_behind = singular_branch_commit_is_behind(&commit, patch_stack_base_oid).map_err(PatchStatusError::GetCommitIsBehindFailed)?;
 
