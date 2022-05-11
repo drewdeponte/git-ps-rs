@@ -30,7 +30,10 @@ pub enum RequestReviewError {
   GetConfigFailed(config::GetConfigError),
   IsolationVerificationFailed(verify_isolation::VerifyIsolationError),
   FindPatchCommitFailed(ps::FindPatchCommitError),
-  PatchCommitDiffPatchIdFailed(git::CommitDiffPatchIdError)
+  PatchCommitDiffPatchIdFailed(git::CommitDiffPatchIdError),
+  FindRemoteRequestReviewBranchFailed(git2::Error),
+  GetRemoteCommitFailed(git2::Error),
+  RemoteCommitDiffPatchIdFailed(git::CommitDiffPatchIdError)
 }
 
 impl From<hooks::FindHookError> for RequestReviewError {
@@ -64,7 +67,10 @@ impl fmt::Display for RequestReviewError {
       Self::GetConfigFailed(e) => write!(f, "Failed to get Git Patch Stack config - {:?}", e),
       Self::IsolationVerificationFailed(e) => write!(f, "Isolation verification failed - {:?}", e),
       Self::FindPatchCommitFailed(e) => write!(f, "Failed to find patch commit - {:?}", e),
-      Self::PatchCommitDiffPatchIdFailed(e) => write!(f, "Failed to get diff patch identifier - {:?}", e)
+      Self::PatchCommitDiffPatchIdFailed(e) => write!(f, "Failed to get diff patch identifier - {:?}", e),
+      Self::FindRemoteRequestReviewBranchFailed(e) => write!(f, "Failed to find remote request review branch - {:?}", e),
+      Self::GetRemoteCommitFailed(e) => write!(f, "Failed to get remote commit - {:?}", e),
+      Self::RemoteCommitDiffPatchIdFailed(e) => write!(f, "Failed to get remote commit's diff patch id - {:?}", e)
     }
   }
 }
@@ -100,12 +106,22 @@ pub fn request_review(patch_index: usize, given_branch_name: Option<String>, col
   let pattern = format!("refs/remotes/{}/", remote_name.as_str().ok_or(RequestReviewError::BranchNameNotUtf8)?);
   let upstream_branch_shorthand = str::replace(&branch_upstream_name, pattern.as_str(), "");
 
+  let remote_name_str = remote_name.as_str().ok_or(RequestReviewError::BranchNameNotUtf8)?;
+  let remote_rr_branch = repo.find_branch(format!("{}/{}", remote_name_str, created_branch_name).as_str(), git2::BranchType::Remote).map_err(RequestReviewError::FindRemoteRequestReviewBranchFailed)?;
+  let remote_commit = remote_rr_branch.get().peel_to_commit().map_err(RequestReviewError::GetRemoteCommitFailed)?;
+  let remote_commit_diff_patch_id = git::commit_diff_patch_id(&repo, &remote_commit).map_err(RequestReviewError::RemoteCommitDiffPatchIdFailed)?;
+
   // execute the hook
   utils::execute(hook_path.to_str().ok_or(RequestReviewError::PathNotUtf8)?, &[rerequesting_review(&patch_meta_data), &created_branch_name, &upstream_branch_shorthand]).map_err(RequestReviewError::HookExecutionFailed)?;
 
   // update patch state to indicate that we have requested review
   let mut new_patch_meta_data = patch_meta_data;
-  new_patch_meta_data.state = state_management::PatchState::RequestedReview(remote_name.as_str().ok_or(RequestReviewError::BranchNameNotUtf8)?.to_string(), created_branch_name, patch_commit_diff_patch_id.to_string());
+  new_patch_meta_data.state = state_management::PatchState::RequestedReview(
+    remote_name.as_str().ok_or(RequestReviewError::BranchNameNotUtf8)?.to_string(),
+    created_branch_name,
+    patch_commit_diff_patch_id.to_string(),
+    remote_commit_diff_patch_id.to_string()
+  );
   state_management::store_patch_state(&repo, &new_patch_meta_data).map_err(RequestReviewError::StorePatchStateFailed)?;
 
   Ok(())

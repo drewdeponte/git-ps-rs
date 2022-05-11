@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use is_executable::IsExecutable;
 use home_dir::{self, HomeDirExt};
 
-const PATCH_STATES_RELATIVE_PATH: &str = ".git/GIT-PATCH-STACK-PATCH-STATES-V2.json";
+const PATCH_STATES_RELATIVE_PATH: &str = ".git/GIT-PATCH-STACK-PATCH-STATES-V3.json";
 const ISOLATE_LAST_BRANCH_RELATIVE_PATH: &str = ".git/GIT-PATCH-STACK-ISOLATE-LAST-BRANCH";
 
 #[derive(Debug)]

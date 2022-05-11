@@ -90,8 +90,9 @@ pub fn patch_status(patch_meta_data_option: Option<&state_management::Patch>, re
             Err(e) => Err(PatchStatusError::SingularCommitOfBrachFailure(e))
           }
         },
-        state_management::PatchState::PushedToRemote(remote, rr_branch_name, operation_diff_patch_id_string) => {
+        state_management::PatchState::PushedToRemote(remote, rr_branch_name, operation_diff_patch_id_string, operation_remote_diff_patch_id_string) => {
           let operation_diff_patch_id = git2::Oid::from_str(operation_diff_patch_id_string).map_err(PatchStatusError::PatchIdFromPatchIdStringFailed)?;
+          let operation_remote_diff_patch_id = git2::Oid::from_str(operation_remote_diff_patch_id_string).map_err(PatchStatusError::PatchIdFromPatchIdStringFailed)?;
           let local_patch_has_changed = commit_diff_patch_id != operation_diff_patch_id;
 
           match git::singular_commit_of_branch(repo, format!("{}/{}", remote, rr_branch_name).as_str(), git2::BranchType::Remote, patch_stack_base_oid) {
@@ -99,7 +100,7 @@ pub fn patch_status(patch_meta_data_option: Option<&state_management::Patch>, re
               let is_behind = commit_is_behind(&commit, patch_stack_base_oid).map_err(PatchStatusError::GetCommitIsBehindFailed)?;
 
               let remote_commit_diff_patch_id = git::commit_diff_patch_id(repo, &commit).map_err(PatchStatusError::GetCommitDiffPatchIdFailed)?;
-              let remote_patch_has_changed = remote_commit_diff_patch_id != operation_diff_patch_id; 
+              let remote_patch_has_changed = remote_commit_diff_patch_id != operation_remote_diff_patch_id;
 
               Ok(compute_pushed_to_remote_status(local_patch_has_changed, remote_patch_has_changed, Option::Some(is_behind)))
             },
@@ -110,8 +111,9 @@ pub fn patch_status(patch_meta_data_option: Option<&state_management::Patch>, re
             Err(e) => Err(PatchStatusError::SingularCommitOfBrachFailure(e))
           }
         },
-        state_management::PatchState::RequestedReview(remote, rr_branch_name, operation_diff_patch_id_string) => {
+        state_management::PatchState::RequestedReview(remote, rr_branch_name, operation_diff_patch_id_string, operation_remote_diff_patch_id_string) => {
           let operation_diff_patch_id = git2::Oid::from_str(operation_diff_patch_id_string).map_err(PatchStatusError::PatchIdFromPatchIdStringFailed)?;
+          let operation_remote_diff_patch_id = git2::Oid::from_str(operation_remote_diff_patch_id_string).map_err(PatchStatusError::PatchIdFromPatchIdStringFailed)?;
           let local_patch_has_changed = commit_diff_patch_id != operation_diff_patch_id;
 
           match git::singular_commit_of_branch(repo, format!("{}/{}", remote, rr_branch_name).as_str(), git2::BranchType::Remote, patch_stack_base_oid) {
@@ -119,7 +121,7 @@ pub fn patch_status(patch_meta_data_option: Option<&state_management::Patch>, re
               let is_behind = commit_is_behind(&commit, patch_stack_base_oid).map_err(PatchStatusError::GetCommitIsBehindFailed)?;
 
               let remote_commit_diff_patch_id = git::commit_diff_patch_id(repo, &commit).map_err(PatchStatusError::GetCommitDiffPatchIdFailed)?;
-              let remote_patch_has_changed = remote_commit_diff_patch_id != operation_diff_patch_id; 
+              let remote_patch_has_changed = remote_commit_diff_patch_id != operation_remote_diff_patch_id;
               Ok(compute_request_reviewed_status(local_patch_has_changed, remote_patch_has_changed, Option::Some(is_behind)))
             },
             Err(git::SingularCommitOfBranchError::BranchDoesntHaveExactlyOneCommit(_, _)) => {
