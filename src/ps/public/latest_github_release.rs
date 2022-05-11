@@ -16,8 +16,7 @@ pub struct GitHubRelease {
 pub enum LatestGitHubReleaseError {
   CallFailed(ureq::Error),
   IntoStringFailed(std::io::Error),
-  DeserializeJsonFailed(serde_json::Error),
-  VersionFromFailed(String)
+  DeserializeJsonFailed(serde_json::Error)
 }
 
 pub fn latest_github_release(org: &str, repo: &str) -> Result<GitHubRelease, LatestGitHubReleaseError> {
