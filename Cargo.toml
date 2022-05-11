@@ -18,6 +18,7 @@ home-dir = "0.1.0"
 gpgme = "0.10.0"
 toml = "0.5.9"
 ansi_term = "0.12.1"
+ureq = "2.4.0"
 
 [dev-dependencies]
 tempfile = "3.2.0"
