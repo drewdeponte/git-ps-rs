@@ -20,3 +20,4 @@ pub use ps::public::status::status;
 pub use ps::public::add_changes_to_stage::add_changes_to_stage;
 pub use ps::public::log::log;
 pub use ps::public::unstage::unstage;
+pub use ps::public::latest_github_release::notify_of_newer_release;

@@ -12,4 +12,6 @@ pub fn list(color: bool) {
     Ok(_) => {},
     Err(e) => eprintln!("Error: {:?}", e)
   };
+
+  ps::notify_of_newer_release(color);
 }
