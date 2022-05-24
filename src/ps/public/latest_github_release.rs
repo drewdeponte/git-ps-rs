@@ -48,8 +48,8 @@ pub fn newer_release_available() -> Result<Option<GitHubRelease>, NewerReleaseAv
   }
 }
 
-pub fn notify_of_newer_release(color: bool) {
-  if let Ok(Some(latest_release)) = newer_release_available() {
+pub fn notify_of_newer_release(newer_release: Option<GitHubRelease>, color: bool) {
+  if let Some(latest_release) = newer_release {
     utils::print_warn(color, format!(
 r#"
   A new release of gps is available!
