@@ -1,5 +1,6 @@
 use std::result::Result;
 use std::time::Duration;
+use std::fmt;
 use ureq;
 use serde::Deserialize;
 use version_compare::Version;
@@ -19,6 +20,16 @@ pub enum LatestGitHubReleaseError {
   DeserializeJsonFailed(serde_json::Error)
 }
 
+impl fmt::Display for LatestGitHubReleaseError {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Self::CallFailed(e) => write!(f, "request failed - {}", e),
+      Self::IntoStringFailed(e) => write!(f, "failed to convert Response to a string - {}", e),
+      Self::DeserializeJsonFailed(e) => write!(f, "failed to deserialize JSON response - {}", e)
+    }
+  }
+}
+
 pub fn latest_github_release(org: &str, repo: &str) -> Result<GitHubRelease, LatestGitHubReleaseError> {
   let body: String = ureq::get(format!("https://api.github.com/repos/{}/{}/releases/latest", org, repo).as_str())
     .set("Accept", "application/vnd.github.v3+json")
@@ -35,6 +46,17 @@ pub enum NewerReleaseAvailableError {
   LatestGithubReleaseFailed(LatestGitHubReleaseError),
   ParseLatestVersionFailed,
   ParseCurrentVersionFailed
+}
+
+
+impl fmt::Display for NewerReleaseAvailableError {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Self::LatestGithubReleaseFailed(latest_github_release_error) => write!(f, "{}", latest_github_release_error),
+      Self::ParseLatestVersionFailed => write!(f, "failed to parse newer version from tag"),
+      Self::ParseCurrentVersionFailed => write!(f, "failed to parse current version from CAGO_PKG_VERSION")
+    }
+  }
 }
 
 pub fn newer_release_available() -> Result<Option<GitHubRelease>, NewerReleaseAvailableError> {
