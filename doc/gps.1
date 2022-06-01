@@ -1,90 +1,103 @@
-.TH man 1 "27 May 2022" GPS 1
+.TH "GPS\-ADD" "1" "2022-05-29" "Git Patch Stack Manual"
+
 .SH NAME
-gps \- the Git Patch Stack command line interface
+gps-add \- add file contents to the index
+
 .SH SYNOPSIS
-.B gps [COMMAND]
+\fBgps add\fR
+[\fB\-\-all\fR | \fB\-A\fR]
+[\fB\-\-edit\fR | \fB\-e\fR]
+[\fB\-\-patch\fR | \fB\-p\fR]
+[\fB\-\-interactive\fR | \fB\-i\fR]
+[\fB\-\-help\fR | \fB\-h\fR]
+[\fB\-\-version\fR | \fB\-V\fR]
+[\fIpathspec ...\fR]
+
 .SH DESCRIPTION
-.B gps
-finds the alternate file for the given PATH based on similarity ranking. For example, if you were in a Ruby project and ran
-.B alt
-.IR spec/app/queues/fee/user_fee_submission_spec.rb
-it would output
-.IR app/queues/fee/user_fee_submission.rb.
-In this case the alternate for the test file is the implementation file.
+This command updates the Git index using the content in the current tree
+referenced by the \fIpathspec ...\fR It is intended to be a simplified interface
+to facilitate this and to help provide a more complete abstraction over Git.
+
+This command doesn't have to be used. You are welcome to drop down to the
+lower level abstraction of Git and use the git-add command instead. Please see
+git-add(1) for details on using it.
+
 .SH OPTIONS
 .TP
-.BR \-v ", " \-\-version
-Output the version of \fBalt\fR
+\fIpathspec ...\fR
+Files to add content from\&. Fileglobs (e\&.g\&. \fB*\&.c\fR) can be given to
+add all matching files\&. Also a leading directory name (e\&.g\&. \fBdir\fR to
+add \fBdir/file1\fR and \fBdir/file2\fR) can be given to update the index to
+match the current state of the directory as a whole (e\&.g\&. specifying
+\fBdir\fR will record not just a file \fBdir/file1\fR modified in the working
+tree, a file \fBdir/file2\fR added to the working tree, but also a file
+\fBdir/file3\fR removed from the working tree)\&. Note that older versions of
+Git used to ignore removed files; use \fB\-\-no\-all\fR option if you want to
+add modified or new files but ignore removed ones.
+
+For more details about the \fIpathspec\fR syntax, see the \fIpathspec\fR entry
+in gitglossary(7).
+
 .TP
-.BR \-h ", " \-\-help
-Output the usage help
+\fB\-A\fR, \fB\-\-all\fR
+Update the index not only where the working tree has a file matching
+\fIpathspec\fR but also where the index already has an entry. This adds,
+modifies, and removes index entries to match the working tree.
+
+If no \fIpathspec\fR is given when \fB-A\fR option is used, all files in the
+entire working tree are updated (old versions of Git used to limit the update
+to the current directory and its subdirectories).
+
 .TP
-.BR \-a
-Include directory entries whose names begin with a dot
+\fB\-e\fR, \fB\-\-edit\fR
+Open the diff vs. the index in an editor and let the user edit it. After the
+editor was closed, adjust the hunk headers and apply the patch to the index.
+
+The intent of this option is to pick and choose lines of the patch to apply,
+or even to modify the contents of lines to be staged. This can be quicker and
+more flexible than using the interactive hunk selector. However, it is easy to
+confuse oneself and create a patch that does not apply to the index.
+
 .TP
-.BR "\fB\-f\fR \fIfile\fR, \fB\-\-file\fR \fIfile\fR"
-Read possible alternates from a \fIfile\fR rather than using the default
-directory walk technique built into \fBalt\fR. If \fIfile\fR is "-" it will read
-the possible alternates from \fIstdin\fR. The following is an example of using
-find, a very common command line utility, to produce a filtered set of paths and
-pass them to \fBalt\fR:
+\fB\-i\fR, \fB\-\-interactive\fR
+Add modified contents in the working tree interactively to the index.
+Optional path arguments may be supplied to limit operation to a subset of the
+working tree.
 
-    find . -path tags -prune -or -path ./log -prune -or -type f -print | alt -f - spec/lib/foo/api_spec.rb
+.TP
+\fB\-p\fR, \fB\-\-patch\fR
+Interactively choose hunks of patch between the index and the work tree and
+add them to the index. This gives the user a chance to review the difference
+before adding modified contents to the index.
 
-In the above example it excludes tags and log file paths from the possible
-alternate paths and passes the rest into \fBalt\fR. \fBNote:\fR This example is
-less performant than the built in directory walk technique and it's filtering.
-It is simply an example of how you can pass output from one command line tool to
-alt as input.
-.SH USE WITH VIM
-There's no vim plugin. It may not end up needing one; we'll see. For now, you
-can just stick the code below in your \fI.vimrc\fR to invoke \fBalt\fR with
-\fI<leader>\fR. Note that \fBalt\fR and the Vim Script example below work in
-both the terminal based Vim and GUI based Vim like MacVim.
+This effectively runs \fBadd \-\-interactive\fR, but bypasses the initial
+command menu and directly jumps to the \fBpatch\fR subcommand.
 
-    " Run a given vim command on the results of alt from a given path.
-    " See usage below.
-    function! AltCommand(path, vim_command)
-      let l:alternate = system("alt " . a:path)
-      if empty(l:alternate)
-        echo "No alternate file for " . a:path . " exists!"
-      else
-        exec a:vim_command . " " . l:alternate
-      endif
-    endfunction
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Display the help message for the \fBadd\fR command.
 
-    " Find the alternate file for the current path and open it
-    nnoremap <leader>. :w<cr>:call AltCommand(expand('%'), ':e')<cr>
+.TP
+\fB\-V\fR, \fB\-\-version\fR
+Display the version of the \fBgps\fR program.
 
-.SH IGNORING THINGS
-\fBalt\fR by default ignores hidden directory entries, globs defined in a
-\fB.ignore\fR file and globs defined in your project's \fB.gitignore\fR and your
-global \fB.gitignore\fR. It does this because in our experience that is
-generally the behavior you want. If however you want for example to be able to
-alternate between hidden files for some reason, you can always use the \-a
-option. If you want to have \fBalt\fR ignore some specific paths/files that you
-don't want Git to ignore. You can simply define them in the \fB.ignore\fR file
-at the root of your project.
+.SH EXAMPLES
+To see examples please see the EXAMPLES section of git-add(1) as the \fBgps
+add\fR command is a light weight proxy to the \fBgit-add\fR command.
 
-.SH AUTHOR
-Originally written by Andrew De Ponte <cyphactor@gmail.com>.
-.SH COPYRIGHT
-Copyright (c) 2016-2018 UpTech Works, LLC
+.SH INTERACTIVE MODE
+For details on interactive mode see the INTERACTIVE MODE section of git-add(1)
+as the \fBgps add\fR command is a light weight proxy to the \fBgit-add\fR
+command.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+.SH EDITING PATCHES
+For details on editing patches see the EDITING PATCH section of git-add(1)
+as the \fBgps add\fR command is a light weight proxy to the \fBgit-add\fR
+command.
 
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
+.SH SEE ALSO
+gps-status(1) gps-unstage(1) gps-create-patch(1) gps-list(1)
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
+.SH GIT PATCH STACK
+Part of the gps(1) suite
+
