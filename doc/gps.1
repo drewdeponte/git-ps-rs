@@ -1,0 +1,90 @@
+.TH man 1 "27 May 2022" GPS 1
+.SH NAME
+gps \- the Git Patch Stack command line interface
+.SH SYNOPSIS
+.B gps [COMMAND]
+.SH DESCRIPTION
+.B gps
+finds the alternate file for the given PATH based on similarity ranking. For example, if you were in a Ruby project and ran
+.B alt
+.IR spec/app/queues/fee/user_fee_submission_spec.rb
+it would output
+.IR app/queues/fee/user_fee_submission.rb.
+In this case the alternate for the test file is the implementation file.
+.SH OPTIONS
+.TP
+.BR \-v ", " \-\-version
+Output the version of \fBalt\fR
+.TP
+.BR \-h ", " \-\-help
+Output the usage help
+.TP
+.BR \-a
+Include directory entries whose names begin with a dot
+.TP
+.BR "\fB\-f\fR \fIfile\fR, \fB\-\-file\fR \fIfile\fR"
+Read possible alternates from a \fIfile\fR rather than using the default
+directory walk technique built into \fBalt\fR. If \fIfile\fR is "-" it will read
+the possible alternates from \fIstdin\fR. The following is an example of using
+find, a very common command line utility, to produce a filtered set of paths and
+pass them to \fBalt\fR:
+
+    find . -path tags -prune -or -path ./log -prune -or -type f -print | alt -f - spec/lib/foo/api_spec.rb
+
+In the above example it excludes tags and log file paths from the possible
+alternate paths and passes the rest into \fBalt\fR. \fBNote:\fR This example is
+less performant than the built in directory walk technique and it's filtering.
+It is simply an example of how you can pass output from one command line tool to
+alt as input.
+.SH USE WITH VIM
+There's no vim plugin. It may not end up needing one; we'll see. For now, you
+can just stick the code below in your \fI.vimrc\fR to invoke \fBalt\fR with
+\fI<leader>\fR. Note that \fBalt\fR and the Vim Script example below work in
+both the terminal based Vim and GUI based Vim like MacVim.
+
+    " Run a given vim command on the results of alt from a given path.
+    " See usage below.
+    function! AltCommand(path, vim_command)
+      let l:alternate = system("alt " . a:path)
+      if empty(l:alternate)
+        echo "No alternate file for " . a:path . " exists!"
+      else
+        exec a:vim_command . " " . l:alternate
+      endif
+    endfunction
+
+    " Find the alternate file for the current path and open it
+    nnoremap <leader>. :w<cr>:call AltCommand(expand('%'), ':e')<cr>
+
+.SH IGNORING THINGS
+\fBalt\fR by default ignores hidden directory entries, globs defined in a
+\fB.ignore\fR file and globs defined in your project's \fB.gitignore\fR and your
+global \fB.gitignore\fR. It does this because in our experience that is
+generally the behavior you want. If however you want for example to be able to
+alternate between hidden files for some reason, you can always use the \-a
+option. If you want to have \fBalt\fR ignore some specific paths/files that you
+don't want Git to ignore. You can simply define them in the \fB.ignore\fR file
+at the root of your project.
+
+.SH AUTHOR
+Originally written by Andrew De Ponte <cyphactor@gmail.com>.
+.SH COPYRIGHT
+Copyright (c) 2016-2018 UpTech Works, LLC
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
