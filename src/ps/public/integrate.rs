@@ -6,6 +6,7 @@ use super::super::private::config;
 use super::super::private::verify_isolation;
 use super::super::private::commit_is_behind;
 use super::super::public::show;
+use super::super::private::utils;
 use uuid::Uuid;
 
 #[derive(Debug)]
@@ -100,7 +101,18 @@ pub fn integrate(patch_index: usize, force: bool, keep_branch: bool, given_branc
     }
   } else {
     if config.integrate.prompt_for_reassurance {
-      show::show(patch_index).map_err(IntegrateError::ShowFailed)?;
+      match show::show(patch_index) {
+        Err(show::ShowError::ExitSignal(13)) => utils::print_warn(color,
+r#"
+  Warning: showing the patch exited with a SIGPIPE. This is likely because you
+  exited the pager (e.g. less) without going to the last page.
+
+  See https://github.com/uptech/git-ps-rs/issues/120 for details on why this
+  happens.
+"#),
+        Err(e) => return Err(IntegrateError::ShowFailed(e)),
+        Ok(_) => ()
+      }
       get_verification().map_err(IntegrateError::UserVerificationFailed)?;
     }
 
