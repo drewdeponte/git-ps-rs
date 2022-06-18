@@ -21,6 +21,9 @@ ansi_term = "0.12.1"
 ureq = "2.4.0"
 version-compare = "0.1.0"
 
+[patch.crates-io]
+home-dir = { git = 'https://github.com/uptech/home-dir', branch = 'upgrade-nix-dependency-to-latest' }
+
 [dev-dependencies]
 tempfile = "3.2.0"
 
