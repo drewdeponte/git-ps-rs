@@ -147,7 +147,7 @@ pub fn add_ps_id(repo: &git2::Repository, config: &git2::Config, commit_oid: git
   // cherry pick
   git::cherry_pick_no_working_copy_range(&repo, config, commit_oid, upstream_branch_oid, add_id_rework_branch_ref_name)?;
 
-  let message_amendment = format!("\nps-id: {}", ps_id.to_hyphenated().to_string());
+  let message_amendment = format!("\nps-id: {}", ps_id.hyphenated().to_string());
   let amended_patch_oid = git::cherry_pick_no_working_copy_amend_message(&repo, config, commit_oid, add_id_rework_branch_ref_name, message_amendment.as_str())?;
 
   if cur_branch_oid != commit_oid {
