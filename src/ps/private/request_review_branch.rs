@@ -115,7 +115,7 @@ pub fn request_review_branch(repo: &git2::Repository, patch_index: usize, given_
   let branch_ref_name = branch.get().name().ok_or(RequestReviewBranchError::RrBranchNameNotUtf8)?;
 
   // - cherry pick the patch onto new rr branch
-  git::cherry_pick_no_working_copy(repo, &config, new_patch_oid, branch_ref_name).map_err(RequestReviewBranchError::CherryPickFailed)?;
+  git::cherry_pick_no_working_copy(repo, &config, new_patch_oid, branch_ref_name, 0).map_err(RequestReviewBranchError::CherryPickFailed)?;
 
   // record patch state if there is no record
   if patch_meta_data.get(&ps_id).is_none() {

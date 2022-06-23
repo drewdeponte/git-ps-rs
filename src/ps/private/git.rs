@@ -127,7 +127,7 @@ pub fn cherry_pick_no_working_copy_range<'a>(repo: &'a git2::Repository, config:
       repo
         .find_commit(r)
         .map_err(|e| GitError::GitError(e))
-        .and_then(|commit| cherry_pick_no_working_copy(repo, config, commit.id(), dest_ref_name))?;
+        .and_then(|commit| cherry_pick_no_working_copy(repo, config, commit.id(), dest_ref_name, 0))?;
     }
   }
 
@@ -306,7 +306,15 @@ pub fn create_unsigned_commit(
   Ok(new_commit_oid)
 }
 
-pub fn cherry_pick_no_working_copy<'a>(repo: &'a git2::Repository, config: &'a git2::Config, oid: git2::Oid, dest_ref_name: &str) -> Result<git2::Oid, GitError> {
+/// Cherry pick the commit identified by the oid to the dest_ref_name with the
+/// given committer_time_offset. Note: The committer_time_offset is used to
+/// offset the Commiter's signature timestamp which is in seconds since epoch
+/// so that if we are performing multiple operations on the same commit within
+/// less than a second we can offset it in one direction or the other. The
+/// current use case for this is when we add patch stack id to a commit and
+/// then immediately cherry pick that commit into the ps/rr/whatever branch as
+/// part of the request_review_branch() operation.
+pub fn cherry_pick_no_working_copy<'a>(repo: &'a git2::Repository, config: &'a git2::Config, oid: git2::Oid, dest_ref_name: &str, committer_time_offset: i64) -> Result<git2::Oid, GitError> {
   // https://www.pygit2.org/recipes/git-cherry-pick.html#cherry-picking-a-commit-without-a-working-copy
   let commit = repo.find_commit(oid)?;
   let commit_tree = commit.tree()?;
@@ -330,10 +338,13 @@ pub fn cherry_pick_no_working_copy<'a>(repo: &'a git2::Repository, config: &'a g
 
   let author = commit.author();
   let committer = repo.signature().unwrap();
+
   let message = commit.message().unwrap();
 
-  // let new_commit_oid = repo.commit(Option::Some(destination_ref_name), &author, &committer, message, &tree, &[&destination_commit])?;
-  let new_commit_oid = create_commit(repo, config, dest_ref_name, &author, &committer, message, &tree, &[&destination_commit]).unwrap();
+  let new_time = git2::Time::new(committer.when().seconds() + committer_time_offset, committer.when().offset_minutes());
+  let new_committer = git2::Signature::new(committer.name().unwrap(), committer.email().unwrap(), &new_time).unwrap();
+
+  let new_commit_oid = create_commit(repo, config, dest_ref_name, &author, &new_committer, message, &tree, &[&destination_commit]).unwrap();
 
   Ok(new_commit_oid)
 }

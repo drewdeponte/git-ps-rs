@@ -43,7 +43,7 @@ pub fn branch(start_patch_index: usize, end_patch_index_option: Option<usize>, b
 
     // cherry-pick the series of patches into the new branch
     git::cherry_pick_no_working_copy_range(&repo, &config, end_patch_oid, start_patch_parent_oid, branch_ref_name).map_err(BranchError::CherryPickFailed)?;
-    git::cherry_pick_no_working_copy(&repo, &config, end_patch_oid, branch_ref_name).map_err(BranchError::CherryPickFailed)?;
+    git::cherry_pick_no_working_copy(&repo, &config, end_patch_oid, branch_ref_name, 0).map_err(BranchError::CherryPickFailed)?;
   } else {
     // find the patch in the patch stack
     let patches_vec = ps::get_patch_list(&repo, &patch_stack).map_err(BranchError::GetPatchListFailed)?;
@@ -54,7 +54,7 @@ pub fn branch(start_patch_index: usize, end_patch_index_option: Option<usize>, b
     let branch_ref_name = branch.get().name().ok_or(BranchError::BranchNameNotUtf8)?;
 
     // cherry-pick the single patch into the new branch
-    git::cherry_pick_no_working_copy(&repo, &config, patch_oid, branch_ref_name).map_err(BranchError::CherryPickFailed)?;
+    git::cherry_pick_no_working_copy(&repo, &config, patch_oid, branch_ref_name, 0).map_err(BranchError::CherryPickFailed)?;
   }
 
   Ok(())

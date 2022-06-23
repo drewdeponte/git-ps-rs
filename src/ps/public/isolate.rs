@@ -53,7 +53,7 @@ pub fn isolate(patch_index_optional: Option<usize>, color: bool) -> Result<(), I
       let branch_ref_name = branch.get().name().ok_or(IsolateError::BranchNameNotUtf8)?;
 
       // - cherry pick the patch onto new rr branch
-      git::cherry_pick_no_working_copy(&repo, &config, patch_oid, branch_ref_name).map_err(|_| IsolateError::CherryPickFailed)?;
+      git::cherry_pick_no_working_copy(&repo, &config, patch_oid, branch_ref_name, 0).map_err(|_| IsolateError::CherryPickFailed)?;
 
       // get currently checked out branch name
       let checked_out_branch = git::get_current_branch_shorthand(&repo).ok_or(IsolateError::GetCurrentBranchFailed)?;
