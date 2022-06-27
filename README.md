@@ -12,6 +12,7 @@ following.
 
 - [Official Git Patch Stack Website](https://git-ps.sh)
 - [Docs](https://book.git-ps.sh)
+- [Slack](https://join.slack.com/t/gitpatchstack/shared_invite/zt-1bubjt6wg-QrvG9aBGniyZ0aPH9BcB4g)
 
 ## Product
 
