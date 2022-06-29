@@ -79,7 +79,7 @@ pub fn branch_upstream_name(repo: &git2::Repository, branch_name: &str) -> Resul
 }
 
 /// Attempt to get revs given a repo, start Oid (excluded), and end Oid (included)
-pub fn get_revs<'a>(repo: &'a git2::Repository, start: git2::Oid, end: git2::Oid) -> Result<git2::Revwalk<'a>, GitError> {
+pub fn get_revs(repo: &git2::Repository, start: git2::Oid, end: git2::Oid) -> Result<git2::Revwalk, GitError> {
     let mut rev_walk = repo.revwalk()?;
     rev_walk.push(end)?;
     rev_walk.hide(start)?;
