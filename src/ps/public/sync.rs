@@ -53,7 +53,12 @@ pub fn sync(patch_index: usize, given_branch_name: Option<String>) -> Result<(St
       Some(patch_meta_data) => {
         match patch_meta_data.state {
           state_management::PatchState::Integrated(_, _, _) => patch_meta_data,
-          state_management::PatchState::RequestedReview(_, _, _, _) => patch_meta_data,
+          state_management::PatchState::RequestedReview(_, _, _, _) => {
+            state_management::Patch {
+              patch_id: ps_id,
+              state: state_management::PatchState::RequestedReview(remote_name.as_str().unwrap().to_string(), rr_branch_name_copy, patch_commit_diff_patch_id.to_string(), remote_commit_diff_patch_id.to_string())
+            }
+          },
           _ => {
             state_management::Patch {
               patch_id: ps_id,
