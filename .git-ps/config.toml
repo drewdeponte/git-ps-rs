@@ -4,3 +4,4 @@ verify_isolation = true
 [integrate]
 verify_isolation = true
 require_verification = true
+pull_after_integrate = true
