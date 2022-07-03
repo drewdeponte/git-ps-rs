@@ -5,6 +5,7 @@ use super::super::private::paths;
 use super::super::private::config;
 use super::super::private::verify_isolation;
 use super::super::private::commit_is_behind;
+use super::super::public::pull;
 use super::super::public::show;
 use super::super::private::utils;
 use uuid::Uuid;
@@ -50,7 +51,8 @@ pub enum IntegrateError {
   GetPatchStackFailed(ps::PatchStackError),
   GetPatchStackBaseTargetFailed,
   GetCommitIsBehindFailed(commit_is_behind::CommitIsBehindError),
-  PatchIsBehind
+  PatchIsBehind,
+  PullFailed(pull::PullError)
 }
 
 pub fn integrate(patch_index: usize, force: bool, keep_branch: bool, given_branch_name_option: Option<String>, color: bool) -> Result<(), IntegrateError> {
@@ -174,6 +176,10 @@ r#"
       local_branch.delete().map_err(IntegrateError::DeleteLocalBranchFailed)?;
       git::ext_delete_remote_branch(remote_name_str, &rr_branch_name).map_err(IntegrateError::DeleteRemoteBranchFailed)?;
     }
+  }
+
+  if config.integrate.pull_after_integrate {
+    pull::pull(color).map_err(IntegrateError::PullFailed)?;
   }
 
   Ok(())
