@@ -23,3 +23,4 @@ pub mod unstage;
 pub mod utils;
 pub mod upstream_patches;
 pub mod fetch;
+pub mod backup_stack;

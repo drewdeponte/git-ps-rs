@@ -1,0 +1,24 @@
+.TH "GPS\-BACKUP\-STACK" "1" "2022-07-07" "Git Patch Stack Manual"
+
+.SH NAME
+gps-backup-stack \- backup current patch stack
+
+.SH SYNOPSIS
+\fBgps backup-stack\fR
+\fIbranch-name\fR
+
+.SH DESCRIPTION
+This command backs up your current patch stack to a given
+\fIbranch-name\fR. It accomplishes this by force pushing the patch stack
+branch up to the given branch name on the stack's upstream remote.
+
+\fBWarning:\fR This does a force push so it will replace any reference that
+has the same name that you specify on the remote.
+
+.SH OPTIONS
+.TP
+\fIbranch-name\fR
+The branch name to back the patch stack up to.
+
+.SH GIT PATCH STACK
+Part of the gps(1) suite

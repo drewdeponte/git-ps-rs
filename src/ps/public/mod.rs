@@ -18,3 +18,4 @@ pub mod unstage;
 pub mod latest_github_release;
 pub mod upstream_patches;
 pub mod fetch;
+pub mod backup_stack;

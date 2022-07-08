@@ -29,3 +29,6 @@ tempfile = "3.3.0"
 
 [build-dependencies]
 structopt = "0.3.26"
+
+[features]
+backup_cmd = []

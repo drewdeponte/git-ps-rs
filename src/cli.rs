@@ -98,6 +98,11 @@ pub struct UnstageCmdOpts {
 }
 
 #[derive(Debug, StructOpt)]
+pub struct BackupStackCmdOpts {
+  pub branch_name: String
+}
+
+#[derive(Debug, StructOpt)]
 pub enum Command {
     /// Your bridge back to the world of normal git and git concepts.
     /// Basically a utility to help you create a normal git branch from a
@@ -251,7 +256,12 @@ remote with newly rebased patch.
 
     /// (f) - Fetch state from remote and display upstream patches
     #[structopt(name = "fetch", alias = "f")]
-    Fetch
+    Fetch,
+
+    /// (bs) backup your current patch stack to the given branch name
+    #[cfg(feature = "backup_cmd")]
+    #[structopt(name = "backup-stack", alias = "bs")]
+    BackupStack(BackupStackCmdOpts)
 }
 
 #[derive(Debug, StructOpt)]

@@ -23,3 +23,4 @@ pub use ps::public::unstage::unstage;
 pub use ps::public::latest_github_release::{notify_of_newer_release, newer_release_available};
 pub use ps::public::upstream_patches::upstream_patches;
 pub use ps::public::fetch::fetch;
+pub use ps::public::backup_stack::backup_stack;
