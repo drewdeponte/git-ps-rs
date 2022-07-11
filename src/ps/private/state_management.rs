@@ -146,3 +146,17 @@ pub fn fetch_patch_meta_data(repo: &git2::Repository, patch_id: &Uuid) -> Result
   let patch_meta_data = read_patch_states(patch_meta_data_path).map_err(|e| FetchPatchMetaDataError::FailedToReadMetaData(e))?;
   Ok(patch_meta_data.get(patch_id).cloned())
 }
+
+pub fn get_patch_reference_name(patch_id: Uuid) -> String {
+  format!("refs/gps-patch-metadata/{}", patch_id)
+}
+
+#[cfg(test)]
+mod tests {
+  #[test]
+  fn test_get_patch_reference_name() {
+    const ID: uuid::Uuid = uuid::uuid!("67e55044-10b1-426f-9247-bb680e5fe0c8");
+    let ref_name = super::get_patch_reference_name(ID);
+    assert_eq!(ref_name, "refs/gps-patch-metadata/67e55044-10b1-426f-9247-bb680e5fe0c8");
+  }
+}
