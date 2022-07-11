@@ -505,6 +505,15 @@ pub fn uncommitted_changes_exist(repo: &git2::Repository) -> Result<bool, Uncomm
   Ok(!statuses.is_empty())
 }
 
+#[derive(Debug)]
+pub enum HashObjectWriteError {
+  Failed(git2::Error)
+}
+
+pub fn hash_object_write(repo: &git2::Repository, content: &str) -> Result<git2::Oid, HashObjectWriteError> {
+  repo.blob(content.as_bytes()).map_err(HashObjectWriteError::Failed)
+}
+
 #[cfg(test)]
 mod tests {
   use tempfile::TempDir;
