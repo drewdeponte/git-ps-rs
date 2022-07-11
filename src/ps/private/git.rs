@@ -514,6 +514,19 @@ pub fn hash_object_write(repo: &git2::Repository, content: &str) -> Result<git2:
   repo.blob(content.as_bytes()).map_err(HashObjectWriteError::Failed)
 }
 
+#[derive(Debug)]
+pub enum ReadHashedObjectError {
+  NotValidUtf8(std::str::Utf8Error),
+  Failed(git2::Error)
+}
+
+pub fn read_hashed_object(repo: &git2::Repository, oid: git2::Oid) -> Result<String, ReadHashedObjectError> {
+  let blob = repo.find_blob(oid).map_err(ReadHashedObjectError::Failed)?;
+  let content = blob.content();
+  let str_ref = std::str::from_utf8(content).map_err(ReadHashedObjectError::NotValidUtf8)?;
+  Ok(str_ref.to_string())
+}
+
 #[cfg(test)]
 mod tests {
   use tempfile::TempDir;
@@ -595,4 +608,22 @@ mod tests {
         assert_eq!(summaries.first().unwrap(), "four, five, six, and seven");
         assert_eq!(summaries.last().unwrap(), "eight, nine, ten, and eleven");
     }
+
+  #[test]
+  fn test_hash_object_write() {
+    let (_td, repo) = repo_init();
+    let message = "Hello hash object write!";
+    let oid = super::hash_object_write(&repo, message).unwrap();
+    let blob = repo.find_blob(oid).unwrap();
+    assert_eq!(blob.content(), message.as_bytes());
+  }
+
+  #[test]
+  fn test_read_hashed_object() {
+    let (_td, repo) = repo_init();
+    let message = "Hello hash object write!";
+    let oid = super::hash_object_write(&repo, message).unwrap();
+    let retreived_message = super::read_hashed_object(&repo, oid).unwrap();
+    assert_eq!(retreived_message, message);
+  }
 }
