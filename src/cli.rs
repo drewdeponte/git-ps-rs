@@ -243,7 +243,11 @@ remote with newly rebased patch.
     Log,
 
     /// unstage currently staged changes
-    Unstage(UnstageCmdOpts)
+    Unstage(UnstageCmdOpts),
+
+    /// (up) - List the upstream patches
+    #[structopt(name = "upstream-patches", alias = "up")]
+    UpstreamPatches
 }
 
 #[derive(Debug, StructOpt)]
