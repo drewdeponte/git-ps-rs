@@ -79,11 +79,11 @@ pub fn branch_upstream_name(repo: &git2::Repository, branch_name: &str) -> Resul
 }
 
 /// Attempt to get revs given a repo, start Oid (excluded), and end Oid (included)
-pub fn get_revs(repo: &git2::Repository, start: git2::Oid, end: git2::Oid) -> Result<git2::Revwalk, GitError> {
+pub fn get_revs(repo: &git2::Repository, start: git2::Oid, end: git2::Oid, sort: git2::Sort) -> Result<git2::Revwalk, GitError> {
     let mut rev_walk = repo.revwalk()?;
     rev_walk.push(end)?;
     rev_walk.hide(start)?;
-    rev_walk.set_sorting(git2::Sort::REVERSE)?;
+    rev_walk.set_sorting(sort)?;
     Ok(rev_walk)
 }
 
@@ -482,7 +482,7 @@ pub fn singular_commit_of_branch<'a>(repo: &'a git2::Repository, branch_name: &s
   let branch_oid = repo.find_branch(branch_name, branch_type).map_err(SingularCommitOfBranchError::FindBranchFailed)?.get().target().ok_or(SingularCommitOfBranchError::BranchMissingTarget)?;
   let common_ancestor_oid = common_ancestor(repo, branch_oid, base_oid).map_err(SingularCommitOfBranchError::CommonAncestorFailed)?;
 
-  let revwalk = get_revs(repo, common_ancestor_oid, branch_oid).map_err(SingularCommitOfBranchError::GetRevWalkerFailed)?;
+  let revwalk = get_revs(repo, common_ancestor_oid, branch_oid, git2::Sort::REVERSE).map_err(SingularCommitOfBranchError::GetRevWalkerFailed)?;
   let num_of_commits = revwalk.count();
 
   if num_of_commits > 1 || num_of_commits == 0 && common_ancestor_oid != branch_oid {
@@ -530,7 +530,7 @@ pub fn read_hashed_object(repo: &git2::Repository, oid: git2::Oid) -> Result<Str
 #[cfg(test)]
 mod tests {
   use tempfile::TempDir;
-  use git2::{Repository, RepositoryInitOptions};
+  use git2::{Repository, RepositoryInitOptions, Sort};
 
   pub fn repo_init() -> (TempDir, Repository) {
       let td = TempDir::new().unwrap();
@@ -601,7 +601,7 @@ mod tests {
         let end_oid_included = create_commit(&repo, "fileC.txt", &[8, 9, 10, 11], "eight, nine, ten, and eleven");
         create_commit(&repo, "fileD.txt", &[12, 13, 14, 15], "twelve, thirteen, forteen, fifteen");
 
-        let rev_walk = super::get_revs(&repo, start_oid_excluded, end_oid_included).unwrap();
+        let rev_walk = super::get_revs(&repo, start_oid_excluded, end_oid_included, git2::Sort::REVERSE).unwrap();
         let summaries: Vec<String> = rev_walk.map(|oid| repo.find_commit(oid.unwrap()).unwrap().summary().unwrap().to_string()).collect();
         assert_eq!(summaries.len(), 2);
 
