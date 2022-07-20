@@ -218,7 +218,7 @@ pub enum GetVerificationError {
 
 fn get_verification() -> Result<(), GetVerificationError> {
   let mut answer = String::new();
-  println!("\n\nAre you sure you want to integrate this patch? (Yes/No)");
+  println!("\n\nAre you sure you want to integrate this patch? (y/N)");
   std::io::stdin().read_line(&mut answer).map_err(GetVerificationError::ReadLineFailed)?;
   let normalized_answer = answer.to_lowercase().trim().to_string();
   if normalized_answer == "yes" || normalized_answer == "y" {
