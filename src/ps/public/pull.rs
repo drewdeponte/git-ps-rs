@@ -3,6 +3,7 @@ use super::super::private::git;
 use super::super::private::paths;
 use super::super::private::config;
 use super::super::public::list;
+use super::super::public::fetch;
 
 #[derive(Debug)]
 pub enum PullError {
@@ -10,7 +11,7 @@ pub enum PullError {
   GetHeadBranchNameFailed,
   GetUpstreamBranchNameFailed,
   RebaseFailed(utils::ExecuteError),
-  FetchFailed(git::ExtFetchError),
+  FetchFailed(fetch::FetchError),
   GetRepoRootPathFailed(paths::PathsError),
   PathNotUtf8,
   GetConfigFailed(config::GetConfigError),
@@ -30,7 +31,7 @@ pub fn pull(color: bool) -> Result<(), PullError> {
 
   let upstream_branch_name = git::branch_upstream_name(&repo, head_branch_name).map_err(|_| PullError::GetUpstreamBranchNameFailed)?;
 
-  git::ext_fetch().map_err(PullError::FetchFailed)?;
+  fetch::fetch(color).map_err(PullError::FetchFailed)?;
 
   utils::execute("git", &["rebase", "--no-reapply-cherry-picks", "--onto", upstream_branch_name.as_str(), upstream_branch_name.as_str(), head_branch_shorthand]).map_err(PullError::RebaseFailed)?;
 
