@@ -22,3 +22,4 @@ pub mod log;
 pub mod unstage;
 pub mod utils;
 pub mod upstream_patches;
+pub mod fetch;

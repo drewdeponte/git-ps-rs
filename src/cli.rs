@@ -247,7 +247,11 @@ remote with newly rebased patch.
 
     /// (up) - List the upstream patches
     #[structopt(name = "upstream-patches", alias = "up")]
-    UpstreamPatches
+    UpstreamPatches,
+
+    /// (f) - Fetch state from remote and display upstream patches
+    #[structopt(name = "fetch", alias = "f")]
+    Fetch
 }
 
 #[derive(Debug, StructOpt)]

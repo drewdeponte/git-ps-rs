@@ -36,6 +36,7 @@ fn main() {
         cli::Command::Add(opts) => commands::add_changes_to_stage::add_changes_to_stage(opts.interactive, opts.patch, opts.edit, opts.all, opts.files),
         cli::Command::Log => commands::log::log(),
         cli::Command::Unstage(opts) => commands::unstage::unstage(opts.files),
-        cli::Command::UpstreamPatches => commands::upstream_patches::upstream_patches(opt.color)
+        cli::Command::UpstreamPatches => commands::upstream_patches::upstream_patches(opt.color),
+        cli::Command::Fetch => commands::fetch::fetch(opt.color)
     };
 }
