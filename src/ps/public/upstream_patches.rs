@@ -30,7 +30,11 @@ pub fn upstream_patches(color: bool) -> Result<(), UpstreamPatchesError> {
   let upstream_branch_ref = repo.find_reference(&upstream_branch_name).map_err(UpstreamPatchesError::FindUpstreamBranchReferenceFailed)?;
   let upstream_branch_oid = upstream_branch_ref.target().ok_or(UpstreamPatchesError::GetUpstreamBranchOidFailed)?;
 
-  let rev_walk = git::get_revs(&repo, head_oid, upstream_branch_oid, git2::Sort::TOPOLOGICAL).unwrap();
+  let mut rev_walk = git::get_revs(&repo, head_oid, upstream_branch_oid, git2::Sort::TOPOLOGICAL).unwrap().peekable();
+  println!();
+  if rev_walk.peek().is_none() { // empty
+    println!("None. You are already up to date!");
+  }
   rev_walk.for_each(|oid| {
     let sha = oid.unwrap();
     let patch_oid_str = format!("{:.6}", sha);
