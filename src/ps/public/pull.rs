@@ -3,7 +3,6 @@ use super::super::private::git;
 use super::super::private::paths;
 use super::super::private::config;
 use super::super::public::list;
-#[cfg(feature = "fetch_cmd")]
 use super::super::public::fetch;
 
 #[derive(Debug)]
@@ -12,9 +11,6 @@ pub enum PullError {
   GetHeadBranchNameFailed,
   GetUpstreamBranchNameFailed,
   RebaseFailed(utils::ExecuteError),
-  #[cfg(not(feature = "fetch_cmd"))]
-  ExtFetchFailed(git::ExtFetchError),
-  #[cfg(feature = "fetch_cmd")]
   FetchFailed(fetch::FetchError),
   GetRepoRootPathFailed(paths::PathsError),
   PathNotUtf8,
@@ -36,10 +32,7 @@ pub fn pull(color: bool) -> Result<(), PullError> {
   let upstream_branch_name = git::branch_upstream_name(&repo, head_branch_name).map_err(|_| PullError::GetUpstreamBranchNameFailed)?;
 
   println!("Fetching upstream patches...");
-  #[cfg(feature = "fetch_cmd")]
   fetch::fetch(color).map_err(PullError::FetchFailed)?;
-  #[cfg(not(feature = "fetch_cmd"))]
-  git::ext_fetch().map_err(PullError::ExtFetchFailed)?;
   println!();
 
   println!("Rebasing...");

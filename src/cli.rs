@@ -251,12 +251,10 @@ remote with newly rebased patch.
     Unstage(UnstageCmdOpts),
 
     /// (up) - List the upstream patches
-    #[cfg(feature = "upstream_patches_cmd")]
     #[structopt(name = "upstream-patches", alias = "up")]
     UpstreamPatches,
 
     /// (f) - Fetch state from remote and display upstream patches
-    #[cfg(feature = "fetch_cmd")]
     #[structopt(name = "fetch", alias = "f")]
     Fetch,
 

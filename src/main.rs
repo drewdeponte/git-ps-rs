@@ -36,9 +36,7 @@ fn main() {
         cli::Command::Add(opts) => commands::add_changes_to_stage::add_changes_to_stage(opts.interactive, opts.patch, opts.edit, opts.all, opts.files),
         cli::Command::Log => commands::log::log(),
         cli::Command::Unstage(opts) => commands::unstage::unstage(opts.files),
-        #[cfg(feature = "upstream_patches_cmd")]
         cli::Command::UpstreamPatches => commands::upstream_patches::upstream_patches(opt.color),
-        #[cfg(feature = "fetch_cmd")]
         cli::Command::Fetch => commands::fetch::fetch(opt.color),
         #[cfg(feature = "backup_cmd")]
         cli::Command::BackupStack(opts) => commands::backup_stack::backup_stack(opts.branch_name) 
