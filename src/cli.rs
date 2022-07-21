@@ -256,6 +256,7 @@ remote with newly rebased patch.
     UpstreamPatches,
 
     /// (f) - Fetch state from remote and display upstream patches
+    #[cfg(feature = "fetch_cmd")]
     #[structopt(name = "fetch", alias = "f")]
     Fetch,
 

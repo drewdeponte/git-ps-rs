@@ -38,6 +38,7 @@ fn main() {
         cli::Command::Unstage(opts) => commands::unstage::unstage(opts.files),
         #[cfg(feature = "upstream_patches_cmd")]
         cli::Command::UpstreamPatches => commands::upstream_patches::upstream_patches(opt.color),
+        #[cfg(feature = "fetch_cmd")]
         cli::Command::Fetch => commands::fetch::fetch(opt.color),
         #[cfg(feature = "backup_cmd")]
         cli::Command::BackupStack(opts) => commands::backup_stack::backup_stack(opts.branch_name) 
