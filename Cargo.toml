@@ -32,3 +32,4 @@ structopt = "0.3.26"
 
 [features]
 backup_cmd = []
+upstream_patches_cmd = []
