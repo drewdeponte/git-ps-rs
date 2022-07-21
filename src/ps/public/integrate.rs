@@ -69,10 +69,6 @@ pub fn integrate(patch_index: usize, force: bool, keep_branch: bool, given_branc
   let repo_root_str = repo_root_path.to_str().ok_or(IntegrateError::PathNotUtf8)?;
   let config = config::get_config(repo_root_str).map_err(IntegrateError::GetConfigFailed)?;
 
-  if config.integrate.verify_isolation {
-    verify_isolation::verify_isolation(patch_index, color).map_err(IntegrateError::IsolationVerificationFailed)?;
-  }
-
   if force {
     // fetch so we get new remote state
     git::ext_fetch().map_err(IntegrateError::FetchFailed)?;
@@ -87,9 +83,12 @@ pub fn integrate(patch_index: usize, force: bool, keep_branch: bool, given_branc
     let remote_name = repo.branch_remote_name(&branch_upstream_name).map_err(|_| IntegrateError::GetRemoteNameFailed)?;
     let remote_name_str = remote_name.as_str().ok_or(IntegrateError::ConvertStringToStrFailed)?;
 
+    if config.integrate.verify_isolation {
+      verify_isolation::verify_isolation(patch_index, color).map_err(IntegrateError::IsolationVerificationFailed)?;
+    }
+
     let pattern = format!("refs/remotes/{}/", remote_name_str);
     let upstream_branch_shorthand = str::replace(&branch_upstream_name, pattern.as_str(), "");
-
     // e.g. git push origin ps/rr/whatever-branch:main
     git::ext_push(false, remote_name_str, rr_branch_name, &upstream_branch_shorthand).map_err(IntegrateError::PushFailed)?;
 
@@ -156,6 +155,10 @@ r#"
     let is_behind = commit_is_behind::commit_is_behind(&rr_branch_commit, patch_stack_base_oid).map_err(IntegrateError::GetCommitIsBehindFailed)?;
     if is_behind {
       return Err(IntegrateError::PatchIsBehind)
+    }
+
+    if config.integrate.verify_isolation {
+      verify_isolation::verify_isolation(patch_index, color).map_err(IntegrateError::IsolationVerificationFailed)?;
     }
 
     // At this point we are pretty confident that things are properly in sync
