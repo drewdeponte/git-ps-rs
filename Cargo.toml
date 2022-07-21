@@ -34,3 +34,4 @@ structopt = "0.3.26"
 backup_cmd = []
 upstream_patches_cmd = []
 fetch_cmd = []
+dev = ["backup_cmd", "upstream_patches_cmd", "fetch_cmd"]
