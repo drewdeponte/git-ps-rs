@@ -35,14 +35,19 @@ pub fn pull(color: bool) -> Result<(), PullError> {
 
   let upstream_branch_name = git::branch_upstream_name(&repo, head_branch_name).map_err(|_| PullError::GetUpstreamBranchNameFailed)?;
 
+  println!("Fetching upstream patches...");
   #[cfg(feature = "fetch_cmd")]
   fetch::fetch(color).map_err(PullError::FetchFailed)?;
   #[cfg(not(feature = "fetch_cmd"))]
   git::ext_fetch().map_err(PullError::ExtFetchFailed)?;
+  println!();
 
+  println!("Rebasing...");
   utils::execute("git", &["rebase", "--no-reapply-cherry-picks", "--onto", upstream_branch_name.as_str(), upstream_branch_name.as_str(), head_branch_shorthand]).map_err(PullError::RebaseFailed)?;
+  println!();
 
   if config.pull.show_list_post_pull {
+    println!("Listing patch stack...");
     list::list(color).map_err(PullError::ListFailed)?
   }
 
