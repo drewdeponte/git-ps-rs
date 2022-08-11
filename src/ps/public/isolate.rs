@@ -122,6 +122,40 @@ r#"
       let mut isolate_branch = repo.find_branch(isolate_branch_name, git2::BranchType::Local).map_err(IsolateError::FindIsolateBranchFailed)?;
       isolate_branch.delete().map_err(IsolateError::DeleteIsolateBranchFailed)?;
 
+      let repo_root_path = paths::repo_root_path(&repo).map_err(IsolateError::GetRepoRootPathFailed)?;
+      let repo_root_str = repo_root_path.to_str().ok_or(IsolateError::PathNotUtf8)?;
+
+      match hooks::find_hook(repo_root_str, "isolate_post_cleanup") {
+        Ok(hook_path) => utils::execute(hook_path.to_str().ok_or(IsolateError::PathNotUtf8)?, &[]).map_err(IsolateError::HookExecutionFailed)?,
+        Err(hooks::FindHookError::NotFound) => {
+          utils::print_warn(color,
+r#"
+  The isolate_post_cleanup hook was not found! Skipping...
+
+  You can find more information and examples of this hook and others at
+  the following.
+
+  https://book.git-ps.sh/tool/hooks.html
+"#)
+        },
+        Err(hooks::FindHookError::NotExecutable(hook_path)) => {
+          let path_str = hook_path.to_str().unwrap_or("unknow path");
+          let msg = format!(
+r#"
+  The isolate_post_cleanup hook was found at
+
+    {}
+
+  but it is NOT executable. Due to this the hook is being skipped. Generally
+  this can be corrected with the following.
+
+    chmod u+x {}
+"#, path_str, path_str);
+          utils::print_warn(color, &msg);
+        },
+        Err(e) => return Err(IsolateError::HookNotFound(e))
+      }
+
       Ok(())
     }
   }
