@@ -88,7 +88,7 @@ r#"
   You can find more information and examples of this hook and others at
   the following.
 
-  https://github.com/uptech/git-ps-rs#hooks
+  https://book.git-ps.sh/tool/hooks.html
 "#)
         },
         Err(hooks::FindHookError::NotExecutable(hook_path)) => {
