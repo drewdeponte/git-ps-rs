@@ -1,5 +1,5 @@
 use std::os::unix::prelude::ExitStatusExt;
-use std::process::Command;
+use std::process::{Command, Output};
 use std::io;
 use std::result::Result;
 
@@ -35,4 +35,13 @@ pub fn execute(exe: &str, args: &[&str]) -> Result<(), ExecuteError> {
       }
     }
   }
+}
+
+#[derive(Debug)]
+pub enum ExecuteWithOutputError {
+  Failure(io::Error)
+}
+
+pub fn execute_with_output(exe: &str, args: &[&str]) -> Result<Output, ExecuteWithOutputError> {
+  Command::new(exe).args(args).output().map_err(ExecuteWithOutputError::Failure)
 }
