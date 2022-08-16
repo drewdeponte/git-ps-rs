@@ -5,7 +5,8 @@ use super::pull_config_dto::PullConfigDto;
 use super::request_review_config_dto::RequestReviewConfigDto;
 use super::integrate_config_dto::IntegrateConfigDto;
 use super::fetch_config_dto::FetchConfigDto;
-use super::ps_config::{PsConfig, PsPullConfig, PsRequestReviewConfig, PsIntegrateConfig, PsFetchConfig};
+use super::list_config_dto::ListConfigDto;
+use super::ps_config::{PsConfig, PsPullConfig, PsRequestReviewConfig, PsIntegrateConfig, PsFetchConfig, PsListConfig};
 use super::super::utils::*;
 
 #[derive(Debug)]
@@ -40,11 +41,13 @@ fn apply_config_defaults(config_dto: &ConfigDto) -> PsConfig {
   let default_pull_config = apply_pull_config_defaults(&PullConfigDto::default());
   let default_integrate_config = apply_integrate_config_defaults(&IntegrateConfigDto::default());
   let default_fetch_config = apply_fetch_config_defaults(&FetchConfigDto::default());
+  let default_list_config = apply_list_config_defaults(&ListConfigDto::default());
   PsConfig {
     request_review: config_dto.request_review.as_ref().map(apply_request_review_config_defaults).unwrap_or(default_rr_config),
     pull: config_dto.pull.as_ref().map(apply_pull_config_defaults).unwrap_or(default_pull_config),
     integrate: config_dto.integrate.as_ref().map(apply_integrate_config_defaults).unwrap_or(default_integrate_config),
-    fetch: config_dto.fetch.as_ref().map(apply_fetch_config_defaults).unwrap_or(default_fetch_config)
+    fetch: config_dto.fetch.as_ref().map(apply_fetch_config_defaults).unwrap_or(default_fetch_config),
+    list: config_dto.list.as_ref().map(apply_list_config_defaults).unwrap_or(default_list_config)
   }
 }
 
@@ -71,5 +74,12 @@ fn apply_integrate_config_defaults(integrate_config_dto: &IntegrateConfigDto) ->
 fn apply_fetch_config_defaults(fetch_config_dto: &FetchConfigDto) -> PsFetchConfig {
   PsFetchConfig {
     show_upstream_patches_after_fetch: fetch_config_dto.show_upstream_patches_after_fetch.unwrap_or(true)
+  }
+}
+
+fn apply_list_config_defaults(list_config_dto: &ListConfigDto) -> PsListConfig {
+  PsListConfig {
+    add_additional_info: list_config_dto.add_additional_info.unwrap_or(false),
+    additional_info_hook_output_length: list_config_dto.additional_info_hook_output_length.unwrap_or(10),
   }
 }
