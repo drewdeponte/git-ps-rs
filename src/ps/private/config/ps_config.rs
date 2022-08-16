@@ -3,7 +3,8 @@ pub struct PsConfig {
   pub request_review: PsRequestReviewConfig,
   pub pull: PsPullConfig,
   pub integrate: PsIntegrateConfig,
-  pub fetch: PsFetchConfig
+  pub fetch: PsFetchConfig,
+  pub list: PsListConfig
 }
 
 #[derive(Debug)]
@@ -26,4 +27,10 @@ pub struct PsIntegrateConfig {
 #[derive(Debug)]
 pub struct PsFetchConfig {
   pub show_upstream_patches_after_fetch: bool
+}
+
+#[derive(Debug)]
+pub struct PsListConfig {
+  pub add_extra_patch_info: bool,
+  pub extra_patch_info_length: usize
 }
