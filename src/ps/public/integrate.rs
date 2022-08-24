@@ -8,6 +8,7 @@ use super::super::private::commit_is_behind;
 use super::super::public::pull;
 use super::super::public::show;
 use super::super::private::utils;
+use super::super::private::hooks;
 use uuid::Uuid;
 
 #[derive(Debug)]
@@ -52,7 +53,9 @@ pub enum IntegrateError {
   GetPatchStackBaseTargetFailed,
   GetCommitIsBehindFailed(commit_is_behind::CommitIsBehindError),
   PatchIsBehind,
-  PullFailed(pull::PullError)
+  PullFailed(pull::PullError),
+  HookExecutionFailed(utils::ExecuteError),
+  HookNotFound(hooks::FindHookError)
 }
 
 pub fn integrate(patch_index: usize, force: bool, keep_branch: bool, given_branch_name_option: Option<String>, color: bool) -> Result<(), IntegrateError> {
@@ -94,6 +97,13 @@ pub fn integrate(patch_index: usize, force: bool, keep_branch: bool, given_branc
 
     // update state of the patch to indicate it has been integrated
     update_state(&repo, remote_name_str.to_string(), rr_branch_name.to_string(), patch_commit_diff_patch_id.to_string(), ps_id)?;
+
+    match hooks::find_hook(repo_root_str, "integrate_post_push") {
+      Ok(hook_path) => utils::execute(hook_path.to_str().ok_or(IntegrateError::PathNotUtf8)?, &[]).map_err(IntegrateError::HookExecutionFailed)?,
+      Err(hooks::FindHookError::NotFound) => integrate_post_push_hook_missing(color),
+      Err(hooks::FindHookError::NotExecutable(hook_path)) => integrate_post_push_hook_not_executable(color, hook_path.to_str().unwrap_or("unknow path")),
+      Err(e) => return Err(IntegrateError::HookNotFound(e))
+    }
     
     // clean up the local rr branch
     if !keep_branch {
@@ -173,6 +183,13 @@ r#"
     // integrated into upstream
     update_state(&repo, remote_name_str.to_string(), rr_branch_name.clone(), patch_commit_diff_patch_id.to_string(), ps_id)?;
 
+    match hooks::find_hook(repo_root_str, "integrate_post_push") {
+      Ok(hook_path) => utils::execute(hook_path.to_str().ok_or(IntegrateError::PathNotUtf8)?, &[]).map_err(IntegrateError::HookExecutionFailed)?,
+      Err(hooks::FindHookError::NotFound) => integrate_post_push_hook_missing(color),
+      Err(hooks::FindHookError::NotExecutable(hook_path)) => integrate_post_push_hook_not_executable(color, hook_path.to_str().unwrap_or("unknow path")),
+      Err(e) => return Err(IntegrateError::HookNotFound(e))
+    }
+
     // Cleanup the local and remote branches associated with this patch
     if !keep_branch {
       let mut local_branch = repo.find_branch(&rr_branch_name, git2::BranchType::Local).map_err(IntegrateError::DeleteLocalBranchFailed)?;
@@ -229,4 +246,31 @@ fn get_verification() -> Result<(), GetVerificationError> {
   } else {
     Err(GetVerificationError::UserRejected(normalized_answer))
   }
+}
+
+fn integrate_post_push_hook_missing(color: bool) {
+  utils::print_warn(color,
+r#"
+The integrate_post_push hook was not found, therefore skipping.
+
+You can find more information and examples of this hook and others at
+the following.
+
+https://book.git-ps.sh/tool/hooks.html
+"#);
+}
+
+fn integrate_post_push_hook_not_executable(color: bool, hook_path: &str) {
+  let msg = format!(
+r#"
+The integrate_post_push hook was found at
+
+  {}
+
+but it is NOT executable. Due to this the hook is being skipped. Generally
+this can be corrected with the following.
+
+  chmod u+x {}
+"#, hook_path, hook_path);
+  utils::print_warn(color, &msg);
 }
