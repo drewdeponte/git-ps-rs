@@ -61,9 +61,6 @@ pub enum IntegrateError {
 pub fn integrate(patch_index: usize, force: bool, keep_branch: bool, given_branch_name_option: Option<String>, color: bool) -> Result<(), IntegrateError> {
   let repo = git::create_cwd_repo().map_err(|_| IntegrateError::RepositoryNotFound)?;
 
-  let patch_stack = ps::get_patch_stack(&repo).map_err(IntegrateError::GetPatchStackFailed)?;
-  let patch_stack_base_oid = patch_stack.base.target().ok_or(IntegrateError::GetPatchStackBaseTargetFailed)?;
-
   // verify that the patch-index has a corresponding commit
   let patch_commit = ps::find_patch_commit(&repo, patch_index).map_err(IntegrateError::FindPatchCommitFailed)?;
   let patch_commit_diff_patch_id = git::commit_diff_patch_id(&repo, &patch_commit).map_err(IntegrateError::PatchCommitDiffPatchIdFailed)?;
@@ -138,6 +135,9 @@ r#"
 
     // fetch so we get new remote state
     git::ext_fetch().map_err(IntegrateError::FetchFailed)?;
+
+    let patch_stack = ps::get_patch_stack(&repo).map_err(IntegrateError::GetPatchStackFailed)?;
+    let patch_stack_base_oid = patch_stack.base.target().ok_or(IntegrateError::GetPatchStackBaseTargetFailed)?;
 
     // TODO: verify that the patch has been requested-review
 
