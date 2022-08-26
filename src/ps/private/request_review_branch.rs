@@ -74,7 +74,7 @@ impl fmt::Display for RequestReviewBranchError {
 }
 
 
-pub fn request_review_branch(repo: &git2::Repository, patch_index: usize, given_branch_name_option: Option<String>) -> Result<(git2::Branch<'_>, Uuid), RequestReviewBranchError>  {
+pub fn request_review_branch(repo: &git2::Repository, patch_index: usize, given_branch_name_option: Option<String>) -> Result<(git2::Branch<'_>, Uuid, git2::Oid), RequestReviewBranchError>  {
   let config = git2::Config::open_default().map_err(RequestReviewBranchError::OpenGitConfigFailed)?;
 
   // - find the patch identified by the patch_index
@@ -117,7 +117,7 @@ pub fn request_review_branch(repo: &git2::Repository, patch_index: usize, given_
   // cherry pick the patch onto new rr branch with commiter timestamp offset
   // 1 second into the future so that it doesn't overlap with the
   // add_ps_id()'s cherry pick committer timestamp
-  git::cherry_pick_no_working_copy(repo, &config, new_patch_oid, branch_ref_name, 1).map_err(RequestReviewBranchError::CherryPickFailed)?;
+  let new_commit_oid = git::cherry_pick_no_working_copy(repo, &config, new_patch_oid, branch_ref_name, 1).map_err(RequestReviewBranchError::CherryPickFailed)?;
 
   // record patch state if there is no record
   if patch_meta_data.get(&ps_id).is_none() {
@@ -129,5 +129,5 @@ pub fn request_review_branch(repo: &git2::Repository, patch_index: usize, given_
     state_management::write_patch_states(&patch_meta_data_path, &patch_meta_data).map_err(RequestReviewBranchError::WritePatchMetaDataFailed)?;
   }
 
-  Ok((branch, ps_id))
+  Ok((branch, ps_id, new_commit_oid))
 }

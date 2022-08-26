@@ -33,7 +33,7 @@ pub fn sync(patch_index: usize, given_branch_name: Option<String>) -> Result<(St
   let remote_name = repo.branch_remote_name(&branch_upstream_name).map_err(|_| SyncError::GetRemoteBranchNameFailed)?;
 
   // create request review branch for patch
-  let (branch, ps_id) = ps::private::request_review_branch::request_review_branch(&repo, patch_index, given_branch_name).map_err(SyncError::CreateRrBranchFailed)?;
+  let (branch, ps_id, _new_commit_oid) = ps::private::request_review_branch::request_review_branch(&repo, patch_index, given_branch_name).map_err(SyncError::CreateRrBranchFailed)?;
 
   let branch_ref_name = branch.get().shorthand().ok_or(SyncError::RequestReviewBranchNameMissing)?;
   let rr_branch_name = branch_ref_name.to_string();

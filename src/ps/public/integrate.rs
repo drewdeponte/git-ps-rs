@@ -76,7 +76,7 @@ pub fn integrate(patch_index: usize, force: bool, keep_branch: bool, given_branc
     // fetch so we get new remote state
     git::ext_fetch().map_err(IntegrateError::FetchFailed)?;
 
-    let (branch, ps_id) = ps::private::request_review_branch::request_review_branch(&repo, patch_index, given_branch_name_option).map_err(IntegrateError::BranchOperationFailed)?;
+    let (branch, ps_id, new_commit_oid) = ps::private::request_review_branch::request_review_branch(&repo, patch_index, given_branch_name_option).map_err(IntegrateError::BranchOperationFailed)?;
 
     // publish the patch from the local rr branch up to uptstream
     let rr_branch_name = branch.name().map_err(IntegrateError::GetBranchNameFailed)?.ok_or(IntegrateError::CreatedBranchMissingName)?;
@@ -99,7 +99,7 @@ pub fn integrate(patch_index: usize, force: bool, keep_branch: bool, given_branc
     update_state(&repo, remote_name_str.to_string(), rr_branch_name.to_string(), patch_commit_diff_patch_id.to_string(), ps_id)?;
 
     match hooks::find_hook(repo_root_str, "integrate_post_push") {
-      Ok(hook_path) => utils::execute(hook_path.to_str().ok_or(IntegrateError::PathNotUtf8)?, &[]).map_err(IntegrateError::HookExecutionFailed)?,
+      Ok(hook_path) => utils::execute(hook_path.to_str().ok_or(IntegrateError::PathNotUtf8)?, &[&format!("{}", new_commit_oid)]).map_err(IntegrateError::HookExecutionFailed)?,
       Err(hooks::FindHookError::NotFound) => integrate_post_push_hook_missing(color),
       Err(hooks::FindHookError::NotExecutable(hook_path)) => integrate_post_push_hook_not_executable(color, hook_path.to_str().unwrap_or("unknow path")),
       Err(e) => return Err(IntegrateError::HookNotFound(e))
@@ -183,8 +183,10 @@ r#"
     // integrated into upstream
     update_state(&repo, remote_name_str.to_string(), rr_branch_name.clone(), patch_commit_diff_patch_id.to_string(), ps_id)?;
 
+    let rr_branch_commit_oid = rr_branch_commit.id();
+
     match hooks::find_hook(repo_root_str, "integrate_post_push") {
-      Ok(hook_path) => utils::execute(hook_path.to_str().ok_or(IntegrateError::PathNotUtf8)?, &[]).map_err(IntegrateError::HookExecutionFailed)?,
+      Ok(hook_path) => utils::execute(hook_path.to_str().ok_or(IntegrateError::PathNotUtf8)?, &[&format!("{}", rr_branch_commit_oid)]).map_err(IntegrateError::HookExecutionFailed)?,
       Err(hooks::FindHookError::NotFound) => integrate_post_push_hook_missing(color),
       Err(hooks::FindHookError::NotExecutable(hook_path)) => integrate_post_push_hook_not_executable(color, hook_path.to_str().unwrap_or("unknow path")),
       Err(e) => return Err(IntegrateError::HookNotFound(e))
