@@ -7,3 +7,4 @@ pub use execute::{execute, execute_with_output, ExecuteError, ExecuteWithOutputE
 pub use mergable::Mergable;
 pub use mergable::merge_option;
 pub use print_warn::print_warn;
+pub use string_manipulation::{set_string_width, strip_newlines};
