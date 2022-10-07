@@ -22,7 +22,7 @@ pub fn read_config_dto(path: &path::Path) -> Result<Option<ConfigDto>, ReadConfi
 
   match content_result_option {
     Ok(content_option) => match content_option {
-      Some(content) => toml::from_str(&content).map_err(ReadConfigError::DeserializeFailed).map(|c| Some(c)),
+      Some(content) => toml::from_str(&content).map_err(ReadConfigError::DeserializeFailed).map(Some),
       None => Ok(None)
     },
     Err(e) => Err(e)
