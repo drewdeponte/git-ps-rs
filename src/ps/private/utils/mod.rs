@@ -5,4 +5,5 @@ mod string_manipulation;
 
 pub use execute::{execute, ExecuteError};
 pub use mergable::Mergable;
+pub use mergable::merge_option;
 pub use print_warn::print_warn;
