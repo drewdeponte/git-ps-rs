@@ -1,5 +1,5 @@
-use std::path::{Path, PathBuf};
-use super::paths::{PathExistsAndIsExecutable, path_exists_and_is_executable};
+use std::{path::{Path, PathBuf}, str::Utf8Error};
+use super::{paths::{PathExistsAndIsExecutable, path_exists_and_is_executable, self}, utils};
 use home_dir::{self, HomeDirExt};
 
 #[derive(Debug)]
@@ -29,4 +29,25 @@ pub fn find_hook(repo_root: &str, filename: &str) -> Result<PathBuf, FindHookErr
       }
     }
   }
+}
+
+#[derive(Debug)]
+pub enum HookOutputError {
+  GetRepoRootPathFailed(paths::PathsError),
+  PathNotUtf8,
+  HookExecutionFailed(utils::ExecuteWithOutputError),
+  HookNotFound(FindHookError),
+  HookOutputInvalid(Utf8Error),
+}
+
+pub fn get_hook_output(repo: &git2::Repository, hook_name: &str, patch_args: &[&str]) -> Result<String, HookOutputError> {
+  let repo_root_path = paths::repo_root_path(&repo).map_err(HookOutputError::GetRepoRootPathFailed)?;
+  let repo_root_str = repo_root_path.to_str().ok_or(HookOutputError::PathNotUtf8)?;
+
+  let hook_output = match find_hook(repo_root_str, hook_name) {
+    Ok(hook_path) => utils::execute_with_output(hook_path.to_str().ok_or(HookOutputError::PathNotUtf8)?, patch_args).map_err(HookOutputError::HookExecutionFailed)?,
+    Err(e) => return Err(HookOutputError::HookNotFound(e))
+  };
+
+  return String::from_utf8(hook_output.stdout).or_else(|e| Err(HookOutputError::HookOutputInvalid(e.utf8_error())));
 }
