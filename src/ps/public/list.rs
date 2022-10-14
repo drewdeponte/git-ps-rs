@@ -1,3 +1,4 @@
+use crate::ps::private::config;
 use crate::ps::private::list;
 
 use super::super::private::git;
@@ -6,7 +7,7 @@ use uuid::Uuid;
 use serde::{Serialize, Deserialize};
 use super::super::private::state_management;
 use super::super::private::paths;
-use ansi_term::Colour::{Green, Yellow, Cyan};
+use ansi_term::Colour::{Green, Yellow, Cyan, Blue};
 use super::super::private::patch_status;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -28,7 +29,11 @@ pub enum ListError {
   CommitMissing,
   GetCommitDiffPatchIdFailed(git::CommitDiffPatchIdError),
   PatchStatusFailed(patch_status::PatchStatusError),
-  GetPatchStackBaseTargetFailed
+  GetPatchStackBaseTargetFailed,
+  GetRepoRootPathFailed(paths::PathsError),
+  PathNotUtf8,
+  GetConfigFailed(config::GetConfigError),
+  GetHookOutputError(list::ListHookError),
 }
 
 pub fn list(color: bool) -> Result<(), ListError> {
@@ -41,6 +46,10 @@ pub fn list(color: bool) -> Result<(), ListError> {
     let patch_meta_data = state_management::read_patch_states(patch_meta_data_path).map_err(ListError::ReadPatchStatesFailed)?;
 
     let patch_stack_base_oid = patch_stack.base.target().ok_or(ListError::GetPatchStackBaseTargetFailed)?;
+
+    let repo_root_path = paths::repo_root_path(&repo).map_err(ListError::GetRepoRootPathFailed)?;
+    let repo_root_str = repo_root_path.to_str().ok_or(ListError::PathNotUtf8)?;
+    let config = config::get_config(repo_root_str).map_err(ListError::GetConfigFailed)?;
 
     for patch in list_of_patches.into_iter().rev() {
         let mut row = list::ListRow::new(color);
@@ -55,7 +64,14 @@ pub fn list(color: bool) -> Result<(), ListError> {
         let patch_status_string = patch_status_to_string(patch_status);
         
         row.add_cell(Some(4), Some(Green), patch.index);
-        row.add_cell(Some(6), Some(Cyan), patch_status_string);
+        row.add_cell(Some(6), Some(Cyan), &patch_status_string);
+
+        if config.list.add_extra_patch_info {
+          let hook_stdout = list::execute_list_additional_info_hook(repo_root_str, &[&patch.index.to_string(), &patch_status_string, &patch.oid.to_string(), &patch.summary]).map_err(ListError::GetHookOutputError)?;
+          let hook_stdout_len = config.list.extra_patch_info_length;
+          row.add_cell(Some(hook_stdout_len), Some(Blue), hook_stdout);
+        }
+
         row.add_cell(Some(6), Some(Yellow), patch.oid);
         row.add_cell(None, None, patch.summary);
         
