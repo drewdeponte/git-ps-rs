@@ -1,7 +1,7 @@
-use std::fmt;
+use std::{fmt, str::Utf8Error};
 use ansi_term::ANSIGenericString;
 
-use super::utils;
+use super::{utils, hooks};
 
 #[derive(Debug, PartialEq)]
 struct ListCell {
@@ -57,6 +57,17 @@ impl fmt::Display for ListRow {
     }
     write!(f, "{}", row_str)
   }
+}
+
+#[derive(Debug)]
+pub enum ListHookError {
+  GetHookOutputError(hooks::HookOutputError),
+  HookOutputInvalid(Utf8Error),
+}
+
+pub fn execute_hook_with_stdout(repo_root_str: &str, args: &[&str]) -> Result<String, ListHookError> {
+  let hook_output = hooks::find_and_execute_hook_with_output(&repo_root_str, "list_additional_information", args).map_err(ListHookError::GetHookOutputError)?;
+  return String::from_utf8(hook_output.stdout).map_err(|e| ListHookError::HookOutputInvalid(e.utf8_error()));
 }
 
 #[cfg(test)]
