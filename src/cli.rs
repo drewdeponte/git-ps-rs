@@ -92,6 +92,13 @@ pub struct RebaseCmdOpts {
 }
 
 #[derive(Debug, StructOpt)]
+pub struct AmendPatchOpts {
+  /// pass `--no-edit` to git commit
+  #[structopt(long = "no-edit")]
+  pub no_edit: bool
+}
+
+#[derive(Debug, StructOpt)]
 pub struct UnstageCmdOpts {
   /// specific files to unstage changes for, leave blank for all staged files
   pub files: Vec<String>
@@ -235,7 +242,7 @@ remote with newly rebased patch.
     CreatePatch,
     /// (a) - amend the top most patch with the currently staged changes
     #[structopt(name = "amend-patch", alias = "a")]
-    AmendPatch,
+    AmendPatch(AmendPatchOpts),
 
     /// (s) - get the status of local changes & staged changes
     #[structopt(name = "status", alias = "s")]

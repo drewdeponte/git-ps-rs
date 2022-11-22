@@ -6,7 +6,12 @@ pub enum AmendPatchError {
   CommitFailed(utils::ExecuteError)
 }
 
-pub fn amend_patch() -> Result<(), AmendPatchError>  {
-  utils::execute("git", &["commit", "-v", "--amend"]).map_err(AmendPatchError::CommitFailed)?;
+pub fn amend_patch(no_edit: bool) -> Result<(), AmendPatchError>  {
+  let args = if no_edit {
+    vec!["commit", "--amend", "--no-edit"]
+  } else {
+    vec!["commit", "--amend"]
+  };
+  utils::execute("git", &args).map_err(AmendPatchError::CommitFailed)?;
   Ok(())
 }
