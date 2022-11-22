@@ -10,6 +10,7 @@ pub use ps::public::branch::branch;
 pub use ps::public::list::list;
 pub use ps::public::rebase::rebase;
 pub use ps::public::request_review::{request_review, RequestReviewError};
+pub use ps::public::batch_request_review::{batch_request_review, BatchRequestReviewError};
 pub use ps::public::show::show;
 pub use ps::public::integrate;
 pub use ps::public::checkout::checkout;

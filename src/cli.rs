@@ -9,6 +9,11 @@ pub struct RequestReview {
 }
 
 #[derive(Debug, StructOpt)]
+pub struct BatchRequestReview {
+  pub patch_index:  Vec<usize>
+}
+
+#[derive(Debug, StructOpt)]
 pub struct BranchCmdOpts {
   /// index of patch to cherry-pick to branch or starting index of patch
   /// series to cherry-pick to the branch
@@ -203,6 +208,9 @@ remote with newly rebased patch.
     /// (rr) - Request review of the specified patch
     #[structopt(name = "request-review", alias = "rr")]
     RequestReview(RequestReview),
+    /// (brr) - Request review of a batch of patches
+    #[structopt(name = "batch-request-review", alias = "brr")]
+    BatchRequestReview(BatchRequestReview),
     /// Show the identified patch in raw form
     #[structopt(name = "show")]
     Show(ShowCmdOpts),
