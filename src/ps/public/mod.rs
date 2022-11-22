@@ -7,6 +7,7 @@ pub mod list;
 pub mod pull;
 pub mod rebase;
 pub mod request_review;
+pub mod batch_request_review;
 pub mod show;
 pub mod sync;
 pub mod create_patch;
