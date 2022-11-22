@@ -32,5 +32,6 @@ pub struct PsFetchConfig {
 #[derive(Debug)]
 pub struct PsListConfig {
   pub add_extra_patch_info: bool,
-  pub extra_patch_info_length: usize
+  pub extra_patch_info_length: usize,
+  pub reverse_order: bool
 }

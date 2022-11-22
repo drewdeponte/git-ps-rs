@@ -8,6 +8,7 @@ use super::super::private::state_management;
 use super::super::private::paths;
 use ansi_term::Colour::{Green, Yellow, Cyan};
 use super::super::private::patch_status;
+use super::super::private::config;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct RequestReviewRecord {
@@ -28,11 +29,18 @@ pub enum ListError {
   CommitMissing,
   GetCommitDiffPatchIdFailed(git::CommitDiffPatchIdError),
   PatchStatusFailed(patch_status::PatchStatusError),
-  GetPatchStackBaseTargetFailed
+  GetPatchStackBaseTargetFailed,
+  GetRepoRootPathFailed(paths::PathsError),
+  PathNotUtf8,
+  GetConfigFailed(config::GetConfigError),
 }
 
 pub fn list(color: bool) -> Result<(), ListError> {
     let repo = git::create_cwd_repo().map_err(|_| ListError::RepositoryNotFound)?;
+
+    let repo_root_path = paths::repo_root_path(&repo).map_err(ListError::GetRepoRootPathFailed)?;
+    let repo_root_str = repo_root_path.to_str().ok_or(ListError::PathNotUtf8)?;
+    let config = config::get_config(repo_root_str).map_err(ListError::GetConfigFailed)?;
 
     let patch_stack = ps::get_patch_stack(&repo).map_err(ListError::GetPatchStackFailed)?;
     let list_of_patches = ps::get_patch_list(&repo, &patch_stack).map_err(ListError::GetPatchListFailed)?;
@@ -42,7 +50,13 @@ pub fn list(color: bool) -> Result<(), ListError> {
 
     let patch_stack_base_oid = patch_stack.base.target().ok_or(ListError::GetPatchStackBaseTargetFailed)?;
 
-    for patch in list_of_patches.into_iter().rev() {
+    let list_of_patches_iter: Box<dyn Iterator<Item=_>> = if config.list.reverse_order {
+      Box::new(list_of_patches.into_iter())
+    } else {
+      Box::new(list_of_patches.into_iter().rev())
+    };
+
+    for patch in list_of_patches_iter {
         let mut row = list::ListRow::new(color);
         let commit = repo.find_commit(patch.oid).map_err(|_| ListError::CommitMissing)?;
         let patch_state = match ps::commit_ps_id(&commit) {
