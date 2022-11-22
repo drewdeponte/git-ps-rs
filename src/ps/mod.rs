@@ -147,7 +147,7 @@ pub fn add_ps_id(repo: &git2::Repository, config: &git2::Config, commit_oid: git
   // cherry pick
   git::cherry_pick_no_working_copy_range(&repo, config, commit_oid, upstream_branch_oid, add_id_rework_branch_ref_name)?;
 
-  let message_amendment = format!("\nps-id: {}", ps_id.hyphenated().to_string());
+  let message_amendment = format!("\n<!-- ps-id: {} -->", ps_id.hyphenated().to_string());
   let amended_patch_oid = git::cherry_pick_no_working_copy_amend_message(&repo, config, commit_oid, add_id_rework_branch_ref_name, message_amendment.as_str())?;
 
   if cur_branch_oid != commit_oid {
@@ -203,7 +203,7 @@ mod tests {
 
   #[test]
   fn test_extract_ps_id_with_ps_id() {
-    let msg = "Some summary\n\nSome paragraph\nSome more lines of the paragraph\n      ps-id: 2dce2a21-72b9-487a-b641-4a0b157b76e8\n some other stuff";
+    let msg = "Some summary\n\nSome paragraph\nSome more lines of the paragraph\n <!-- ps-id: 2dce2a21-72b9-487a-b641-4a0b157b76e8 -->\n some other stuff";
     let opt = super::extract_ps_id(&msg);
     assert!(opt.is_some());
     assert_eq!(opt.unwrap(), Uuid::from_str("2dce2a21-72b9-487a-b641-4a0b157b76e8").unwrap());
