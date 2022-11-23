@@ -1,0 +1,6 @@
+(cram
+ (deps %{bin:gps}))
+
+(env
+ (_
+  (binaries (%{project_root}/target/debug/gps as gps))))
