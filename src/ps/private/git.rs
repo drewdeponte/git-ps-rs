@@ -192,7 +192,7 @@ pub fn create_commit(
     let gpg_format_option = config_get_string(config, "gpg.format")
       .map_err(CreateCommitError::GetGpgFormatFailed)?;
     let sign_with_gpg = match gpg_format_option {
-      Some(v) => (v == "openpgp"),
+      Some(v) => v == "openpgp",
       None => true
     };
 
