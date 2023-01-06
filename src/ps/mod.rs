@@ -106,7 +106,8 @@ pub enum AddPsIdError {
   FailedToGetReferenceName,
   TargetNotFound,
   ReferenceNameMissing,
-  CommitMessageMissing
+  CommitMessageMissing,
+  FailedToFindCommonAncestor(git::CommonAncestorError)
 }
 
 impl From<git2::Error> for AddPsIdError {
@@ -138,10 +139,13 @@ pub fn add_ps_id(repo: &git2::Repository, config: &git2::Config, commit_oid: git
   let upstream_branch_ref_name = git::branch_upstream_name(&repo, &branch_ref_name)?;
   let upstream_branch_obj = repo.revparse_single(&upstream_branch_ref_name)?;
   let upstream_branch_oid = upstream_branch_obj.id();
-  let upstream_branch_commit = repo.find_commit(upstream_branch_oid)?;
+
+  // find the commmon ancestor
+  let common_ancestor_oid = git::common_ancestor(repo, cur_branch_oid, upstream_branch_oid).map_err(AddPsIdError::FailedToFindCommonAncestor)?;
+  let common_anccestor_commit = repo.find_commit(common_ancestor_oid)?;
 
   // create branch
-  let add_id_rework_branch = repo.branch("ps/tmp/add_id_rework", &upstream_branch_commit, true)?;
+  let add_id_rework_branch = repo.branch("ps/tmp/add_id_rework", &common_anccestor_commit, true)?;
   let add_id_rework_branch_ref_name = add_id_rework_branch.get().name().ok_or(AddPsIdError::FailedToGetReferenceName)?;
 
   // cherry pick
