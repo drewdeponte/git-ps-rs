@@ -1,0 +1,29 @@
+#!/bin/sh
+
+# list_additional_information hook using GitHub CLI (https://cli.github.com)
+
+# Simple example usage which adds some info from the PR on github to each patch.
+
+# First, you need to make sure that you have the GitHub CLI
+# installed, in your PATH, and have logged into it for this hook to work.
+#
+# Setup
+#
+# - install github cli - on macOS - brew install gh
+# - login to github cli - gh auth login
+
+# Outcome is in the format of "<first letter of PR state> <number of comments> <if approved then MONEY!>"
+# So an example output of gps ls might be:
+# 2    rr                234cc3 This patch has no PR
+# 1    rr    O 1         31d593 This patch is open with one comment
+# 0    rr    M 2 $       52c50c This patch has an approved and merged PR with 2 comments
+
+patch_index=$1 # integer, git-ps index of the current patch
+patch_status=$2 # git-ps status of the patch. b / rr / int / rr+ ↓ etc.
+patch_oid=$3 #
+patch_summary=$4 # the first line of the commit message
+
+str=$(gh pr list --search "$4 in:title" --limit 1 --json state,comments,reviews --template \
+	'{{range .}}{{printf "%.1s" .state}} {{len .comments}} {{range .reviews}}{{if eq .state "APPROVED"}}${{end}}{{end}}{{end}}')
+
+echo $str
