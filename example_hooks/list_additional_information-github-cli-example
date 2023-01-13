@@ -1,0 +1,8 @@
+#!/bin/sh
+
+patch_index=$1 # integer, git-ps index of the current patch
+patch_status=$2 # git-ps status of the patch. b / rr / int / rr+ ↓ etc.
+patch_oid=$3 # commit SHA
+patch_summary=$4 # the first line of the commit message
+
+echo $3
