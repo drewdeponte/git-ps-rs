@@ -1,0 +1,44 @@
+#!/bin/sh
+
+# list_additional_information hook with Ticket Number
+
+# Finds matching ticket numbers from the commit message based on
+# a supplied regex pattern and adds the matches to the extra information column
+
+# Note: This hooks requires you to enable `add_extra_patch_info = true` in your config.toml
+# Read more here:
+# book.git-ps.sh/tool/configuration.html
+# book.git-ps.sh/tool/hooks.html
+
+# Another reccomendation is to set the `extra_patch_info_length`
+# In our case a ticket is 6-7 characters long, if there are two tickets in a commit message
+# then the extra patch info will be 15 characters long.
+# Additional matches can be found, but will be truncated.
+
+# config.toml example:
+# [list]
+# add_extra_patch_info = true
+# extra_patch_info_length = 15
+
+patch_index=$1 # integer, git-ps index of the current patch
+patch_status=$2 # git-ps status of the patch. b / rr / int / rr+ ↓ etc.
+SHA=$3 # SHA of the commit
+patch_summary=$4 # the first line of the commit message
+
+# Match on ticket numbers in the format of "FI-1234" "FI-###"
+PATTERN="FI-[0-9]*"
+JOINER=" "
+
+# 1. Get the commit message
+# 2. Find all matches for the pattern
+# 3. Join the matches together using the JOINER
+OUTPUT=$(git log -1 --pretty=%B $SHA | grep -o $PATTERN | paste -sd "$JOINER" -)
+
+# Return the extra information to git-ps for gps ls
+echo $OUTPUT
+
+# Example Output of `gps ls`
+#
+# 1          FI-1599 FI-1606 def345 Commit Message 2
+# 0          FI-1599 FI-1644 abc123 Commit Message 1
+# > 
