@@ -11,6 +11,9 @@ use gps as ps;
 pub fn upstream_patches(color: bool) {
   match ps::upstream_patches(color) {
     Ok(_) => {},
-    Err(e) => eprintln!("Error: {:?}", e)
+    Err(e) => {
+      eprintln!("Error: {:?}", e);
+      std::process::exit(1);
+    }
   };
 }
