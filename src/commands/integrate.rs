@@ -13,8 +13,12 @@ r#"
   sync'd or requested review of this patch.
 
   To get caught up just sync or request-review the patch again.
-"#)
+"#);
+      std::process::exit(1);
     }
-    Err(e) => print_err(color, format!("\nError: {:?}\n", e).as_str())
+    Err(e) => {
+      print_err(color, format!("\nError: {:?}\n", e).as_str());
+      std::process::exit(1);
+    }
   }
 }

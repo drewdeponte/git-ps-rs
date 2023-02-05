@@ -6,7 +6,10 @@ pub fn pull(color: bool) {
 
   match ps::pull(color) {
     Ok(_) => {},
-    Err(e) => eprintln!("Error: {:?}", e)
+    Err(e) => {
+      eprintln!("Error: {:?}", e);
+      std::process::exit(1);
+    }
   };
 
   if let Ok(newer_release) = check_release_thread.join().expect("Check release thread panicked!") {

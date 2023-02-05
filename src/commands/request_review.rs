@@ -54,7 +54,11 @@ r#"
     chmod u+x {}
 "#, path_str, path_str);
       print_err(color, &msg);
+      std::process::exit(1);
     },
-    Err(e) => print_err(color, format!("\nError: {}\n", e).as_str())
+    Err(e) => {
+      print_err(color, format!("\nError: {}\n", e).as_str());
+      std::process::exit(1);
+    }
   };
 }

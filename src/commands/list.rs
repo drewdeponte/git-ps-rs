@@ -10,6 +10,9 @@ use gps as ps;
 pub fn list(color: bool) {
   match ps::list(color) {
     Ok(_) => {},
-    Err(e) => eprintln!("Error: {:?}", e)
+    Err(e) => {
+      eprintln!("Error: {:?}", e);
+      std::process::exit(1);
+    }
   };
 }
