@@ -510,6 +510,7 @@ pub enum HashObjectWriteError {
   Failed(git2::Error)
 }
 
+#[allow(dead_code)]
 pub fn hash_object_write(repo: &git2::Repository, content: &str) -> Result<git2::Oid, HashObjectWriteError> {
   repo.blob(content.as_bytes()).map_err(HashObjectWriteError::Failed)
 }
@@ -520,6 +521,7 @@ pub enum ReadHashedObjectError {
   Failed(git2::Error)
 }
 
+#[allow(dead_code)]
 pub fn read_hashed_object(repo: &git2::Repository, oid: git2::Oid) -> Result<String, ReadHashedObjectError> {
   let blob = repo.find_blob(oid).map_err(ReadHashedObjectError::Failed)?;
   let content = blob.content();
@@ -530,7 +532,7 @@ pub fn read_hashed_object(repo: &git2::Repository, oid: git2::Oid) -> Result<Str
 #[cfg(test)]
 mod tests {
   use tempfile::TempDir;
-  use git2::{Repository, RepositoryInitOptions, Sort};
+  use git2::{Repository, RepositoryInitOptions};
 
   pub fn repo_init() -> (TempDir, Repository) {
       let td = TempDir::new().unwrap();

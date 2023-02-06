@@ -1,4 +1,4 @@
-use std::{path::{Path, PathBuf}, process::Output};
+use std::{path::{PathBuf}, process::Output};
 use super::{paths::{PathExistsAndIsExecutable, path_exists_and_is_executable, self}, utils};
 use home_dir::{self, HomeDirExt};
 

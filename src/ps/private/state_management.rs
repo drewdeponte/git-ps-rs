@@ -147,6 +147,7 @@ pub fn fetch_patch_meta_data(repo: &git2::Repository, patch_id: &Uuid) -> Result
   Ok(patch_meta_data.get(patch_id).cloned())
 }
 
+#[allow(dead_code)]
 pub fn get_patch_reference_name(patch_id: Uuid) -> String {
   format!("refs/gps-patch-metadata/{}", patch_id)
 }
