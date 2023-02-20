@@ -57,7 +57,7 @@ pub fn branch(
 
         // create a branch on the base of the current patch stack
         let branch = repo
-            .branch(branch_name.as_str(), &patch_stack_base_commit, false)
+            .branch(branch_name.as_str(), &patch_stack_base_commit, true)
             .map_err(BranchError::CreateBranchFailed)?;
         let branch_ref_name = branch.get().name().ok_or(BranchError::BranchNameNotUtf8)?;
 
@@ -83,7 +83,7 @@ pub fn branch(
 
         // create a branch on the base of the current patch stack
         let branch = repo
-            .branch(branch_name.as_str(), &patch_stack_base_commit, false)
+            .branch(branch_name.as_str(), &patch_stack_base_commit, true)
             .map_err(BranchError::CreateBranchFailed)?;
         let branch_ref_name = branch.get().name().ok_or(BranchError::BranchNameNotUtf8)?;
 
