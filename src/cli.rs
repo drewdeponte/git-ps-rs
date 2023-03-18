@@ -22,7 +22,7 @@ pub struct BranchCmdOpts {
   pub end_patch_index: Option<usize>,
   /// Use the provided branch name instead of generating one
   #[structopt(short = "n")]
-  pub branch_name: String
+  pub branch_name: Option<String>
 }
 
 #[derive(Debug, StructOpt)]
