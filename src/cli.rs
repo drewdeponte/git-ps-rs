@@ -22,7 +22,10 @@ pub struct BranchCmdOpts {
   pub end_patch_index: Option<usize>,
   /// Use the provided branch name instead of generating one
   #[structopt(short = "n")]
-  pub branch_name: Option<String>
+  pub branch_name: Option<String>,
+  /// Create the remote branch of the same name
+  #[structopt(short = "r")]
+  pub create_remote: bool
 }
 
 #[derive(Debug, StructOpt)]

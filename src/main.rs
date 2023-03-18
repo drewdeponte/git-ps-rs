@@ -19,7 +19,7 @@ fn main() {
     let opt = cli::ApplicationArguments::from_args();
 
     match opt.command {
-        cli::Command::Branch(opts) => commands::branch::branch(opts.start_patch_index, opts.end_patch_index, opts.branch_name),
+        cli::Command::Branch(opts) => commands::branch::branch(opts.start_patch_index, opts.end_patch_index, opts.branch_name, opts.create_remote),
         cli::Command::RequestReviewBranch(opts) => commands::request_review_branch::request_review_branch(opts.patch_index, opts.branch_name),
         cli::Command::Integrate(opts) => commands::integrate::integrate(opts.patch_index, opts.force, opts.keep_branch, opts.branch_name, opt.color),
         cli::Command::List => commands::list::list(opt.color),
