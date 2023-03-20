@@ -131,14 +131,14 @@ pub fn extract_ps_id(message: &str) -> Option<Uuid> {
 }
 
 pub fn slugify(summary: &str) -> String {
-    return summary
+    summary
         .replace(|c: char| !c.is_alphanumeric(), "_")
-        .to_lowercase();
+        .to_lowercase()
 }
 
 pub fn generate_rr_branch_name(summary: &str) -> String {
     let slug = slugify(summary);
-    return format!("ps/rr/{}", slug);
+    format!("ps/rr/{}", slug)
 }
 
 #[derive(Debug)]
