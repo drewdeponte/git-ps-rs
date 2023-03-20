@@ -18,12 +18,17 @@ pub enum BranchError {
     OpenGitConfigFailed(git2::Error),
     PatchCommitNotFound(git2::Error),
     PatchSummaryMissing,
+    CurrentBranchNameMissing,
+    GetUpstreamBranchNameFailed,
+    GetRemoteBranchNameFailed,
+    PushFailed(git::ExtForcePushError),
 }
 
 pub fn branch(
     start_patch_index: usize,
     end_patch_index_option: Option<usize>,
     given_branch_name_option: Option<String>,
+    create_remote_branch: bool,
 ) -> Result<(), BranchError> {
     let repo = git::create_cwd_repo().map_err(BranchError::OpenRepositoryFailed)?;
     let config = git2::Config::open_default().map_err(BranchError::OpenGitConfigFailed)?;
@@ -81,6 +86,26 @@ pub fn branch(
         .map_err(BranchError::CherryPickFailed)?;
         git::cherry_pick_no_working_copy(&repo, &config, end_patch_oid, branch_ref_name, 0)
             .map_err(BranchError::CherryPickFailed)?;
+
+        // push branch up to remote branch
+        if create_remote_branch {
+            // get remote name of current branch (e.g. origin)
+            let cur_branch_name =
+                git::get_current_branch(&repo).ok_or(BranchError::CurrentBranchNameMissing)?;
+            let branch_upstream_name = git::branch_upstream_name(&repo, cur_branch_name.as_str())
+                .map_err(|_| BranchError::GetUpstreamBranchNameFailed)?;
+            let remote_name = repo
+                .branch_remote_name(&branch_upstream_name)
+                .map_err(|_| BranchError::GetRemoteBranchNameFailed)?;
+
+            git::ext_push(
+                true,
+                remote_name.as_str().unwrap(),
+                branch_ref_name,
+                branch_ref_name,
+            )
+            .map_err(BranchError::PushFailed)?;
+        }
     } else {
         // find the patch in the patch stack
         let patches_vec =
@@ -109,6 +134,26 @@ pub fn branch(
         // cherry-pick the single patch into the new branch
         git::cherry_pick_no_working_copy(&repo, &config, patch_oid, branch_ref_name, 0)
             .map_err(BranchError::CherryPickFailed)?;
+
+        // push branch up to remote branch
+        if create_remote_branch {
+            // get remote name of current branch (e.g. origin)
+            let cur_branch_name =
+                git::get_current_branch(&repo).ok_or(BranchError::CurrentBranchNameMissing)?;
+            let branch_upstream_name = git::branch_upstream_name(&repo, cur_branch_name.as_str())
+                .map_err(|_| BranchError::GetUpstreamBranchNameFailed)?;
+            let remote_name = repo
+                .branch_remote_name(&branch_upstream_name)
+                .map_err(|_| BranchError::GetRemoteBranchNameFailed)?;
+
+            git::ext_push(
+                true,
+                remote_name.as_str().unwrap(),
+                branch_ref_name,
+                branch_ref_name,
+            )
+            .map_err(BranchError::PushFailed)?;
+        }
     }
 
     Ok(())

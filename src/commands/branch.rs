@@ -6,8 +6,14 @@ pub fn branch(
     start_patch_index: usize,
     end_patch_index_option: Option<usize>,
     branch_name: Option<String>,
+    create_remote_branch: bool,
 ) {
-    match ps::branch(start_patch_index, end_patch_index_option, branch_name) {
+    match ps::branch(
+        start_patch_index,
+        end_patch_index_option,
+        branch_name,
+        create_remote_branch,
+    ) {
         Ok(_) => {}
         Err(e) => {
             eprintln!("Error: {:?}", e);

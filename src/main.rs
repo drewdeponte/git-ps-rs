@@ -23,6 +23,7 @@ fn main() {
             opts.start_patch_index,
             opts.end_patch_index,
             opts.branch_name,
+            opts.create_remote_branch,
         ),
         cli::Command::RequestReviewBranch(opts) => {
             commands::request_review_branch::request_review_branch(
