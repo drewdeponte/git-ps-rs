@@ -16,12 +16,14 @@ pub enum BranchError {
     GetCommitParentZeroFailed(git2::Error),
     CherryPickFailed(git::GitError),
     OpenGitConfigFailed(git2::Error),
+    PatchCommitNotFound(git2::Error),
+    PatchSummaryMissing,
 }
 
 pub fn branch(
     start_patch_index: usize,
     end_patch_index_option: Option<usize>,
-    branch_name: String,
+    given_branch_name_option: Option<String>,
 ) -> Result<(), BranchError> {
     let repo = git::create_cwd_repo().map_err(BranchError::OpenRepositoryFailed)?;
     let config = git2::Config::open_default().map_err(BranchError::OpenGitConfigFailed)?;
@@ -55,6 +57,13 @@ pub fn branch(
             .map_err(BranchError::GetCommitParentZeroFailed)?;
         let start_patch_parent_oid = start_patch_parent_commit.id();
 
+        // generate the default branch name and use provided branch name or fallback
+        let patch_summary = start_patch_commit
+            .summary()
+            .ok_or(BranchError::PatchSummaryMissing)?;
+        let default_branch_name = ps::generate_branch_branch_name(patch_summary);
+        let branch_name = given_branch_name_option.unwrap_or(default_branch_name);
+
         // create a branch on the base of the current patch stack
         let branch = repo
             .branch(branch_name.as_str(), &patch_stack_base_commit, true)
@@ -80,6 +89,16 @@ pub fn branch(
             .get(start_patch_index)
             .ok_or(BranchError::PatchIndexNotFound)?
             .oid;
+
+        // generate the default branch name and use provided branch name or fallback
+        let patch_commit = repo
+            .find_commit(patch_oid)
+            .map_err(BranchError::PatchCommitNotFound)?;
+        let patch_summary = patch_commit
+            .summary()
+            .ok_or(BranchError::PatchSummaryMissing)?;
+        let default_branch_name = ps::generate_branch_branch_name(patch_summary);
+        let branch_name = given_branch_name_option.unwrap_or(default_branch_name);
 
         // create a branch on the base of the current patch stack
         let branch = repo
