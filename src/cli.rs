@@ -2,116 +2,116 @@ use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
 pub struct RequestReview {
-  pub patch_index: usize,
-  /// Use the provided branch name instead of generating one
-  #[structopt(short = "n")]
-  pub branch_name: Option<String>
+    pub patch_index: usize,
+    /// Use the provided branch name instead of generating one
+    #[structopt(short = "n")]
+    pub branch_name: Option<String>,
 }
 
 #[derive(Debug, StructOpt)]
 pub struct BatchRequestReview {
-  pub patch_index:  Vec<usize>
+    pub patch_index: Vec<usize>,
 }
 
 #[derive(Debug, StructOpt)]
 pub struct BranchCmdOpts {
-  /// index of patch to cherry-pick to branch or starting index of patch
-  /// series to cherry-pick to the branch
-  pub start_patch_index: usize,
-  /// ending patch index of the patch series to cherry-pick to the branch
-  pub end_patch_index: Option<usize>,
-  /// Use the provided branch name instead of generating one
-  #[structopt(short = "n")]
-  pub branch_name: String
+    /// index of patch to cherry-pick to branch or starting index of patch
+    /// series to cherry-pick to the branch
+    pub start_patch_index: usize,
+    /// ending patch index of the patch series to cherry-pick to the branch
+    pub end_patch_index: Option<usize>,
+    /// Use the provided branch name instead of generating one
+    #[structopt(short = "n")]
+    pub branch_name: String,
 }
 
 #[derive(Debug, StructOpt)]
 pub struct RequestReviewBranchCmdOpts {
-  pub patch_index: usize,
-  /// Use the provided branch name instead of generating one
-  #[structopt(short = "n")]
-  pub branch_name: Option<String>
+    pub patch_index: usize,
+    /// Use the provided branch name instead of generating one
+    #[structopt(short = "n")]
+    pub branch_name: Option<String>,
 }
 
 #[derive(Debug, StructOpt)]
 pub struct IntegrateCmdOpts {
-  pub patch_index: usize,
-  /// Use the provided branch name instead of generating one
-  #[structopt(short = "n")]
-  pub branch_name: Option<String>,
-  /// Keep request-review branches around (a.k.a. don't clean up request
-  /// review branches)
-  #[structopt(short = "k", long = "keep-branch")]
-  pub keep_branch: bool,
-  /// Skip safety checks and publish
-  #[structopt(short = "f", long = "force")]
-  pub force: bool
+    pub patch_index: usize,
+    /// Use the provided branch name instead of generating one
+    #[structopt(short = "n")]
+    pub branch_name: Option<String>,
+    /// Keep request-review branches around (a.k.a. don't clean up request
+    /// review branches)
+    #[structopt(short = "k", long = "keep-branch")]
+    pub keep_branch: bool,
+    /// Skip safety checks and publish
+    #[structopt(short = "f", long = "force")]
+    pub force: bool,
 }
 
 #[derive(Debug, StructOpt)]
 pub struct ShowCmdOpts {
-  pub patch_index: usize
+    pub patch_index: usize,
 }
 
 #[derive(Debug, StructOpt)]
 pub struct SyncCmdOpts {
-  pub patch_index: usize,
-  /// Use the provided branch name instead of generating one
-  #[structopt(short = "n")]
-  pub branch_name: Option<String>
+    pub patch_index: usize,
+    /// Use the provided branch name instead of generating one
+    #[structopt(short = "n")]
+    pub branch_name: Option<String>,
 }
 
 #[derive(Debug, StructOpt)]
 pub struct IsolateCmdOpts {
-  pub patch_index: Option<usize>
+    pub patch_index: Option<usize>,
 }
 
 #[derive(Debug, StructOpt)]
 pub struct CheckoutCmdOpts {
-  pub patch_index: usize
+    pub patch_index: usize,
 }
 
 #[derive(Debug, StructOpt)]
 pub struct AddCmdOpts {
-  /// interactive picking
-  #[structopt(short = "i", long = "interactive")]
-  pub interactive: bool,
-  /// select hunks interactively
-  #[structopt(short = "p", long = "patch")]
-  pub patch: bool,
-  /// edit current diff and apply
-  #[structopt(short = "e", long = "edit")]
-  pub edit: bool,
-  /// add changes from all tracked and untracked files
-  #[structopt(short = "A", long = "all")]
-  pub all: bool,
-  /// specific files to add changes from, . for all files
-  pub files: Vec<String>
+    /// interactive picking
+    #[structopt(short = "i", long = "interactive")]
+    pub interactive: bool,
+    /// select hunks interactively
+    #[structopt(short = "p", long = "patch")]
+    pub patch: bool,
+    /// edit current diff and apply
+    #[structopt(short = "e", long = "edit")]
+    pub edit: bool,
+    /// add changes from all tracked and untracked files
+    #[structopt(short = "A", long = "all")]
+    pub all: bool,
+    /// specific files to add changes from, . for all files
+    pub files: Vec<String>,
 }
 
 #[derive(Debug, StructOpt)]
 pub struct RebaseCmdOpts {
-  /// continue a rebase that was paused
-  #[structopt(long = "continue")]
-  pub r#continue: bool
+    /// continue a rebase that was paused
+    #[structopt(long = "continue")]
+    pub r#continue: bool,
 }
 
 #[derive(Debug, StructOpt)]
 pub struct AmendPatchOpts {
-  /// pass `--no-edit` to git commit
-  #[structopt(long = "no-edit")]
-  pub no_edit: bool
+    /// pass `--no-edit` to git commit
+    #[structopt(long = "no-edit")]
+    pub no_edit: bool,
 }
 
 #[derive(Debug, StructOpt)]
 pub struct UnstageCmdOpts {
-  /// specific files to unstage changes for, leave blank for all staged files
-  pub files: Vec<String>
+    /// specific files to unstage changes for, leave blank for all staged files
+    pub files: Vec<String>,
 }
 
 #[derive(Debug, StructOpt)]
 pub struct BackupStackCmdOpts {
-  pub branch_name: String
+    pub branch_name: String,
 }
 
 #[derive(Debug, StructOpt)]
@@ -134,7 +134,10 @@ pub enum Command {
     Integrate(IntegrateCmdOpts),
 
     /// (ls) - List the stack of patches and their associated state info
-    #[structopt(name = "list", alias = "ls", long_about=r"
+    #[structopt(
+        name = "list",
+        alias = "ls",
+        long_about = r"
 (ls) - List the stack of patches and their associated state info
 
 The `list` command lists out your stack of patches in a format that exposes
@@ -190,7 +193,8 @@ as someone integrated changes into it. This can be addressed by doing a `gps
 pull` to make sure that your local stack is up to date and integrates
 everything from upstream and then doing a `gps sync` or `gps rr` to update the
 remote with newly rebased patch.
-")]
+"
+    )]
     List,
 
     /// Interactively rebase your stack of patches
@@ -276,16 +280,16 @@ remote with newly rebased patch.
     /// (bs) backup your current patch stack to the given branch name
     #[cfg(feature = "backup_cmd")]
     #[structopt(name = "backup-stack", alias = "bs")]
-    BackupStack(BackupStackCmdOpts)
+    BackupStack(BackupStackCmdOpts),
 }
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "gps")]
 pub struct ApplicationArguments {
-  /// disable color output
-  #[structopt(long = "no-color", parse(from_flag = std::ops::Not::not))]
-  pub color: bool,
+    /// disable color output
+    #[structopt(long = "no-color", parse(from_flag = std::ops::Not::not))]
+    pub color: bool,
 
-  #[structopt(subcommand)]
-  pub command: Command
+    #[structopt(subcommand)]
+    pub command: Command,
 }

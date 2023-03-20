@@ -5,15 +5,15 @@
 // be strongly considered if they fit better in one of the other modules
 // inside of the `ps` module.
 
-use gps as ps;
 use super::utils::print_err;
+use gps as ps;
 
 pub fn request_review(patch_index: usize, branch_name: Option<String>, color: bool) {
-match ps::request_review(patch_index, branch_name, color) {
-    Ok(_) => {},
-    Err(ps::RequestReviewError::PostSyncHookNotFound) => {
-      print_err(color,
-r#"
+    match ps::request_review(patch_index, branch_name, color) {
+        Ok(_) => {}
+        Err(ps::RequestReviewError::PostSyncHookNotFound) => print_err(
+            color,
+            r#"
   The request_review_post_sync hook was not found!
 
   This hook is required to be installed and configured for the
@@ -37,12 +37,12 @@ r#"
   the following.
 
   https://github.com/uptech/git-ps-rs#hooks
-"#)
-    },
-    Err(ps::RequestReviewError::PostSyncHookNotExecutable(path)) => {
-      let path_str = path.to_str().unwrap_or("unknow path");
-      let msg = format!(
-r#"
+"#,
+        ),
+        Err(ps::RequestReviewError::PostSyncHookNotExecutable(path)) => {
+            let path_str = path.to_str().unwrap_or("unknow path");
+            let msg = format!(
+                r#"
   The request_review_post_sync hook was found at
 
     {}
@@ -52,13 +52,15 @@ r#"
   following.
 
     chmod u+x {}
-"#, path_str, path_str);
-      print_err(color, &msg);
-      std::process::exit(1);
-    },
-    Err(e) => {
-      print_err(color, format!("\nError: {}\n", e).as_str());
-      std::process::exit(1);
-    }
-  };
+"#,
+                path_str, path_str
+            );
+            print_err(color, &msg);
+            std::process::exit(1);
+        }
+        Err(e) => {
+            print_err(color, format!("\nError: {}\n", e).as_str());
+            std::process::exit(1);
+        }
+    };
 }

@@ -12,21 +12,40 @@
 
 use structopt::StructOpt;
 
-mod commands;
 mod cli;
+mod commands;
 
 fn main() {
     let opt = cli::ApplicationArguments::from_args();
 
     match opt.command {
-        cli::Command::Branch(opts) => commands::branch::branch(opts.start_patch_index, opts.end_patch_index, opts.branch_name),
-        cli::Command::RequestReviewBranch(opts) => commands::request_review_branch::request_review_branch(opts.patch_index, opts.branch_name),
-        cli::Command::Integrate(opts) => commands::integrate::integrate(opts.patch_index, opts.force, opts.keep_branch, opts.branch_name, opt.color),
+        cli::Command::Branch(opts) => commands::branch::branch(
+            opts.start_patch_index,
+            opts.end_patch_index,
+            opts.branch_name,
+        ),
+        cli::Command::RequestReviewBranch(opts) => {
+            commands::request_review_branch::request_review_branch(
+                opts.patch_index,
+                opts.branch_name,
+            )
+        }
+        cli::Command::Integrate(opts) => commands::integrate::integrate(
+            opts.patch_index,
+            opts.force,
+            opts.keep_branch,
+            opts.branch_name,
+            opt.color,
+        ),
         cli::Command::List => commands::list::list(opt.color),
         cli::Command::Rebase(opts) => commands::rebase::rebase(opts.r#continue),
         cli::Command::Pull => commands::pull::pull(opt.color),
-        cli::Command::RequestReview(opts) => commands::request_review::request_review(opts.patch_index, opts.branch_name, opt.color),
-        cli::Command::BatchRequestReview(opts) => commands::batch_request_review::batch_request_review(opts.patch_index, opt.color),
+        cli::Command::RequestReview(opts) => {
+            commands::request_review::request_review(opts.patch_index, opts.branch_name, opt.color)
+        }
+        cli::Command::BatchRequestReview(opts) => {
+            commands::batch_request_review::batch_request_review(opts.patch_index, opt.color)
+        }
         cli::Command::Show(opts) => commands::show::show(opts.patch_index),
         cli::Command::Sync(opts) => commands::sync::sync(opts.patch_index, opts.branch_name),
         cli::Command::Isolate(opts) => commands::isolate::isolate(opts.patch_index, opt.color),
@@ -34,12 +53,18 @@ fn main() {
         cli::Command::CreatePatch => commands::create_patch::create_patch(),
         cli::Command::AmendPatch(opts) => commands::amend_patch::amend_patch(opts.no_edit),
         cli::Command::Status => commands::status::status(),
-        cli::Command::Add(opts) => commands::add_changes_to_stage::add_changes_to_stage(opts.interactive, opts.patch, opts.edit, opts.all, opts.files),
+        cli::Command::Add(opts) => commands::add_changes_to_stage::add_changes_to_stage(
+            opts.interactive,
+            opts.patch,
+            opts.edit,
+            opts.all,
+            opts.files,
+        ),
         cli::Command::Log => commands::log::log(),
         cli::Command::Unstage(opts) => commands::unstage::unstage(opts.files),
         cli::Command::UpstreamPatches => commands::upstream_patches::upstream_patches(opt.color),
         cli::Command::Fetch => commands::fetch::fetch(opt.color),
         #[cfg(feature = "backup_cmd")]
-        cli::Command::BackupStack(opts) => commands::backup_stack::backup_stack(opts.branch_name) 
+        cli::Command::BackupStack(opts) => commands::backup_stack::backup_stack(opts.branch_name),
     };
 }

@@ -7,25 +7,30 @@ use std::string::String;
 
 #[derive(Debug)]
 pub enum WriteStrToFileError {
-  OpenFailed(io::Error),
-  WriteFailed(io::Error)
+    OpenFailed(io::Error),
+    WriteFailed(io::Error),
 }
 
-pub fn write_str_to_file<P: AsRef<Path>>(content: &str, path: P) -> Result<(), WriteStrToFileError> {
-  let mut file = fs::File::create(path).map_err(WriteStrToFileError::OpenFailed)?;
-  file.write_all(content.as_bytes()).map_err(WriteStrToFileError::WriteFailed)?;
-  Ok(())
+pub fn write_str_to_file<P: AsRef<Path>>(
+    content: &str,
+    path: P,
+) -> Result<(), WriteStrToFileError> {
+    let mut file = fs::File::create(path).map_err(WriteStrToFileError::OpenFailed)?;
+    file.write_all(content.as_bytes())
+        .map_err(WriteStrToFileError::WriteFailed)?;
+    Ok(())
 }
 
 #[derive(Debug)]
 pub enum ReadStringFromFileError {
-  OpenFailed(io::Error),
-  ReadFailed(io::Error)
+    OpenFailed(io::Error),
+    ReadFailed(io::Error),
 }
 
-pub fn read_str_from_file<P: AsRef<Path>>(path :P) -> Result<String, ReadStringFromFileError> {
-  let mut file = fs::File::open(path).map_err(ReadStringFromFileError::OpenFailed)?;
-  let mut s = String::new();
-  file.read_to_string(&mut s).map_err(ReadStringFromFileError::ReadFailed)?;
-  Ok(s)
+pub fn read_str_from_file<P: AsRef<Path>>(path: P) -> Result<String, ReadStringFromFileError> {
+    let mut file = fs::File::open(path).map_err(ReadStringFromFileError::OpenFailed)?;
+    let mut s = String::new();
+    file.read_to_string(&mut s)
+        .map_err(ReadStringFromFileError::ReadFailed)?;
+    Ok(s)
 }
