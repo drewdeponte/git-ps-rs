@@ -1,4 +1,5 @@
 use super::super::utils;
+use super::branch_config_dto::*;
 use super::fetch_config_dto::*;
 use super::integrate_config_dto::*;
 use super::list_config_dto::*;
@@ -13,6 +14,7 @@ pub struct ConfigDto {
     pub integrate: Option<IntegrateConfigDto>,
     pub fetch: Option<FetchConfigDto>,
     pub list: Option<ListConfigDto>,
+    pub branch: Option<BranchConfigDto>,
 }
 
 impl utils::Mergable for ConfigDto {
@@ -23,6 +25,7 @@ impl utils::Mergable for ConfigDto {
             integrate: utils::merge_option(&self.integrate, &b.integrate),
             fetch: utils::merge_option(&self.fetch, &b.fetch),
             list: utils::merge_option(&self.list, &b.list),
+            branch: utils::merge_option(&self.branch, &b.branch),
         }
     }
 }

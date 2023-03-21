@@ -1,11 +1,13 @@
 use super::super::paths;
 use super::super::utils::*;
+use super::branch_config_dto::BranchConfigDto;
 use super::config_dto::ConfigDto;
 use super::fetch_config_dto::FetchConfigDto;
 use super::integrate_config_dto::IntegrateConfigDto;
 use super::list_config_dto::ListConfigDto;
 use super::ps_config::{
-    PsConfig, PsFetchConfig, PsIntegrateConfig, PsListConfig, PsPullConfig, PsRequestReviewConfig,
+    PsBranchConfig, PsConfig, PsFetchConfig, PsIntegrateConfig, PsListConfig, PsPullConfig,
+    PsRequestReviewConfig,
 };
 use super::pull_config_dto::PullConfigDto;
 use super::read_config_or_default::*;
@@ -47,6 +49,7 @@ fn apply_config_defaults(config_dto: &ConfigDto) -> PsConfig {
     let default_integrate_config = apply_integrate_config_defaults(&IntegrateConfigDto::default());
     let default_fetch_config = apply_fetch_config_defaults(&FetchConfigDto::default());
     let default_list_config = apply_list_config_defaults(&ListConfigDto::default());
+    let default_branch_config = apply_branch_config_defaults(&BranchConfigDto::default());
     PsConfig {
         request_review: config_dto
             .request_review
@@ -73,6 +76,11 @@ fn apply_config_defaults(config_dto: &ConfigDto) -> PsConfig {
             .as_ref()
             .map(apply_list_config_defaults)
             .unwrap_or(default_list_config),
+        branch: config_dto
+            .branch
+            .as_ref()
+            .map(apply_branch_config_defaults)
+            .unwrap_or(default_branch_config),
     }
 }
 
@@ -81,6 +89,12 @@ fn apply_request_review_config_defaults(
 ) -> PsRequestReviewConfig {
     PsRequestReviewConfig {
         verify_isolation: rr_config_dto.verify_isolation.unwrap_or(true),
+    }
+}
+
+fn apply_branch_config_defaults(branch_config_dto: &BranchConfigDto) -> PsBranchConfig {
+    PsBranchConfig {
+        verify_isolation: branch_config_dto.verify_isolation.unwrap_or(true),
     }
 }
 
