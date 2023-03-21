@@ -1,4 +1,5 @@
 pub mod checkout;
+pub mod cherry_picking;
 pub mod commit_is_behind;
 pub mod config;
 pub mod git;
