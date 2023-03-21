@@ -110,7 +110,7 @@ pub fn integrate(
             .ok_or(IntegrateError::ConvertStringToStrFailed)?;
 
         if config.integrate.verify_isolation {
-            verify_isolation::verify_isolation(patch_index, color)
+            verify_isolation::verify_isolation(patch_index, None, color)
                 .map_err(IntegrateError::IsolationVerificationFailed)?;
         }
 
@@ -242,7 +242,7 @@ pub fn integrate(
         }
 
         if config.integrate.verify_isolation {
-            verify_isolation::verify_isolation(patch_index, color)
+            verify_isolation::verify_isolation(patch_index, None, color)
                 .map_err(IntegrateError::IsolationVerificationFailed)?;
         }
 

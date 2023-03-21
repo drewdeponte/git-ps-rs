@@ -8,11 +8,14 @@ pub enum VerifyIsolationError {
     IsolateResetFailed(IsolateError),
 }
 
-pub fn verify_isolation(patch_index: usize, color: bool) -> Result<(), VerifyIsolationError> {
-    match isolate::isolate(Some(patch_index), color) {
-        Ok(_) => {
-            Ok(isolate::isolate(None, color).map_err(VerifyIsolationError::IsolateResetFailed)?)
-        }
+pub fn verify_isolation(
+    patch_index: usize,
+    end_patch_index_optional: Option<usize>,
+    color: bool,
+) -> Result<(), VerifyIsolationError> {
+    match isolate::isolate(Some(patch_index), end_patch_index_optional, color) {
+        Ok(_) => Ok(isolate::isolate(None, None, color)
+            .map_err(VerifyIsolationError::IsolateResetFailed)?),
         Err(e) => match e {
             // pre-checkout errors
             IsolateError::OpenGitRepositoryFailed(_)
@@ -32,7 +35,8 @@ pub fn verify_isolation(patch_index: usize, color: bool) -> Result<(), VerifyIso
             | IsolateError::FailedToCheckout(_) => Err(VerifyIsolationError::IsolateFailed(e)),
             // post-checkout errors
             _ => {
-                isolate::isolate(None, color).map_err(VerifyIsolationError::IsolateResetFailed)?;
+                isolate::isolate(None, None, color)
+                    .map_err(VerifyIsolationError::IsolateResetFailed)?;
                 Err(VerifyIsolationError::IsolateFailed(e))
             }
         },

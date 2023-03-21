@@ -128,7 +128,7 @@ pub fn request_review(
     let config = config::get_config(repo_root_str).map_err(RequestReviewError::GetConfigFailed)?;
 
     if config.request_review.verify_isolation {
-        verify_isolation::verify_isolation(patch_index, color)
+        verify_isolation::verify_isolation(patch_index, None, color)
             .map_err(RequestReviewError::IsolationVerificationFailed)?;
     }
 

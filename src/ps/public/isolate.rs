@@ -1,4 +1,5 @@
 use super::super::super::ps;
+use super::super::private::cherry_picking;
 use super::super::private::git;
 use super::super::private::hooks;
 use super::super::private::paths;
@@ -32,9 +33,14 @@ pub enum IsolateError {
     UncommittedChangesExist,
     FindIsolateBranchFailed(git2::Error),
     DeleteIsolateBranchFailed(git2::Error),
+    FailedToMapIndexesForCherryPick(cherry_picking::MapRangeForCherryPickError),
 }
 
-pub fn isolate(patch_index_optional: Option<usize>, color: bool) -> Result<(), IsolateError> {
+pub fn isolate(
+    start_patch_index_optional: Option<usize>,
+    end_patch_index_optional: Option<usize>,
+    color: bool,
+) -> Result<(), IsolateError> {
     let isolate_branch_name = "ps/tmp/isolate";
     let repo =
         ps::private::git::create_cwd_repo().map_err(IsolateError::OpenGitRepositoryFailed)?;
@@ -46,20 +52,16 @@ pub fn isolate(patch_index_optional: Option<usize>, color: bool) -> Result<(), I
         return Err(IsolateError::UncommittedChangesExist);
     }
 
-    match patch_index_optional {
+    match start_patch_index_optional {
         Some(patch_index) => {
             let patch_stack =
                 ps::get_patch_stack(&repo).map_err(IsolateError::GetPatchStackFailed)?;
+            let patches_vec = ps::get_patch_list(&repo, &patch_stack)
+                .map_err(IsolateError::GetPatchListFailed)?;
             let patch_stack_base_commit = patch_stack
                 .base
                 .peel_to_commit()
                 .map_err(|_| IsolateError::PatchStackBaseNotFound)?;
-            let patches_vec = ps::get_patch_list(&repo, &patch_stack)
-                .map_err(IsolateError::GetPatchListFailed)?;
-            let patch_oid = patches_vec
-                .get(patch_index)
-                .ok_or(IsolateError::PatchIndexNotFound)?
-                .oid;
 
             let branch = repo
                 .branch(isolate_branch_name, &patch_stack_base_commit, true)
@@ -67,9 +69,22 @@ pub fn isolate(patch_index_optional: Option<usize>, color: bool) -> Result<(), I
 
             let branch_ref_name = branch.get().name().ok_or(IsolateError::BranchNameNotUtf8)?;
 
-            // - cherry pick the patch onto new rr branch
-            git::cherry_pick_no_working_copy(&repo, &config, patch_oid, branch_ref_name, 0)
-                .map_err(|_| IsolateError::CherryPickFailed)?;
+            // cherry pick the patch or patch range onto new isolation branch
+            let cherry_pick_range = cherry_picking::map_range_for_cherry_pick(
+                &patches_vec,
+                patch_index,
+                end_patch_index_optional,
+            )
+            .map_err(IsolateError::FailedToMapIndexesForCherryPick)?;
+
+            git::cherry_pick(
+                &repo,
+                &config,
+                cherry_pick_range.root_oid,
+                cherry_pick_range.leaf_oid,
+                branch_ref_name,
+            )
+            .map_err(|_| IsolateError::CherryPickFailed)?;
 
             // get currently checked out branch name
             let checked_out_branch = git::get_current_branch_shorthand(&repo)

@@ -49,7 +49,9 @@ fn main() {
         }
         cli::Command::Show(opts) => commands::show::show(opts.patch_index),
         cli::Command::Sync(opts) => commands::sync::sync(opts.patch_index, opts.branch_name),
-        cli::Command::Isolate(opts) => commands::isolate::isolate(opts.patch_index, opt.color),
+        cli::Command::Isolate(opts) => {
+            commands::isolate::isolate(opts.start_patch_index, opts.end_patch_index, opt.color)
+        }
         cli::Command::Checkout(opts) => commands::checkout::checkout(opts.patch_index),
         cli::Command::CreatePatch => commands::create_patch::create_patch(),
         cli::Command::AmendPatch(opts) => commands::amend_patch::amend_patch(opts.no_edit),
