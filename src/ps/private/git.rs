@@ -711,6 +711,57 @@ pub fn read_hashed_object(
     Ok(str_ref.to_string())
 }
 
+/// Cherry pick either an individual commit identified by the `root_oid` Oid and None for
+/// `leaf_oid`, or a range of commits identified by the `root_oid` and `leaf_oid` both having Oids.
+///
+/// The given `repo` is the repository that you want to cherry pick the range of commits within.
+/// The `config` is the config used to facilitate commit creation, providing things like the
+/// author, email, etc.
+///
+/// The `root_oid` specifies the commit to start the ranged cherry picking process from,
+/// inclusively. Meaning this commit WILL be included in the cherry picked commits, as will all its
+/// descendants up to and including the `leaf_oid`. This commit should be an ancestor to the
+/// `leaf_oid`.
+///
+/// The `leaf_oid` specifies the commit to end the ranged cherry picking process on, inclusively.
+/// Meaning this commit will be included in the cherry picked commits. This commit should be a
+/// descendant to the `root_oid`.
+///
+/// The `dest_ref_name` specifies the reference (e.g. branch) to cherry pick the range of commits
+/// into.
+///
+/// It returns an Ok(Option(last_cherry_picked_commit_oid)) result in the case of success and an
+/// error result of GitError in the case of failure.
+pub fn cherry_pick<'a>(
+    repo: &'a git2::Repository,
+    config: &git2::Config,
+    root_oid: git2::Oid,
+    leaf_oid: Option<git2::Oid>,
+    dest_ref_name: &str,
+) -> Result<Option<git2::Oid>, GitError> {
+    Ok(match leaf_oid {
+        Some(leaf_oid) => {
+            let root_commit = repo.find_commit(root_oid)?;
+            let root_commit_parent_commit = root_commit.parent(0)?;
+            let root_commit_parent_commit_oid = root_commit_parent_commit.id();
+            cherry_pick_no_working_copy_range(
+                repo,
+                config,
+                root_commit_parent_commit_oid,
+                leaf_oid,
+                dest_ref_name,
+            )?
+        }
+        None => Some(cherry_pick_no_working_copy(
+            repo,
+            config,
+            root_oid,
+            dest_ref_name,
+            0,
+        )?),
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use git2::{Repository, RepositoryInitOptions, Sort};
