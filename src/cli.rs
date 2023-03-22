@@ -123,12 +123,16 @@ pub struct BackupStackCmdOpts {
 
 #[derive(Debug, StructOpt)]
 pub enum Command {
-    /// Your bridge back to the world of normal git and git concepts.
-    /// Basically a utility to help you create a normal git branch from a
-    /// patch or series of patches that is based on the patch stack base (e.g.
-    /// origin/main). Because this is a bridge back to the normal git concepts
-    /// like branches and commits it does no state tracking of these branches
-    /// inside of git patch stack.
+    /// Your bridge back to the world of normal git and git concepts. The branch command is a
+    /// utility to help you create a normal git branch from a patch or series of patches that is
+    /// based on the patch stack base (e.g. origin/main).
+    ///
+    /// Because this is a bridge back to the normal git concepts like branches and commits it does
+    /// no state tracking of these branches.
+    ///
+    /// It also has support for automatically pushing the branch to the remote. This is useful when
+    /// you are stuck working with a team that doesn't do the Patch Stack workflow but you still
+    /// want to do it locally.
     Branch(BranchCmdOpts),
     /// Create a request review branch on the patch stack base, cherry-pick
     /// the specified patch onto it, & record association between patch &
