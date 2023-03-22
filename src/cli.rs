@@ -236,20 +236,18 @@ remote with newly rebased patch.
     #[structopt(name = "sync")]
     Sync(SyncCmdOpts),
 
-    /// (iso) - isolate a patch for manual testing or evaluation.
+    /// (iso) - isolate a patch or series of patches for manual testing or evaluation.
     ///
-    /// The `isolate` command isolates a patch for manual testing or
-    /// evaluation by making sure no uncommitted changes exist, creating a
-    /// temporary branch based on the patch stacks base, cherry-picking the
-    /// patch to it, and then checking out that branch.
+    /// The `isolate` command isolates a patch or series of patches for manual testing or
+    /// evaluation by making sure no uncommitted changes exist, creating a temporary branch based
+    /// on the patch stacks base, cherry-picking the patch(es) to it, and then checking out that
+    /// branch.
     ///
-    /// If you have the `isolate_post_checkout` hook setup then that will be
-    /// executed after successfully checking out the branch.
+    /// If you have the `isolate_post_checkout` hook setup then that will be executed after
+    /// successfully checking out the branch.
     ///
-    /// When you are done manually testing or evaluating the patch in
-    /// isolation you can return to the stack that you were on when you
-    /// switch into isolation mode by running `gps iso`, basically leaving the
-    /// index off.
+    /// When you are done manually testing or evaluating the patch in isolation you can return to
+    /// the stack that you were on when you switched into isolation mode by running `gps iso`.
     #[structopt(name = "isolate", alias = "iso")]
     Isolate(IsolateCmdOpts),
     /// (co) - Checkout the patch identified by the patch-index, leaving you
