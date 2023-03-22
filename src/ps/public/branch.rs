@@ -1,6 +1,9 @@
 use super::super::super::ps;
 use super::super::private::cherry_picking;
+use super::super::private::config;
 use super::super::private::git;
+use super::super::private::paths;
+use super::super::private::verify_isolation;
 use git2;
 use std::result::Result;
 
@@ -24,6 +27,10 @@ pub enum BranchError {
     GetRemoteBranchNameFailed,
     PushFailed(git::ExtForcePushError),
     FailedToMapIndexesForCherryPick(cherry_picking::MapRangeForCherryPickError),
+    IsolationVerificationFailed(verify_isolation::VerifyIsolationError),
+    GetRepoRootPathFailed(paths::PathsError),
+    PathNotUtf8,
+    GetConfigFailed(config::GetConfigError),
 }
 
 pub fn branch(
@@ -31,9 +38,15 @@ pub fn branch(
     end_patch_index_option: Option<usize>,
     given_branch_name_option: Option<String>,
     create_remote_branch: bool,
+    color: bool,
 ) -> Result<(), BranchError> {
     let repo = git::create_cwd_repo().map_err(BranchError::OpenRepositoryFailed)?;
-    let config = git2::Config::open_default().map_err(BranchError::OpenGitConfigFailed)?;
+    let git_config = git2::Config::open_default().map_err(BranchError::OpenGitConfigFailed)?;
+
+    let repo_root_path =
+        paths::repo_root_path(&repo).map_err(BranchError::GetRepoRootPathFailed)?;
+    let repo_root_str = repo_root_path.to_str().ok_or(BranchError::PathNotUtf8)?;
+    let config = config::get_config(repo_root_str).map_err(BranchError::GetConfigFailed)?;
 
     // find the base of the current patch stack
     let patch_stack = ps::get_patch_stack(&repo).map_err(BranchError::GetPatchStackFailed)?;
@@ -44,6 +57,11 @@ pub fn branch(
 
     let patches_vec =
         ps::get_patch_list(&repo, &patch_stack).map_err(BranchError::GetPatchListFailed)?;
+
+    if config.branch.verify_isolation {
+        verify_isolation::verify_isolation(start_patch_index, end_patch_index_option, color)
+            .map_err(BranchError::IsolationVerificationFailed)?;
+    }
 
     let start_patch_oid = patches_vec
         .get(start_patch_index)
@@ -76,7 +94,7 @@ pub fn branch(
 
     git::cherry_pick(
         &repo,
-        &config,
+        &git_config,
         cherry_pick_range.root_oid,
         cherry_pick_range.leaf_oid,
         branch_ref_name,
