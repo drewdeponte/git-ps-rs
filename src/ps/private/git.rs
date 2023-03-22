@@ -118,42 +118,54 @@ pub fn get_current_branch_shorthand(repo: &git2::Repository) -> Option<String> {
     }
 }
 
-// Cherry pick the range of commits onto the destination.
-//
-// Note: The range of commits is bounded by the `start` and `end` Oids. It is
-// important to recoginze that commits referenced by `start` and `end` are
-// both excluded from the actually cherry picking as they just define the
-// commits surrounding the range of the commits to actually cherry-pick. It is
-// also important to understand that `start` should be the most recent commit
-// in history and the `end` should be the least recent commit in the range.
-// Think you are starting at the top of the tree going down.
+/// Cherry pick the specified range of commits onto the destination ref
+///
+/// The given `repo` is the repository that you want to cherry pick the range of commits within.
+/// The `config` is the config used to facilitate commit creation, providing things like the
+/// author, email, etc.
+///
+/// The `root_oid` specifies the commit to start the ranged cherry picking process from,
+/// exclusively. Meaning this commit won't be included in the cherry picked commits, but its
+/// descendants will be, up to and including the `leaf_oid`. This commit should be an ancestor to
+/// the `leaf_oid`.
+///
+/// The `leaf_oid` specifies the commit to end the ranged cherry picking process on, inclusively.
+/// Meaning this commit will be included in the cherry picked commits. This commit should be a
+/// descendant to the `root_oid`.
+///
+/// The `dest_ref_name` specifies the reference (e.g. branch) to cherry pick the range of commits
+/// into.
+///
+/// It returns an Ok(Option(last_cherry_picked_commit_oid)) result in the case of success and an
+/// error result of GitError in the case of failure.
 pub fn cherry_pick_no_working_copy_range<'a>(
     repo: &'a git2::Repository,
     config: &git2::Config,
-    start: git2::Oid,
-    end: git2::Oid,
+    root_oid: git2::Oid,
+    leaf_oid: git2::Oid,
     dest_ref_name: &str,
-) -> Result<(), GitError> {
+) -> Result<Option<git2::Oid>, GitError> {
     let mut rev_walk = repo.revwalk()?;
-    rev_walk.set_sorting(git2::Sort::REVERSE)?;
-    rev_walk.push(start)?;
-    rev_walk.hide(end)?;
+    rev_walk.push(leaf_oid)?; // start traversal from leaf_oid and walk to root_oid
+    rev_walk.hide(root_oid)?; // mark root_oid as where to hide from
+    rev_walk.set_sorting(git2::Sort::REVERSE)?; // reverse traversal order so we walk from child
+                                                // commit of the commit identified by root_oid and
+                                                // then iterate our way to the the commit
+                                                // identified by the leaf_oid
 
-    for rev in rev_walk {
-        if let Ok(r) = rev {
-            if r == start {
-                return Ok(()); // effectively short-circuit doing nothing for this last patch
-            }
+    let mut last_cherry_picked_oid: Option<git2::Oid> = None;
 
-            repo.find_commit(r)
-                .map_err(|e| GitError::GitError(e))
-                .and_then(|commit| {
-                    cherry_pick_no_working_copy(repo, config, commit.id(), dest_ref_name, 0)
-                })?;
-        }
+    for rev in rev_walk.flatten() {
+        last_cherry_picked_oid = Some(cherry_pick_no_working_copy(
+            repo,
+            config,
+            rev,
+            dest_ref_name,
+            0,
+        )?);
     }
 
-    return Ok(());
+    Ok(last_cherry_picked_oid)
 }
 
 #[derive(Debug)]

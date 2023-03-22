@@ -79,13 +79,11 @@ pub fn branch(
         git::cherry_pick_no_working_copy_range(
             &repo,
             &config,
-            end_patch_oid,
             start_patch_parent_oid,
+            end_patch_oid,
             branch_ref_name,
         )
         .map_err(BranchError::CherryPickFailed)?;
-        git::cherry_pick_no_working_copy(&repo, &config, end_patch_oid, branch_ref_name, 0)
-            .map_err(BranchError::CherryPickFailed)?;
 
         // push branch up to remote branch
         if create_remote_branch {

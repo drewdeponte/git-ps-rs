@@ -156,6 +156,8 @@ pub enum AddPsIdError {
     ReferenceNameMissing,
     CommitMessageMissing,
     FailedToFindCommonAncestor(git::CommonAncestorError),
+    FailedToFindCommit(git2::Error),
+    FailedToFindParentCommit(git2::Error),
 }
 
 impl From<git2::Error> for AddPsIdError {
@@ -208,11 +210,17 @@ pub fn add_ps_id(
         .ok_or(AddPsIdError::FailedToGetReferenceName)?;
 
     // cherry pick
+    let commit = repo
+        .find_commit(commit_oid)
+        .map_err(AddPsIdError::FailedToFindCommit)?;
+    let parent_commit = commit
+        .parent(0)
+        .map_err(AddPsIdError::FailedToFindParentCommit)?;
     git::cherry_pick_no_working_copy_range(
-        &repo,
+        repo,
         config,
-        commit_oid,
         upstream_branch_oid,
+        parent_commit.id(),
         add_id_rework_branch_ref_name,
     )?;
 
@@ -225,25 +233,18 @@ pub fn add_ps_id(
         message_amendment.as_str(),
     )?;
 
-    if cur_branch_oid != commit_oid {
-        git::cherry_pick_no_working_copy_range(
-            &repo,
-            config,
-            cur_branch_oid,
-            commit_oid,
-            add_id_rework_branch_ref_name,
-        )?;
-        let cherry_picked_commit_oid = git::cherry_pick_no_working_copy(
-            &repo,
-            config,
-            cur_branch_oid,
-            add_id_rework_branch_ref_name,
-            0,
-        )?;
-        branch_ref.set_target(cherry_picked_commit_oid, "swap branch to add_id_rework")?;
-    } else {
-        branch_ref.set_target(amended_patch_oid, "swap branch to add_id_rework")?;
-    }
+    let cherry_picked_commit_oid = git::cherry_pick_no_working_copy_range(
+        repo,
+        config,
+        commit_oid,
+        cur_branch_oid,
+        add_id_rework_branch_ref_name,
+    )?;
+
+    match cherry_picked_commit_oid {
+        Some(oid) => branch_ref.set_target(oid, "swap branch to add_id_rework")?,
+        None => branch_ref.set_target(amended_patch_oid, "swap branch to add_id_rework")?,
+    };
 
     // delete temporary branch
     let mut tmp_branch_ref = repo.find_reference(add_id_rework_branch_ref_name)?;
