@@ -37,7 +37,7 @@ pub fn branch(
     start_patch_index: usize,
     end_patch_index_option: Option<usize>,
     given_branch_name_option: Option<String>,
-    create_remote_branch: bool,
+    push_to_remote: bool,
     color: bool,
 ) -> Result<(), BranchError> {
     let repo = git::create_cwd_repo().map_err(BranchError::OpenRepositoryFailed)?;
@@ -102,7 +102,7 @@ pub fn branch(
     .map_err(BranchError::CherryPickFailed)?;
 
     // push branch up to remote branch
-    if create_remote_branch {
+    if push_to_remote || config.branch.push_to_remote {
         // get remote name of current branch (e.g. origin)
         let cur_branch_name =
             git::get_current_branch(&repo).ok_or(BranchError::CurrentBranchNameMissing)?;

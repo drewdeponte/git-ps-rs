@@ -16,6 +16,7 @@ pub struct PsRequestReviewConfig {
 #[derive(Debug)]
 pub struct PsBranchConfig {
     pub verify_isolation: bool,
+    pub push_to_remote: bool,
 }
 
 #[derive(Debug)]

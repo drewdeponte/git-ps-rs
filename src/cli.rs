@@ -23,9 +23,9 @@ pub struct BranchCmdOpts {
     /// Use the provided branch name instead of generating one
     #[structopt(short = "n")]
     pub branch_name: Option<String>,
-    /// Create a remote branch of the same name and push
-    #[structopt(short = "r")]
-    pub create_remote_branch: bool,
+    /// Push branch of the same name to the remote
+    #[structopt(short = "p")]
+    pub push_to_remote: bool,
 }
 
 #[derive(Debug, StructOpt)]

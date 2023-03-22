@@ -95,6 +95,7 @@ fn apply_request_review_config_defaults(
 fn apply_branch_config_defaults(branch_config_dto: &BranchConfigDto) -> PsBranchConfig {
     PsBranchConfig {
         verify_isolation: branch_config_dto.verify_isolation.unwrap_or(true),
+        push_to_remote: branch_config_dto.push_to_remote.unwrap_or(false),
     }
 }
 
