@@ -13,7 +13,7 @@ pub enum MapRangeForCherryPickError {
 }
 
 pub fn map_range_for_cherry_pick(
-    patches_vec: &Vec<ps::ListPatch>,
+    patches_vec: &[ps::ListPatch],
     start_patch_index: usize,
     end_patch_index: Option<usize>,
 ) -> Result<CherryPickRange, MapRangeForCherryPickError> {
