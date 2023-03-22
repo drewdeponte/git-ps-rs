@@ -2,6 +2,14 @@
 name = "gps"
 version = "6.6.0"
 edition = "2018"
+license-file = "LICENSE"
+description = "Official CLI & library for Git Patch Stack"
+homepage = "https://git-ps.sh"
+documentation = "https://book.git-ps.sh"
+repository = "https://github.com/uptech/git-ps-rs"
+readme = "README.md"
+keywords = ["git", "development", "tools"]
+categories = ["command-line-utilities", "library", "development-tools"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
