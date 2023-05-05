@@ -258,7 +258,7 @@ dependencies = [
 
 [[package]]
 name = "gps"
-version = "6.6.0"
+version = "6.6.1"
 dependencies = [
  "ansi_term",
  "git2",
