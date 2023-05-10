@@ -41,7 +41,7 @@ impl From<git2::Error> for PatchStackError {
     }
 }
 
-pub fn get_patch_stack<'a>(repo: &'a git2::Repository) -> Result<PatchStack<'a>, PatchStackError> {
+pub fn get_patch_stack(repo: &git2::Repository) -> Result<PatchStack<'_>, PatchStackError> {
     let head_ref = repo.head()?;
     let upstream_branch_name_buf = head_ref
         .name()
@@ -82,7 +82,7 @@ pub fn get_patch_list(
 ) -> Result<Vec<ListPatch>, GetPatchListError> {
     let mut rev_walk = repo
         .revwalk()
-        .map_err(|e| GetPatchListError::CreateRevWalkFailed(e))?;
+        .map_err(GetPatchListError::CreateRevWalkFailed)?;
     rev_walk
         .push(
             patch_stack
@@ -90,7 +90,7 @@ pub fn get_patch_list(
                 .target()
                 .ok_or(GetPatchListError::StackHeadTargetMissing)?,
         )
-        .map_err(|e| GetPatchListError::CreateRevWalkFailed(e))?;
+        .map_err(GetPatchListError::CreateRevWalkFailed)?;
     rev_walk
         .hide(
             patch_stack
@@ -98,10 +98,10 @@ pub fn get_patch_list(
                 .target()
                 .ok_or(GetPatchListError::StackBaseTargetMissing)?,
         )
-        .map_err(|e| GetPatchListError::CreateRevWalkFailed(e))?;
+        .map_err(GetPatchListError::CreateRevWalkFailed)?;
     rev_walk
         .set_sorting(git2::Sort::REVERSE)
-        .map_err(|e| GetPatchListError::CreateRevWalkFailed(e))?;
+        .map_err(GetPatchListError::CreateRevWalkFailed)?;
 
     let list_of_patches: Vec<ListPatch> = rev_walk
         .enumerate()
@@ -109,12 +109,12 @@ pub fn get_patch_list(
             let r = rev.unwrap();
             ListPatch {
                 index: i,
-                summary: git::get_summary(&repo, &r).unwrap(),
+                summary: git::get_summary(repo, &r).unwrap(),
                 oid: r,
             }
         })
         .collect();
-    return Ok(list_of_patches);
+    Ok(list_of_patches)
 }
 
 pub fn extract_ps_id(message: &str) -> Option<Uuid> {
@@ -186,13 +186,13 @@ pub fn add_ps_id(
 ) -> Result<git2::Oid, AddPsIdError> {
     // Get currently checked out branch
     let branch_ref_name =
-        git::get_current_branch(&repo).ok_or(AddPsIdError::FailedToGetCurrentBranch)?;
+        git::get_current_branch(repo).ok_or(AddPsIdError::FailedToGetCurrentBranch)?;
     let mut branch_ref = repo.find_reference(&branch_ref_name)?;
     let cur_branch_obj = repo.revparse_single(&branch_ref_name)?;
     let cur_branch_oid = cur_branch_obj.id();
 
     // Get current branches upstream tracking branch
-    let upstream_branch_ref_name = git::branch_upstream_name(&repo, &branch_ref_name)?;
+    let upstream_branch_ref_name = git::branch_upstream_name(repo, &branch_ref_name)?;
     let upstream_branch_obj = repo.revparse_single(&upstream_branch_ref_name)?;
     let upstream_branch_oid = upstream_branch_obj.id();
 
@@ -224,9 +224,9 @@ pub fn add_ps_id(
         add_id_rework_branch_ref_name,
     )?;
 
-    let message_amendment = format!("\n<!-- ps-id: {} -->", ps_id.hyphenated().to_string());
+    let message_amendment = format!("\n<!-- ps-id: {} -->", ps_id.hyphenated());
     let amended_patch_oid = git::cherry_pick_no_working_copy_amend_message(
-        &repo,
+        repo,
         config,
         commit_oid,
         add_id_rework_branch_ref_name,
@@ -291,7 +291,7 @@ pub fn get_patch_meta_data(
     ps_id: Uuid,
 ) -> Result<Option<state_management::Patch>, GetPatchMetaDataError> {
     let patch_meta_data_path = paths::patch_states_path(repo);
-    let patch_meta_data = state_management::read_patch_states(&patch_meta_data_path)
+    let patch_meta_data = state_management::read_patch_states(patch_meta_data_path)
         .map_err(GetPatchMetaDataError::ReadPatchStatesFailed)?;
     Ok(patch_meta_data.get(&ps_id).cloned())
 }
@@ -304,7 +304,7 @@ mod tests {
     #[test]
     fn test_extract_ps_id_with_ps_id() {
         let msg = "Some summary\n\nSome paragraph\nSome more lines of the paragraph\n <!-- ps-id: 2dce2a21-72b9-487a-b641-4a0b157b76e8 -->\n some other stuff";
-        let opt = super::extract_ps_id(&msg);
+        let opt = super::extract_ps_id(msg);
         assert!(opt.is_some());
         assert_eq!(
             opt.unwrap(),
@@ -315,7 +315,7 @@ mod tests {
     #[test]
     fn test_extract_ps_id_without_ps_id() {
         let msg = "Some summary\n\nSome paragraph\nSome more lines of the paragraph\n aeuae uaeou aoeu aoeeo\n some other stuff";
-        let opt = super::extract_ps_id(&msg);
+        let opt = super::extract_ps_id(msg);
         assert!(opt.is_none());
     }
 

@@ -12,17 +12,15 @@ struct ListCell {
 
 impl ListCell {
     fn get_str_fixed_width(&self, str: String) -> String {
-        return self
-            .width
+        self.width
             .map(|w| utils::set_string_width(&str, w))
-            .unwrap_or(str);
+            .unwrap_or(str)
     }
 
     fn get_colored_text<'a>(&'a self, str: &'a str) -> ANSIGenericString<str> {
-        return self
-            .color
+        self.color
             .map(|c| c.paint(str))
-            .unwrap_or(ANSIGenericString::from(str));
+            .unwrap_or(ANSIGenericString::from(str))
     }
 }
 
@@ -31,7 +29,7 @@ impl fmt::Display for ListCell {
         let without_newlines = utils::strip_newlines(&self.value);
         let str_fixed_width = self.get_str_fixed_width(without_newlines);
         let colored_text = self.get_colored_text(&str_fixed_width);
-        return write!(f, "{}", colored_text);
+        write!(f, "{}", colored_text)
     }
 }
 
@@ -71,7 +69,7 @@ impl fmt::Display for ListRow {
 
         for column in &self.cells {
             row_str.push_str(&column.to_string());
-            row_str.push_str(" ");
+            row_str.push(' ');
         }
         write!(f, "{}", row_str)
     }

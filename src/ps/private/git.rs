@@ -519,10 +519,10 @@ pub fn ext_push(
     let refspecs = format!("{}:{}", src_ref_spec, dest_ref_spec);
     if force {
         utils::execute("git", &["push", "-f", remote_name, &refspecs])
-            .map_err(|e| ExtForcePushError::ExecuteFailed(e))
+            .map_err(ExtForcePushError::ExecuteFailed)
     } else {
         utils::execute("git", &["push", remote_name, &refspecs])
-            .map_err(|e| ExtForcePushError::ExecuteFailed(e))
+            .map_err(ExtForcePushError::ExecuteFailed)
     }
 }
 
@@ -764,7 +764,7 @@ pub fn cherry_pick<'a>(
 
 #[cfg(test)]
 mod tests {
-    use git2::{Repository, RepositoryInitOptions, Sort};
+    use git2::{Repository, RepositoryInitOptions};
     use tempfile::TempDir;
 
     pub fn repo_init() -> (TempDir, Repository) {

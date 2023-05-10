@@ -67,7 +67,7 @@ pub fn read_patch_states<P: AsRef<Path>>(
         Ok(file) => {
             let reader = io::BufReader::new(file);
             let patch_states = serde_json::from_reader(reader)
-                .map_err(|e| ReadPatchStatesError::ReadOrDeserializeFailed(e))?;
+                .map_err(ReadPatchStatesError::ReadOrDeserializeFailed)?;
             Ok(patch_states)
         }
     }
@@ -83,10 +83,10 @@ pub fn write_patch_states(
     path: &Path,
     patch_state: &HashMap<Uuid, Patch>,
 ) -> Result<(), WritePatchStatesError> {
-    let file = File::create(path).map_err(|e| WritePatchStatesError::OpenFailed(e))?;
+    let file = File::create(path).map_err(WritePatchStatesError::OpenFailed)?;
     let writer = io::BufWriter::new(file);
     serde_json::to_writer_pretty(writer, patch_state)
-        .map_err(|e| WritePatchStatesError::WriteOrSerializeFailed(e))?;
+        .map_err(WritePatchStatesError::WriteOrSerializeFailed)?;
     Ok(())
 }
 
@@ -105,8 +105,8 @@ pub fn store_patch_state(
 
     // read the patch states in
     // let mut patch_states: HashMap<Uuid, Patch> = read_patch_states(
-    let mut patch_states = read_patch_states(&states_path)
-        .map_err(|e| StorePatchStateError::ReadPatchStatesFailed(e))?;
+    let mut patch_states =
+        read_patch_states(&states_path).map_err(StorePatchStateError::ReadPatchStatesFailed)?;
 
     // add the patch to the hash map
     let patch_state_copy: Patch = patch_state.clone();
@@ -114,7 +114,7 @@ pub fn store_patch_state(
 
     // write the patch states out
     write_patch_states(&states_path, &patch_states)
-        .map_err(|e| StorePatchStateError::WritePatchStatesFailed(e))?;
+        .map_err(StorePatchStateError::WritePatchStatesFailed)?;
 
     Ok(())
 }
@@ -129,8 +129,8 @@ pub fn update_patch_state(
 
     // read the patch states in
     // let mut patch_states: HashMap<Uuid, Patch> = read_patch_states(
-    let mut patch_states = read_patch_states(&states_path)
-        .map_err(|e| StorePatchStateError::ReadPatchStatesFailed(e))?;
+    let mut patch_states =
+        read_patch_states(&states_path).map_err(StorePatchStateError::ReadPatchStatesFailed)?;
 
     // add the patch to the hash map
     let patch_state_copy: Patch = f(patch_states.get(patch_id).cloned());
@@ -138,7 +138,7 @@ pub fn update_patch_state(
 
     // write the patch states out
     write_patch_states(&states_path, &patch_states)
-        .map_err(|e| StorePatchStateError::WritePatchStatesFailed(e))?;
+        .map_err(StorePatchStateError::WritePatchStatesFailed)?;
 
     Ok(())
 }
@@ -155,7 +155,7 @@ pub fn fetch_patch_meta_data(
 ) -> Result<Option<Patch>, FetchPatchMetaDataError> {
     let patch_meta_data_path = paths::patch_states_path(repo);
     let patch_meta_data = read_patch_states(patch_meta_data_path)
-        .map_err(|e| FetchPatchMetaDataError::FailedToReadMetaData(e))?;
+        .map_err(FetchPatchMetaDataError::FailedToReadMetaData)?;
     Ok(patch_meta_data.get(patch_id).cloned())
 }
 

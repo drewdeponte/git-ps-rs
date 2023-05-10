@@ -136,7 +136,7 @@ pub fn request_review_branch(
     let patch_commit = repo
         .find_commit(patch_oid)
         .map_err(|_| RequestReviewBranchError::PatchCommitNotFound)?;
-    let patch_commit_diff_patch_id = git::commit_diff_patch_id(&repo, &patch_commit)
+    let patch_commit_diff_patch_id = git::commit_diff_patch_id(repo, &patch_commit)
         .map_err(RequestReviewBranchError::PatchCommitDiffPatchIdFailed)?;
 
     let patch_message = patch_commit

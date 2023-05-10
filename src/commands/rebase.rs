@@ -9,7 +9,7 @@ use gps as ps;
 
 pub fn rebase(continue_rebase: bool) {
     match ps::rebase(continue_rebase) {
-        Ok(_) => return,
+        Ok(_) => (),
         Err(e) => {
             eprintln!("Error: {:?}", e);
             std::process::exit(1);

@@ -3,10 +3,7 @@ use super::{
     utils,
 };
 use home_dir::{self, HomeDirExt};
-use std::{
-    path::{Path, PathBuf},
-    process::Output,
-};
+use std::{path::PathBuf, process::Output};
 
 #[derive(Debug)]
 pub enum FindHookError {
@@ -47,7 +44,7 @@ pub fn find_hook(
                     Err(FindHookError::NotExecutable(repository_level_hook_pathbuf))
                 }
                 PathExistsAndIsExecutable::DoesNotExist => {
-                    match path_exists_and_is_executable(&user_level_hook_pathbuf.as_path()) {
+                    match path_exists_and_is_executable(user_level_hook_pathbuf.as_path()) {
                         PathExistsAndIsExecutable::ExistsAndIsExecutable => {
                             Ok(user_level_hook_pathbuf)
                         }
@@ -85,5 +82,5 @@ pub fn find_and_execute_hook_with_output(
         Err(e) => return Err(HookOutputError::HookNotFound(e)),
     };
 
-    return Ok(hook_output);
+    Ok(hook_output)
 }

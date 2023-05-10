@@ -1,10 +1,10 @@
 pub fn strip_newlines(s: &str) -> String {
-    return s.replace('\n', "").replace('\r', "");
+    s.replace(['\n', '\r'], "")
 }
 
 pub fn set_string_width(s: &str, width: usize) -> String {
     let trimmed_str = format!("{:.len$}", s, len = width);
-    return format!("{:<len$}", trimmed_str, len = width);
+    format!("{:<len$}", trimmed_str, len = width)
 }
 
 #[cfg(test)]

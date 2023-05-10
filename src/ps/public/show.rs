@@ -30,9 +30,9 @@ impl From<utils::ExecuteError> for ShowError {
 pub fn show(patch_index: usize) -> Result<(), ShowError> {
     let repo = git::create_cwd_repo().map_err(|_| ShowError::RepositoryMissing)?;
 
-    let patch_stack = ps::get_patch_stack(&repo).map_err(|e| ShowError::GetPatchStackFailed(e))?;
+    let patch_stack = ps::get_patch_stack(&repo).map_err(ShowError::GetPatchStackFailed)?;
     let patches_vec =
-        ps::get_patch_list(&repo, &patch_stack).map_err(|e| ShowError::GetPatchListFailed(e))?;
+        ps::get_patch_list(&repo, &patch_stack).map_err(ShowError::GetPatchListFailed)?;
     let patch_oid = patches_vec
         .get(patch_index)
         .ok_or(ShowError::PatchIndexNotFound)?
