@@ -159,12 +159,14 @@ pub fn fetch_patch_meta_data(
     Ok(patch_meta_data.get(patch_id).cloned())
 }
 
+#[cfg(feature = "backup_cmd")]
 pub fn get_patch_reference_name(patch_id: Uuid) -> String {
     format!("refs/gps-patch-metadata/{}", patch_id)
 }
 
 #[cfg(test)]
 mod tests {
+    #[cfg(feature = "backup_cmd")]
     #[test]
     fn test_get_patch_reference_name() {
         const ID: uuid::Uuid = uuid::uuid!("67e55044-10b1-426f-9247-bb680e5fe0c8");

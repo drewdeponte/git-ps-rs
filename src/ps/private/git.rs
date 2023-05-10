@@ -682,11 +682,13 @@ pub fn uncommitted_changes_exist(repo: &git2::Repository) -> Result<bool, Uncomm
     Ok(!statuses.is_empty())
 }
 
+#[cfg(feature = "backup_cmd")]
 #[derive(Debug)]
 pub enum HashObjectWriteError {
     Failed(git2::Error),
 }
 
+#[cfg(feature = "backup_cmd")]
 pub fn hash_object_write(
     repo: &git2::Repository,
     content: &str,
@@ -695,12 +697,14 @@ pub fn hash_object_write(
         .map_err(HashObjectWriteError::Failed)
 }
 
+#[cfg(feature = "backup_cmd")]
 #[derive(Debug)]
 pub enum ReadHashedObjectError {
     NotValidUtf8(std::str::Utf8Error),
     Failed(git2::Error),
 }
 
+#[cfg(feature = "backup_cmd")]
 pub fn read_hashed_object(
     repo: &git2::Repository,
     oid: git2::Oid,
@@ -887,6 +891,7 @@ mod tests {
         assert_eq!(summaries.last().unwrap(), "eight, nine, ten, and eleven");
     }
 
+    #[cfg(feature = "backup_cmd")]
     #[test]
     fn test_hash_object_write() {
         let (_td, repo) = repo_init();
@@ -896,6 +901,7 @@ mod tests {
         assert_eq!(blob.content(), message.as_bytes());
     }
 
+    #[cfg(feature = "backup_cmd")]
     #[test]
     fn test_read_hashed_object() {
         let (_td, repo) = repo_init();
