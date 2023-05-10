@@ -123,9 +123,14 @@ pub fn request_review(
     let repo_root_str = repo_root_path
         .to_str()
         .ok_or(RequestReviewError::PathNotUtf8)?;
-    let hook_path = hooks::find_hook(repo_root_str, "request_review_post_sync")?;
+    let repo_gitdir_path = repo.path();
+    let repo_gitdir_str = repo_gitdir_path
+        .to_str()
+        .ok_or(RequestReviewError::PathNotUtf8)?;
+    let hook_path = hooks::find_hook(repo_root_str, repo_gitdir_str, "request_review_post_sync")?;
 
-    let config = config::get_config(repo_root_str).map_err(RequestReviewError::GetConfigFailed)?;
+    let config = config::get_config(repo_root_str, repo_gitdir_str)
+        .map_err(RequestReviewError::GetConfigFailed)?;
 
     if config.request_review.verify_isolation {
         verify_isolation::verify_isolation(patch_index, None, color)

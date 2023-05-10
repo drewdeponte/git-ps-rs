@@ -24,7 +24,6 @@ pub enum ListError {
     RepositoryNotFound,
     GetPatchStackFailed(ps::PatchStackError),
     GetPatchListFailed(ps::GetPatchListError),
-    GetPatchStatePathFailed(paths::PathsError),
     ReadPatchStatesFailed(state_management::ReadPatchStatesError),
     CommitMissing,
     GetCommitDiffPatchIdFailed(git::CommitDiffPatchIdError),
@@ -41,14 +40,16 @@ pub fn list(color: bool) -> Result<(), ListError> {
 
     let repo_root_path = paths::repo_root_path(&repo).map_err(ListError::GetRepoRootPathFailed)?;
     let repo_root_str = repo_root_path.to_str().ok_or(ListError::PathNotUtf8)?;
-    let config = config::get_config(repo_root_str).map_err(ListError::GetConfigFailed)?;
+    let repo_gitdir_path = repo.path();
+    let repo_gitdir_str = repo_gitdir_path.to_str().ok_or(ListError::PathNotUtf8)?;
+    let config =
+        config::get_config(repo_root_str, repo_gitdir_str).map_err(ListError::GetConfigFailed)?;
 
     let patch_stack = ps::get_patch_stack(&repo).map_err(ListError::GetPatchStackFailed)?;
     let list_of_patches =
         ps::get_patch_list(&repo, &patch_stack).map_err(ListError::GetPatchListFailed)?;
 
-    let patch_meta_data_path =
-        paths::patch_states_path(&repo).map_err(ListError::GetPatchStatePathFailed)?;
+    let patch_meta_data_path = paths::patch_states_path(&repo);
     let patch_meta_data = state_management::read_patch_states(patch_meta_data_path)
         .map_err(ListError::ReadPatchStatesFailed)?;
 
@@ -90,6 +91,7 @@ pub fn list(color: bool) -> Result<(), ListError> {
         if config.list.add_extra_patch_info {
             let hook_stdout = list::execute_list_additional_info_hook(
                 repo_root_str,
+                repo_gitdir_str,
                 &[
                     &patch.index.to_string(),
                     &patch_status_string,

@@ -30,7 +30,6 @@ pub fn verify_isolation(
             | IsolateError::BranchNameNotUtf8
             | IsolateError::CherryPickFailed
             | IsolateError::GetCurrentBranchFailed
-            | IsolateError::GetIsolateLastBranchPathFailed(_)
             | IsolateError::StoreLastBranchFailed(_)
             | IsolateError::FailedToCheckout(_) => Err(VerifyIsolationError::IsolateFailed(e)),
             // post-checkout errors

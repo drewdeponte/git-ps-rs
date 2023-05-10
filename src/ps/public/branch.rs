@@ -46,7 +46,10 @@ pub fn branch(
     let repo_root_path =
         paths::repo_root_path(&repo).map_err(BranchError::GetRepoRootPathFailed)?;
     let repo_root_str = repo_root_path.to_str().ok_or(BranchError::PathNotUtf8)?;
-    let config = config::get_config(repo_root_str).map_err(BranchError::GetConfigFailed)?;
+    let repo_gitdir_path = repo.path();
+    let repo_gitdir_str = repo_gitdir_path.to_str().ok_or(BranchError::PathNotUtf8)?;
+    let config =
+        config::get_config(repo_root_str, repo_gitdir_str).map_err(BranchError::GetConfigFailed)?;
 
     // find the base of the current patch stack
     let patch_stack = ps::get_patch_stack(&repo).map_err(BranchError::GetPatchStackFailed)?;

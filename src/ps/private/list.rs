@@ -85,10 +85,12 @@ pub enum ListHookError {
 
 pub fn execute_list_additional_info_hook(
     repo_root_str: &str,
+    repo_gitdir_str: &str,
     args: &[&str],
 ) -> Result<String, ListHookError> {
     let hook_output = hooks::find_and_execute_hook_with_output(
-        &repo_root_str,
+        repo_root_str,
+        repo_gitdir_str,
         "list_additional_information",
         args,
     )

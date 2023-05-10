@@ -15,12 +15,15 @@ pub enum FindHookError {
     NotFound,
 }
 
-pub fn find_hook(repo_root: &str, filename: &str) -> Result<PathBuf, FindHookError> {
+pub fn find_hook(
+    repo_root: &str,
+    repo_gitdir: &str,
+    filename: &str,
+) -> Result<PathBuf, FindHookError> {
     let communal_repository_level_hook_pathbuf: PathBuf =
         [repo_root, ".git-ps", "hooks", filename].iter().collect();
-    let repository_level_hook_pathbuf: PathBuf = [repo_root, ".git", "git-ps", "hooks", filename]
-        .iter()
-        .collect();
+    let repository_level_hook_pathbuf: PathBuf =
+        [repo_gitdir, "git-ps", "hooks", filename].iter().collect();
     let mut user_level_hook_pathbuf = "~"
         .expand_home()
         .map_err(FindHookError::PathExpandHomeFailed)?;
@@ -69,10 +72,11 @@ pub enum HookOutputError {
 
 pub fn find_and_execute_hook_with_output(
     repo_root_str: &str,
+    repo_gitdir_str: &str,
     hook_name: &str,
     hook_args: &[&str],
 ) -> Result<Output, HookOutputError> {
-    let hook_output = match find_hook(repo_root_str, hook_name) {
+    let hook_output = match find_hook(repo_root_str, repo_gitdir_str, hook_name) {
         Ok(hook_path) => utils::execute_with_output(
             hook_path.to_str().ok_or(HookOutputError::PathNotUtf8)?,
             hook_args,

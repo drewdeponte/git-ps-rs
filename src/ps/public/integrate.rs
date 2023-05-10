@@ -78,7 +78,12 @@ pub fn integrate(
     let repo_root_path =
         paths::repo_root_path(&repo).map_err(IntegrateError::GetRepoRootPathFailed)?;
     let repo_root_str = repo_root_path.to_str().ok_or(IntegrateError::PathNotUtf8)?;
-    let config = config::get_config(repo_root_str).map_err(IntegrateError::GetConfigFailed)?;
+    let repo_gitdir_path = repo.path();
+    let repo_gitdir_str = repo_gitdir_path
+        .to_str()
+        .ok_or(IntegrateError::PathNotUtf8)?;
+    let config = config::get_config(repo_root_str, repo_gitdir_str)
+        .map_err(IntegrateError::GetConfigFailed)?;
 
     if force {
         // fetch so we get new remote state
@@ -134,7 +139,7 @@ pub fn integrate(
             ps_id,
         )?;
 
-        match hooks::find_hook(repo_root_str, "integrate_post_push") {
+        match hooks::find_hook(repo_root_str, repo_gitdir_str, "integrate_post_push") {
             Ok(hook_path) => utils::execute(
                 hook_path.to_str().ok_or(IntegrateError::PathNotUtf8)?,
                 &[&format!("{}", new_commit_oid)],
@@ -272,7 +277,7 @@ pub fn integrate(
 
         let rr_branch_commit_oid = rr_branch_commit.id();
 
-        match hooks::find_hook(repo_root_str, "integrate_post_push") {
+        match hooks::find_hook(repo_root_str, repo_gitdir_str, "integrate_post_push") {
             Ok(hook_path) => utils::execute(
                 hook_path.to_str().ok_or(IntegrateError::PathNotUtf8)?,
                 &[&format!("{}", rr_branch_commit_oid)],

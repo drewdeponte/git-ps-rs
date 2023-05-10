@@ -20,7 +20,10 @@ pub fn fetch(color: bool) -> Result<(), FetchError> {
 
     let repo_root_path = paths::repo_root_path(&repo).map_err(FetchError::GetRepoRootPathFailed)?;
     let repo_root_str = repo_root_path.to_str().ok_or(FetchError::PathNotUtf8)?;
-    let config = config::get_config(repo_root_str).map_err(FetchError::GetConfigFailed)?;
+    let repo_gitdir_path = repo.path();
+    let repo_gitdir_str = repo_gitdir_path.to_str().ok_or(FetchError::PathNotUtf8)?;
+    let config =
+        config::get_config(repo_root_str, repo_gitdir_str).map_err(FetchError::GetConfigFailed)?;
 
     if config.fetch.show_upstream_patches_after_fetch {
         upstream_patches::upstream_patches(color).map_err(FetchError::UpstreamPatchesFailure)?;

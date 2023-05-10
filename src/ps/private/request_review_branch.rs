@@ -155,8 +155,7 @@ pub fn request_review_branch(
     }
 
     // fetch patch meta data given repo and patch_id
-    let patch_meta_data_path = paths::patch_states_path(repo)
-        .map_err(RequestReviewBranchError::GetPatchMetaDataPathFailed)?;
+    let patch_meta_data_path = paths::patch_states_path(repo);
     let mut patch_meta_data = state_management::read_patch_states(&patch_meta_data_path)
         .map_err(RequestReviewBranchError::ReadPatchMetaDataFailed)?;
     let branch_name = match patch_meta_data.get(&ps_id) {

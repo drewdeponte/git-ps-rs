@@ -19,14 +19,14 @@ pub enum GetConfigError {
     ReadConfigFailed(ReadConfigDtoOrDefaultError),
 }
 
-pub fn get_config(repo_root: &str) -> Result<PsConfig, GetConfigError> {
+pub fn get_config(repo_root: &str, repo_gitdir: &str) -> Result<PsConfig, GetConfigError> {
     // get the three different configs or their defaults
     let user_level_config_path =
         paths::user_level_config_path().map_err(GetConfigError::FailedToGetUserLevelConfigPath)?;
     let user_level_config = read_config_dto_or_default(&user_level_config_path)
         .map_err(GetConfigError::ReadConfigFailed)?;
 
-    let personal_repo_level_config_path = paths::personal_repository_level_config_path(repo_root);
+    let personal_repo_level_config_path = paths::personal_repository_level_config_path(repo_gitdir);
     let personal_repo_config = read_config_dto_or_default(&personal_repo_level_config_path)
         .map_err(GetConfigError::ReadConfigFailed)?;
 

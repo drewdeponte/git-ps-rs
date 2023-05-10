@@ -23,7 +23,10 @@ pub fn pull(color: bool) -> Result<(), PullError> {
 
     let repo_root_path = paths::repo_root_path(&repo).map_err(PullError::GetRepoRootPathFailed)?;
     let repo_root_str = repo_root_path.to_str().ok_or(PullError::PathNotUtf8)?;
-    let config = config::get_config(repo_root_str).map_err(PullError::GetConfigFailed)?;
+    let repo_gitdir_path = repo.path();
+    let repo_gitdir_str = repo_gitdir_path.to_str().ok_or(PullError::PathNotUtf8)?;
+    let config =
+        config::get_config(repo_root_str, repo_gitdir_str).map_err(PullError::GetConfigFailed)?;
 
     let head_ref = repo
         .head()

@@ -21,7 +21,6 @@ pub enum IsolateError {
     CherryPickFailed,
     FailedToCheckout(utils::ExecuteError),
     GetCurrentBranchFailed,
-    GetIsolateLastBranchPathFailed(paths::PathsError),
     StoreLastBranchFailed(WriteStrToFileError),
     ReadLastBranchFailed(ReadStringFromFileError),
     OpenGitConfigFailed(git2::Error),
@@ -44,6 +43,9 @@ pub fn isolate(
     let isolate_branch_name = "ps/tmp/isolate";
     let repo =
         ps::private::git::create_cwd_repo().map_err(IsolateError::OpenGitRepositoryFailed)?;
+
+    let repo_gitdir_path = repo.path();
+    let repo_gitdir_str = repo_gitdir_path.to_str().ok_or(IsolateError::PathNotUtf8)?;
     let config = git2::Config::open_default().map_err(IsolateError::OpenGitConfigFailed)?;
 
     if git::uncommitted_changes_exist(&repo)
@@ -90,8 +92,7 @@ pub fn isolate(
             let checked_out_branch = git::get_current_branch_shorthand(&repo)
                 .ok_or(IsolateError::GetCurrentBranchFailed)?;
             // write currently checked out branch name to disk
-            let path = paths::isolate_last_branch_path(&repo)
-                .map_err(IsolateError::GetIsolateLastBranchPathFailed)?;
+            let path = paths::isolate_last_branch_path(&repo);
             write_str_to_file(checked_out_branch.as_str(), path)
                 .map_err(IsolateError::StoreLastBranchFailed)?;
 
@@ -102,7 +103,7 @@ pub fn isolate(
             let repo_root_path =
                 paths::repo_root_path(&repo).map_err(IsolateError::GetRepoRootPathFailed)?;
             let repo_root_str = repo_root_path.to_str().ok_or(IsolateError::PathNotUtf8)?;
-            match hooks::find_hook(repo_root_str, "isolate_post_checkout") {
+            match hooks::find_hook(repo_root_str, repo_gitdir_str, "isolate_post_checkout") {
                 Ok(hook_path) => {
                     utils::execute(hook_path.to_str().ok_or(IsolateError::PathNotUtf8)?, &[])
                         .map_err(IsolateError::HookExecutionFailed)?
@@ -154,8 +155,7 @@ pub fn isolate(
         }
         None => {
             // read last checked out branch name from disk
-            let path = paths::isolate_last_branch_path(&repo)
-                .map_err(IsolateError::GetIsolateLastBranchPathFailed)?;
+            let path = paths::isolate_last_branch_path(&repo);
             let last_branch =
                 read_str_from_file(path).map_err(IsolateError::ReadLastBranchFailed)?;
 
@@ -174,7 +174,7 @@ pub fn isolate(
                 paths::repo_root_path(&repo).map_err(IsolateError::GetRepoRootPathFailed)?;
             let repo_root_str = repo_root_path.to_str().ok_or(IsolateError::PathNotUtf8)?;
 
-            match hooks::find_hook(repo_root_str, "isolate_post_cleanup") {
+            match hooks::find_hook(repo_root_str, repo_gitdir_str, "isolate_post_cleanup") {
                 Ok(hook_path) => {
                     utils::execute(hook_path.to_str().ok_or(IsolateError::PathNotUtf8)?, &[])
                         .map_err(IsolateError::HookExecutionFailed)?
