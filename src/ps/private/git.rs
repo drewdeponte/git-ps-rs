@@ -35,7 +35,7 @@ use std::str;
 
 #[derive(Debug)]
 pub enum GitError {
-    GitError(git2::Error),
+    Git(git2::Error),
     NotFound,
     TargetNotFound,
     ReferenceNameMissing,
@@ -44,7 +44,7 @@ pub enum GitError {
 
 impl From<git2::Error> for GitError {
     fn from(e: git2::Error) -> Self {
-        Self::GitError(e)
+        Self::Git(e)
     }
 }
 
@@ -138,8 +138,8 @@ pub fn get_current_branch_shorthand(repo: &git2::Repository) -> Option<String> {
 ///
 /// It returns an Ok(Option(last_cherry_picked_commit_oid)) result in the case of success and an
 /// error result of GitError in the case of failure.
-pub fn cherry_pick_no_working_copy_range<'a>(
-    repo: &'a git2::Repository,
+pub fn cherry_pick_no_working_copy_range(
+    repo: &'_ git2::Repository,
     config: &git2::Config,
     root_oid: git2::Oid,
     leaf_oid: git2::Oid,
@@ -279,12 +279,12 @@ pub fn create_commit(
 
 #[derive(Debug)]
 pub enum CreateGpgSignedCommitError {
-    CreateCommitBufferFailed(git2::Error),
-    FromUtf8Failed(str::Utf8Error),
-    GpgSignStringFailed(GpgSignStringError),
-    FindDestinationReferenceFailed(git2::Error),
-    CommitSignedFailed(git2::Error),
-    SetReferenceTargetFailed(git2::Error),
+    CreateCommitBuffer(git2::Error),
+    FromUtf8(str::Utf8Error),
+    GpgSignString(GpgSignStringError),
+    FindDestinationReference(git2::Error),
+    CommitSigned(git2::Error),
+    SetReferenceTarget(git2::Error),
 }
 
 pub fn create_gpg_signed_commit(
@@ -300,58 +300,58 @@ pub fn create_gpg_signed_commit(
     // create commit buffer as a string so that we can sign it
     let commit_buf = repo
         .commit_create_buffer(author, committer, message, tree, parents)
-        .map_err(CreateGpgSignedCommitError::CreateCommitBufferFailed)?;
+        .map_err(CreateGpgSignedCommitError::CreateCommitBuffer)?;
     let commit_as_str = str::from_utf8(&commit_buf)
-        .map_err(CreateGpgSignedCommitError::FromUtf8Failed)?
+        .map_err(CreateGpgSignedCommitError::FromUtf8)?
         .to_string();
 
     // create digital signature from commit buf
     let sig = gpg_sign_string(commit_as_str.clone(), signing_key)
-        .map_err(CreateGpgSignedCommitError::GpgSignStringFailed)?;
+        .map_err(CreateGpgSignedCommitError::GpgSignString)?;
 
     // lookup the given reference
     let mut destination_ref = repo
         .find_reference(dest_ref_name)
-        .map_err(CreateGpgSignedCommitError::FindDestinationReferenceFailed)?;
+        .map_err(CreateGpgSignedCommitError::FindDestinationReference)?;
 
     let new_commit_oid = repo
         .commit_signed(&commit_as_str, &sig, Some("gpgsig"))
-        .map_err(CreateGpgSignedCommitError::CommitSignedFailed)?;
+        .map_err(CreateGpgSignedCommitError::CommitSigned)?;
 
     // set the ref target
     destination_ref
         .set_target(new_commit_oid, "create commit signed commit")
-        .map_err(CreateGpgSignedCommitError::SetReferenceTargetFailed)?;
+        .map_err(CreateGpgSignedCommitError::SetReferenceTarget)?;
 
     Ok(new_commit_oid)
 }
 
 #[derive(Debug)]
 pub enum GpgSignStringError {
-    GetGpgContextFailed,
-    GetSecretKeyFailed,
-    AddSignerFailed,
-    CreateDetachedSignatureFailed,
-    FromUtf8Failed(std::string::FromUtf8Error),
+    GetGpgContext,
+    GetSecretKey,
+    AddSigner,
+    CreateDetachedSignature,
+    FromUtf8(std::string::FromUtf8Error),
 }
 
 pub fn gpg_sign_string(commit: String, signing_key: String) -> Result<String, GpgSignStringError> {
     let mut ctx = gpgme::Context::from_protocol(gpgme::Protocol::OpenPgp)
-        .map_err(|_| GpgSignStringError::GetGpgContextFailed)?;
+        .map_err(|_| GpgSignStringError::GetGpgContext)?;
     ctx.set_armor(true);
     let key = ctx
         .get_secret_key(signing_key)
-        .map_err(|_| GpgSignStringError::GetSecretKeyFailed)?;
+        .map_err(|_| GpgSignStringError::GetSecretKey)?;
 
     ctx.add_signer(&key)
-        .map_err(|_| GpgSignStringError::AddSignerFailed)?;
+        .map_err(|_| GpgSignStringError::AddSigner)?;
     let mut output = Vec::new();
     ctx.sign_detached(commit, &mut output)
-        .map_err(|_| GpgSignStringError::CreateDetachedSignatureFailed)?;
+        .map_err(|_| GpgSignStringError::CreateDetachedSignature)?;
 
     String::from_utf8(output)
         .map(|s| s.trim().to_string())
-        .map_err(GpgSignStringError::FromUtf8Failed)
+        .map_err(GpgSignStringError::FromUtf8)
 }
 
 #[derive(Debug)]
@@ -456,8 +456,8 @@ pub fn cherry_pick_no_working_copy<'a>(
     Ok(new_commit_oid)
 }
 
-pub fn cherry_pick_no_working_copy_amend_message<'a>(
-    repo: &'a git2::Repository,
+pub fn cherry_pick_no_working_copy_amend_message(
+    repo: &'_ git2::Repository,
     config: &git2::Config,
     oid: git2::Oid,
     dest_ref_name: &str,
@@ -609,9 +609,9 @@ pub fn commit_diff_patch_id(
 
 #[derive(Debug)]
 pub enum CommonAncestorError {
-    MergeBaseFailed(git2::Error),
-    FindCommitFailed(git2::Error),
-    GetParentZeroFailed(git2::Error),
+    MergeBase(git2::Error),
+    FindCommit(git2::Error),
+    GetParentZero(git2::Error),
 }
 
 pub fn common_ancestor(
@@ -621,7 +621,7 @@ pub fn common_ancestor(
 ) -> Result<git2::Oid, CommonAncestorError> {
     let merge_base_oid = repo
         .merge_base(one, two)
-        .map_err(CommonAncestorError::MergeBaseFailed)?;
+        .map_err(CommonAncestorError::MergeBase)?;
     Ok(merge_base_oid)
 }
 
@@ -736,8 +736,8 @@ pub fn read_hashed_object(
 ///
 /// It returns an Ok(Option(last_cherry_picked_commit_oid)) result in the case of success and an
 /// error result of GitError in the case of failure.
-pub fn cherry_pick<'a>(
-    repo: &'a git2::Repository,
+pub fn cherry_pick(
+    repo: &'_ git2::Repository,
     config: &git2::Config,
     root_oid: git2::Oid,
     leaf_oid: Option<git2::Oid>,

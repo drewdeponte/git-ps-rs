@@ -170,7 +170,7 @@ impl From<git::GitError> for AddPsIdError {
     fn from(e: git::GitError) -> Self {
         match e {
             git::GitError::NotFound => AddPsIdError::UpstreamBranchNotFound,
-            git::GitError::GitError(err) => AddPsIdError::GitError(err),
+            git::GitError::Git(err) => AddPsIdError::GitError(err),
             git::GitError::TargetNotFound => AddPsIdError::TargetNotFound,
             git::GitError::ReferenceNameMissing => AddPsIdError::ReferenceNameMissing,
             git::GitError::CommitMessageMissing => AddPsIdError::CommitMessageMissing,

@@ -15,19 +15,19 @@ pub struct GitHubRelease {
 
 #[derive(Debug)]
 pub enum LatestGitHubReleaseError {
-    CallFailed(ureq::Error),
-    IntoStringFailed(std::io::Error),
-    DeserializeJsonFailed(serde_json::Error),
+    Call(Box<ureq::Error>),
+    IntoString(std::io::Error),
+    DeserializeJson(serde_json::Error),
 }
 
 impl fmt::Display for LatestGitHubReleaseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::CallFailed(e) => write!(f, "request failed - {}", e),
-            Self::IntoStringFailed(e) => {
+            Self::Call(e) => write!(f, "request failed - {}", e),
+            Self::IntoString(e) => {
                 write!(f, "failed to convert Response to a string - {}", e)
             }
-            Self::DeserializeJsonFailed(e) => {
+            Self::DeserializeJson(e) => {
                 write!(f, "failed to deserialize JSON response - {}", e)
             }
         }
@@ -48,30 +48,30 @@ pub fn latest_github_release(
     .set("Accept", "application/vnd.github.v3+json")
     .timeout(Duration::from_secs(1))
     .call()
-    .map_err(LatestGitHubReleaseError::CallFailed)?
+    .map_err(|e| LatestGitHubReleaseError::Call(Box::new(e)))?
     .into_string()
-    .map_err(LatestGitHubReleaseError::IntoStringFailed)?;
+    .map_err(LatestGitHubReleaseError::IntoString)?;
 
     let release_dto: GitHubRelease =
-        serde_json::from_str(&body).map_err(LatestGitHubReleaseError::DeserializeJsonFailed)?;
+        serde_json::from_str(&body).map_err(LatestGitHubReleaseError::DeserializeJson)?;
     Ok(release_dto)
 }
 
 #[derive(Debug)]
 pub enum NewerReleaseAvailableError {
-    LatestGithubReleaseFailed(LatestGitHubReleaseError),
-    ParseLatestVersionFailed,
-    ParseCurrentVersionFailed,
+    LatestGithubRelease(LatestGitHubReleaseError),
+    ParseLatestVersion,
+    ParseCurrentVersion,
 }
 
 impl fmt::Display for NewerReleaseAvailableError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::LatestGithubReleaseFailed(latest_github_release_error) => {
+            Self::LatestGithubRelease(latest_github_release_error) => {
                 write!(f, "{}", latest_github_release_error)
             }
-            Self::ParseLatestVersionFailed => write!(f, "failed to parse newer version from tag"),
-            Self::ParseCurrentVersionFailed => {
+            Self::ParseLatestVersion => write!(f, "failed to parse newer version from tag"),
+            Self::ParseCurrentVersion => {
                 write!(f, "failed to parse current version from CAGO_PKG_VERSION")
             }
         }
@@ -80,11 +80,11 @@ impl fmt::Display for NewerReleaseAvailableError {
 
 pub fn newer_release_available() -> Result<Option<GitHubRelease>, NewerReleaseAvailableError> {
     let latest_release = latest_github_release("uptech", "git-ps-rs")
-        .map_err(NewerReleaseAvailableError::LatestGithubReleaseFailed)?;
+        .map_err(NewerReleaseAvailableError::LatestGithubRelease)?;
     let latest_version = Version::from(&latest_release.tag_name)
-        .ok_or(NewerReleaseAvailableError::ParseLatestVersionFailed)?;
+        .ok_or(NewerReleaseAvailableError::ParseLatestVersion)?;
     let current_version = Version::from(env!("CARGO_PKG_VERSION"))
-        .ok_or(NewerReleaseAvailableError::ParseCurrentVersionFailed)?;
+        .ok_or(NewerReleaseAvailableError::ParseCurrentVersion)?;
     if latest_version > current_version {
         Ok(Some(latest_release))
     } else {
