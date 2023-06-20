@@ -34,6 +34,8 @@ pub enum RequestReviewError {
     FindRemoteRequestReviewBranchFailed(git2::Error),
     GetRemoteCommitFailed(git2::Error),
     RemoteCommitDiffPatchIdFailed(git::CommitDiffPatchIdError),
+    FindRemoteFailed(git2::Error),
+    RemoteUrlNotUtf8,
 }
 
 impl From<hooks::FindHookError> for RequestReviewError {
@@ -100,6 +102,10 @@ impl fmt::Display for RequestReviewError {
             Self::RemoteCommitDiffPatchIdFailed(e) => {
                 write!(f, "Failed to get remote commit's diff patch id - {:?}", e)
             }
+            Self::RemoteUrlNotUtf8 => write!(f, "Failed to process remote url as it is NOT utf8"),
+            Self::FindRemoteFailed(e) => {
+                write!(f, "Failed to find remote - {:?}", e)
+            }
         }
     }
 }
@@ -153,6 +159,13 @@ pub fn request_review(
     let remote_name = repo
         .branch_remote_name(&branch_upstream_name)
         .map_err(|_| RequestReviewError::GetRemoteNameFailed)?;
+    let remote_name_str = remote_name
+        .as_str()
+        .ok_or(RequestReviewError::BranchNameNotUtf8)?;
+    let remote = repo
+        .find_remote(remote_name_str)
+        .map_err(RequestReviewError::FindRemoteFailed)?;
+    let remote_url_str = remote.url().ok_or(RequestReviewError::RemoteUrlNotUtf8)?;
 
     let pattern = format!(
         "refs/remotes/{}/",
@@ -162,9 +175,6 @@ pub fn request_review(
     );
     let upstream_branch_shorthand = str::replace(&branch_upstream_name, pattern.as_str(), "");
 
-    let remote_name_str = remote_name
-        .as_str()
-        .ok_or(RequestReviewError::BranchNameNotUtf8)?;
     let remote_rr_branch = repo
         .find_branch(
             format!("{}/{}", remote_name_str, created_branch_name).as_str(),
@@ -185,6 +195,8 @@ pub fn request_review(
             rerequesting_review(&patch_meta_data),
             &created_branch_name,
             &upstream_branch_shorthand,
+            &remote_name_str,
+            &remote_url_str,
         ],
     )
     .map_err(RequestReviewError::HookExecutionFailed)?;
