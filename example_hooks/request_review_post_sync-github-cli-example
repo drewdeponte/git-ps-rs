@@ -17,9 +17,11 @@
 re_requesting_review=$1 # string of "true" or "false"
 branch_to_integrate=$2 # string of the branch name to integrate (e.g. ps/rr/your-patches-branch-name)
 branch_to_integrate_into=$3 # string of the branch name to integrate into (e.g. main)
+remote_name=$4 # string of the remote name (e.g. origin)
+remote_url=$5 # string of the remote url
 
 if [ "$re_requesting_review" != "true" ]; then
-	gh pr create --fill --base "$branch_to_integrate_into" --head "$branch_to_integrate"
+	gh pr create --fill --base "$branch_to_integrate_into" --head "$branch_to_integrate" -R "$remote_url"
 fi
 
 # Note: In the case where $re_requesting_review is true we don't want to do

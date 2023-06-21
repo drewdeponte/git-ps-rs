@@ -18,11 +18,13 @@
 re_requesting_review=$1 # string of "true" or "false"
 branch_to_integrate=$2 # string of the branch name to integrate (e.g. ps/rr/your-patches-branch-name)
 branch_to_integrate_into=$3 # string of the branch name to integrate into (e.g. main)
+remote_name=$4 # string of the remote name (e.g. origin)
+remote_url=$5 # string of the remote url
 
 # If true then open the PR to view it online else create it
 if [ "$re_requesting_review" == "true" ]; then
-  gh pr view "$branch_to_integrate" --web 
+  gh pr view "$branch_to_integrate" --web  -R "$remote_url"
 else
   # Consider using the reviewer flag on a project level hook if you have teams like @dev ie: --reviewer @dev
-  gh pr create --assignee @me --fill --web --base "$branch_to_integrate_into" --head "$branch_to_integrate"
+  gh pr create --assignee @me --fill --web --base "$branch_to_integrate_into" --head "$branch_to_integrate" -R "$remote_url"
 fi
