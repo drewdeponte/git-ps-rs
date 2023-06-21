@@ -33,6 +33,12 @@ pub enum IsolateError {
     FindIsolateBranchFailed(git2::Error),
     DeleteIsolateBranchFailed(git2::Error),
     FailedToMapIndexesForCherryPick(cherry_picking::MapRangeForCherryPickError),
+    CurrentBranchNameMissing,
+    GetUpstreamBranchNameFailed,
+    GetRemoteNameFailed,
+    RemoteNameNotUtf8,
+    FindRemoteFailed(git2::Error),
+    RemoteUrlNotUtf8,
 }
 
 pub fn isolate(
@@ -96,6 +102,21 @@ pub fn isolate(
             write_str_to_file(checked_out_branch.as_str(), path)
                 .map_err(IsolateError::StoreLastBranchFailed)?;
 
+            let cur_branch_name =
+                git::get_current_branch(&repo).ok_or(IsolateError::CurrentBranchNameMissing)?;
+            let branch_upstream_name = git::branch_upstream_name(&repo, cur_branch_name.as_str())
+                .map_err(|_| IsolateError::GetUpstreamBranchNameFailed)?;
+            let remote_name = repo
+                .branch_remote_name(&branch_upstream_name)
+                .map_err(|_| IsolateError::GetRemoteNameFailed)?;
+            let remote_name_str = remote_name
+                .as_str()
+                .ok_or(IsolateError::RemoteNameNotUtf8)?;
+            let remote = repo
+                .find_remote(remote_name_str)
+                .map_err(IsolateError::FindRemoteFailed)?;
+            let remote_url_str = remote.url().ok_or(IsolateError::RemoteUrlNotUtf8)?;
+
             // checkout the ps/tmp/checkout branch
             utils::execute("git", &["checkout", isolate_branch_name])
                 .map_err(IsolateError::FailedToCheckout)?;
@@ -104,10 +125,11 @@ pub fn isolate(
                 paths::repo_root_path(&repo).map_err(IsolateError::GetRepoRootPathFailed)?;
             let repo_root_str = repo_root_path.to_str().ok_or(IsolateError::PathNotUtf8)?;
             match hooks::find_hook(repo_root_str, repo_gitdir_str, "isolate_post_checkout") {
-                Ok(hook_path) => {
-                    utils::execute(hook_path.to_str().ok_or(IsolateError::PathNotUtf8)?, &[])
-                        .map_err(IsolateError::HookExecutionFailed)?
-                }
+                Ok(hook_path) => utils::execute(
+                    hook_path.to_str().ok_or(IsolateError::PathNotUtf8)?,
+                    &[remote_name_str, remote_url_str],
+                )
+                .map_err(IsolateError::HookExecutionFailed)?,
                 Err(hooks::FindHookError::NotFound) => utils::print_warn(
                     color,
                     r#"
