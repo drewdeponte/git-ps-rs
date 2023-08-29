@@ -86,6 +86,24 @@ pub fn integrate(
         .map_err(IntegrateError::GetConfigFailed)?;
 
     if force {
+        if config.integrate.prompt_for_reassurance {
+            match show::show(patch_index) {
+                Err(show::ShowError::ExitSignal(13)) => utils::print_warn(
+                    color,
+                    r#"
+  Warning: showing the patch exited with a SIGPIPE. This is likely because you
+  exited the pager (e.g. less) without going to the last page.
+
+  See https://github.com/uptech/git-ps-rs/issues/120 for details on why this
+  happens.
+"#,
+                ),
+                Err(e) => return Err(IntegrateError::ShowFailed(e)),
+                Ok(_) => (),
+            }
+            get_verification().map_err(IntegrateError::UserVerificationFailed)?;
+        }
+
         // fetch so we get new remote state
         git::ext_fetch().map_err(IntegrateError::FetchFailed)?;
 
