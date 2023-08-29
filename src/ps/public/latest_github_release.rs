@@ -92,6 +92,7 @@ pub fn newer_release_available() -> Result<Option<GitHubRelease>, NewerReleaseAv
     }
 }
 
+#[cfg(not(target_os = "macos"))]
 pub fn notify_of_newer_release(newer_release: Option<GitHubRelease>, color: bool) {
     if let Some(latest_release) = newer_release {
         utils::print_warn(
@@ -101,6 +102,26 @@ pub fn notify_of_newer_release(newer_release: Option<GitHubRelease>, color: bool
   A new release of gps is available!
 
   {} - {}
+"#,
+                latest_release.tag_name, latest_release.html_url
+            )
+            .as_str(),
+        )
+    }
+}
+
+#[cfg(target_os = "macos")]
+pub fn notify_of_newer_release(newer_release: Option<GitHubRelease>, color: bool) {
+    if let Some(latest_release) = newer_release {
+        utils::print_warn(
+            color,
+            format!(
+                r#"
+  A new release of gps is available!
+
+  {} - {}
+
+  To upgrade, run: brew update && brew upgrade git-ps-rs
 "#,
                 latest_release.tag_name, latest_release.html_url
             )
