@@ -250,8 +250,8 @@ remote with newly rebased patch.
     /// If you have the `isolate_post_checkout` hook setup then that will be executed after
     /// successfully checking out the branch.
     ///
-    /// When you are done manually testing or evaluating the patch in isolation you can return to
-    /// the stack that you were on when you switched into isolation mode by running `gps iso`.
+    /// When you are done manually testing or evaluating the patch(es) in isolation you can return
+    /// to the stack that you were on when you switched into isolation mode by running `gps iso`.
     #[structopt(name = "isolate", alias = "iso")]
     Isolate(IsolateCmdOpts),
     /// (co) - Checkout the patch identified by the patch-index, leaving you
