@@ -104,7 +104,7 @@ pub fn list(color: bool) -> Result<(), ListError> {
             row.add_cell(Some(hook_stdout_len), Some(Blue), hook_stdout);
         }
 
-        row.add_cell(Some(6), Some(Yellow), patch.oid);
+        row.add_cell(Some(7), Some(Yellow), patch.oid);
         row.add_cell(None, None, patch.summary);
 
         println!("{}", row)
