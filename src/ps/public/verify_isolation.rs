@@ -1,5 +1,5 @@
-use super::super::public::isolate;
-use super::super::public::isolate::IsolateError;
+use super::isolate;
+use super::isolate::IsolateError;
 use std::result::Result;
 
 #[derive(Debug)]

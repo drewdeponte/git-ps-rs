@@ -6,9 +6,9 @@ use super::super::private::hooks;
 use super::super::private::paths;
 use super::super::private::state_management;
 use super::super::private::utils;
-use super::super::private::verify_isolation;
 use super::super::public::pull;
 use super::super::public::show;
+use super::verify_isolation;
 use uuid::Uuid;
 
 #[derive(Debug)]

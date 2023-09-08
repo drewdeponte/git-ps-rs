@@ -58,6 +58,19 @@ pub fn request_review(patch_index: usize, branch_name: Option<String>, color: bo
             print_err(color, &msg);
             std::process::exit(1);
         }
+        Err(ps::RequestReviewError::IsolationVerificationFailed(
+            ps::VerifyIsolationError::IsolateFailed(ps::IsolateError::UncommittedChangesExist),
+        )) => {
+            print_err(
+                color,
+                r#"
+  gps request-review command requires a clean working directory when verifying isolation, but it looks like yours is dirty.
+
+  It is recommended that you create a WIP commit. But, you could also use git stash if you prefer.
+        "#,
+            );
+            std::process::exit(1);
+        }
         Err(e) => {
             print_err(color, format!("\nError: {}\n", e).as_str());
             std::process::exit(1);

@@ -20,3 +20,4 @@ pub mod status;
 pub mod sync;
 pub mod unstage;
 pub mod upstream_patches;
+pub mod verify_isolation;

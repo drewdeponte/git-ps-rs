@@ -3,7 +3,7 @@ use super::super::private::cherry_picking;
 use super::super::private::config;
 use super::super::private::git;
 use super::super::private::paths;
-use super::super::private::verify_isolation;
+use super::verify_isolation;
 use git2;
 use std::result::Result;
 

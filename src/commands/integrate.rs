@@ -24,6 +24,19 @@ pub fn integrate(
             );
             std::process::exit(1);
         }
+        Err(ps::integrate::IntegrateError::IsolationVerificationFailed(
+            ps::VerifyIsolationError::IsolateFailed(ps::IsolateError::UncommittedChangesExist),
+        )) => {
+            print_err(
+                color,
+                r#"
+  gps integrate command requires a clean working directory when verifying isolation, but it looks like yours is dirty.
+
+  It is recommended that you create a WIP commit. But, you could also use git stash if you prefer.
+        "#,
+            );
+            std::process::exit(1);
+        }
         Err(e) => {
             print_err(color, format!("\nError: {:?}\n", e).as_str());
             std::process::exit(1);
