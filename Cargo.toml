@@ -1,6 +1,6 @@
 [package]
 name = "gps"
-version = "6.8.0"
+version = "6.9.0"
 edition = "2018"
 license-file = "LICENSE"
 description = "Official CLI & library for Git Patch Stack"
