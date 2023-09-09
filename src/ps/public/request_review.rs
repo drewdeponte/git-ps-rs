@@ -44,6 +44,7 @@ impl From<hooks::FindHookError> for RequestReviewError {
             hooks::FindHookError::NotFound => Self::PostSyncHookNotFound,
             hooks::FindHookError::NotExecutable(path) => Self::PostSyncHookNotExecutable(path),
             hooks::FindHookError::PathExpandHomeFailed(_) => Self::FindHookFailed(e),
+            hooks::FindHookError::HomeDirNotFound => Self::FindHookFailed(e),
         }
     }
 }

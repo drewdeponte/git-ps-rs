@@ -1,5 +1,4 @@
 use git2;
-use home_dir::{self, HomeDirExt};
 use is_executable::IsExecutable;
 use std::path::{Path, PathBuf};
 
@@ -35,14 +34,16 @@ pub fn personal_repository_level_config_path(repo_gitdir: &str) -> PathBuf {
 
 #[derive(Debug)]
 pub enum UserLevelConfigPathError {
-    PathExpandHomeFailed(home_dir::Error),
+    PathExpandHomeFailed(homedir::GetHomeError),
+    HomeDirNotFound,
 }
 
 pub fn user_level_config_path() -> Result<PathBuf, UserLevelConfigPathError> {
-    let path_string = "~/.config/git-ps/config.toml".to_string();
-    let path = Path::new(path_string.as_str())
-        .expand_home()
-        .map_err(UserLevelConfigPathError::PathExpandHomeFailed)?;
+    let path_string = ".config/git-ps/config.toml".to_string();
+    let mut path = homedir::get_my_home()
+        .map_err(UserLevelConfigPathError::PathExpandHomeFailed)?
+        .ok_or(UserLevelConfigPathError::HomeDirNotFound)?;
+    path.push(path_string);
     Ok(path)
 }
 
