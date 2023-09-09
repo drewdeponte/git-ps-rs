@@ -2,13 +2,12 @@ use super::{
     paths::{self, path_exists_and_is_executable, PathExistsAndIsExecutable},
     utils,
 };
-use home_dir::{self, HomeDirExt};
 use std::{path::PathBuf, process::Output};
 
 #[derive(Debug)]
 pub enum FindHookError {
     NotExecutable(PathBuf),
-    PathExpandHomeFailed(home_dir::Error),
+    PathExpandHomeFailed(homedir::GetHomeError),
     NotFound,
 }
 
@@ -21,9 +20,10 @@ pub fn find_hook(
         [repo_root, ".git-ps", "hooks", filename].iter().collect();
     let repository_level_hook_pathbuf: PathBuf =
         [repo_gitdir, "git-ps", "hooks", filename].iter().collect();
-    let mut user_level_hook_pathbuf = "~"
-        .expand_home()
-        .map_err(FindHookError::PathExpandHomeFailed)?;
+    let mut user_level_hook_pathbuf:PathBuf = 
+        homedir::get_my_home()
+        .map_err(FindHookError::PathExpandHomeFailed)?
+        .unwrap(); 
     user_level_hook_pathbuf.push(".config");
     user_level_hook_pathbuf.push("git-ps");
     user_level_hook_pathbuf.push("hooks");

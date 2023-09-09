@@ -22,15 +22,12 @@ structopt = "0.3.26"
 regex = "1.5.6"
 lazy_static = "1.4.0"
 is_executable = "1.0.1"
-home-dir = "0.1.0"
+homedir = "0.2.1"
 gpgme = "0.11.0"
 toml = "0.5.9"
 ansi_term = "0.12.1"
 ureq = "2.4.0"
 version-compare = "0.1.0"
-
-[patch.crates-io]
-home-dir = { git = 'https://github.com/uptech/home-dir', branch = 'upgrade-nix-dependency-to-latest' }
 
 [dev-dependencies]
 tempfile = "3.3.0"
