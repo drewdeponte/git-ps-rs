@@ -8,13 +8,20 @@ name: Test
 
 jobs:
   test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
     name: Test
     env:
       PROJECT_NAME_UNDERSCORE: git_ps_ci_github_actions_workflow
       CARGO_INCREMENTAL: 0
       # RUSTFLAGS: -Zprofile -Ccodegen-units=1 -Copt-level=0 -Clink-dead-code -Coverflow-checks=off -Zpanic_abort_tests -Cpanic=abort
       # RUSTDOCFLAGS: -Cpanic=abort
-    runs-on: ubuntu-latest
+    runs-on: ${{matrix.os}}
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
@@ -35,9 +42,17 @@ jobs:
             ~/.cargo/registry/cache
             target
           key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('Cargo.lock') }}
-      - name: Install GPGME
+      - name: Install GPGME (unix)
+        if : ${{ matrix.os != 'windows-latest' }}
+        run: sudo apt-get install -y libgpgme-dev
+      - name: Install GPGME (windows)
+        if: ${{ false }}
+        # if : ${{ matrix.os == 'windows-latest' }}
+        env:
+          GNUPG_VERSION: 2.3.8_20221013 
         run: |
-          sudo apt-get install -y libgpgme-dev
+          curl "https://gnupg.org/ftp/gcrypt/binary/gnupg-w32-${GNUPG_VERSION}.exe" --output gnupg.exe
+          ./gnupg.exe
       - name: Run Tests
         run: |
           cargo test
