@@ -3,7 +3,7 @@ use std::io;
 use std::os::unix::process::ExitStatusExt;
 #[cfg(target_family = "windows")]
 use std::os::windows::process::ExitStatusExt;
-use std::process::{Command, Output};
+use std::process::{Command, ExitStatus, Output};
 use std::result::Result;
 
 #[derive(Debug)]
@@ -13,6 +13,19 @@ pub enum ExecuteError {
     ExitStatus(i32),
     ExitSignal(i32),
     ExitMissingSignal, // triggered when we understand exit to be triggered by signal but no signal found
+}
+
+#[cfg(target_family = "unix")]
+fn handle_error_no_code(status: ExitStatus) -> ExecuteError {
+    match status.signal() {
+        Some(signal) => ExecuteError::ExitSignal(signal),
+        None => ExecuteError::ExitMissingSignal,
+    }
+}
+
+#[cfg(target_family = "windows")]
+fn handle_error_no_code(_: ExitStatus) -> ExecuteError {
+    return ExecuteError::ExitMissingSignal;
 }
 
 /// Execute an external command in the foreground allowing it to take over the
@@ -27,13 +40,10 @@ pub fn execute(exe: &str, args: &[&str]) -> Result<(), ExecuteError> {
                 if status.success() {
                     Ok(())
                 } else {
-                    match status.code() {
-                        Some(code) => Err(ExecuteError::ExitStatus(code)),
-                        None => match status.signal() {
-                            Some(signal) => Err(ExecuteError::ExitSignal(signal)),
-                            None => Err(ExecuteError::ExitMissingSignal),
-                        },
-                    }
+                    Err(match status.code() {
+                        Some(code) => ExecuteError::ExitStatus(code),
+                        None => handle_error_no_code(status),
+                    })
                 }
             }
         },
