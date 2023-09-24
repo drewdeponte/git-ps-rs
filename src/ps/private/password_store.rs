@@ -76,9 +76,6 @@ pub fn set_ssh_key_password(key_path: &str, password: &str) -> Result<(), SetSsh
 }
 
 #[cfg(not(target_os = "macos"))]
-pub fn set_ssh_key_password(
-    key_path: &str,
-    password: &str,
-) -> Result<(), StoreSshKeyPasswordError> {
+pub fn set_ssh_key_password(key_path: &str, password: &str) -> Result<(), SetSshKeyPasswordError> {
     Ok(())
 }
