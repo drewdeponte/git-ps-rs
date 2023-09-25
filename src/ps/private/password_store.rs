@@ -1,10 +1,8 @@
-#[cfg(target_os = "macos")]
-use security_framework::passwords;
+use keyring::{Entry, Result};
 
 #[derive(Debug)]
 pub enum GetSshKeyPasswordError {
     Unknown(Box<dyn std::error::Error>),
-    PasswordNotUtf8(std::string::FromUtf8Error),
 }
 
 const SSH_KEY_PASSWORD_KEYCHAIN_SERVICE: &str =
@@ -18,34 +16,28 @@ impl std::fmt::Display for GetSshKeyPasswordError {
                 "Unknown error attempting to get SSH key password: {:?}",
                 *e
             ),
-            GetSshKeyPasswordError::PasswordNotUtf8(e) => {
-                write!(f, "Obtained password was not utf8: {:?}", e)
-            }
         }
     }
 }
 
 impl std::error::Error for GetSshKeyPasswordError {}
 
-#[cfg(target_os = "macos")]
-pub fn get_ssh_key_password(key_path: &str) -> Result<Option<String>, GetSshKeyPasswordError> {
-    match passwords::get_generic_password(SSH_KEY_PASSWORD_KEYCHAIN_SERVICE, key_path) {
-        Ok(pw_bytes) => String::from_utf8(pw_bytes)
-            .map(Some)
-            .map_err(GetSshKeyPasswordError::PasswordNotUtf8),
-        Err(e) => {
-            if e.code() == security_framework_sys::base::errSecItemNotFound {
-                Ok(None)
-            } else {
-                Err(GetSshKeyPasswordError::Unknown(Box::new(e)))
-            }
-        }
-    }
+fn keyring_entry(key_path: &str) -> Result<Entry> {
+    Entry::new(SSH_KEY_PASSWORD_KEYCHAIN_SERVICE, key_path)
 }
 
-#[cfg(not(target_os = "macos"))]
-pub fn get_ssh_key_password(key_path: &str) -> Result<Option<String>, GetSshKeyPasswordError> {
-    Ok(None)
+pub fn get_ssh_key_password(
+    key_path: &str,
+) -> std::result::Result<Option<String>, GetSshKeyPasswordError> {
+    match keyring_entry(key_path) {
+        Ok(entry) => match entry.get_password() {
+            Ok(v) => Ok(Some(v)),
+            Err(keyring::Error::NoEntry) => Ok(None),
+            Err(e) => Err(GetSshKeyPasswordError::Unknown(Box::new(e))),
+        },
+        Err(keyring::error::Error::NoEntry) => Ok(None),
+        Err(e) => Err(GetSshKeyPasswordError::Unknown(Box::new(e))),
+    }
 }
 
 #[derive(Debug)]
@@ -65,17 +57,14 @@ impl std::fmt::Display for SetSshKeyPasswordError {
 
 impl std::error::Error for SetSshKeyPasswordError {}
 
-#[cfg(target_os = "macos")]
-pub fn set_ssh_key_password(key_path: &str, password: &str) -> Result<(), SetSshKeyPasswordError> {
-    passwords::set_generic_password(
-        SSH_KEY_PASSWORD_KEYCHAIN_SERVICE,
-        key_path,
-        password.as_bytes(),
-    )
-    .map_err(|e| SetSshKeyPasswordError::Unknown(Box::new(e)))
-}
-
-#[cfg(not(target_os = "macos"))]
-pub fn set_ssh_key_password(key_path: &str, password: &str) -> Result<(), SetSshKeyPasswordError> {
-    Ok(())
+pub fn set_ssh_key_password(
+    key_path: &str,
+    password: &str,
+) -> std::result::Result<(), SetSshKeyPasswordError> {
+    match keyring_entry(key_path) {
+        Ok(entry) => entry
+            .set_password(password)
+            .map_err(|e| SetSshKeyPasswordError::Unknown(Box::new(e))),
+        Err(e) => Err(SetSshKeyPasswordError::Unknown(Box::new(e))),
+    }
 }
