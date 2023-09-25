@@ -30,10 +30,7 @@ ureq = "2.4.0"
 version-compare = "0.1.0"
 ssh-key = { version = "0.6.1", features = ["alloc", "encryption", "ed25519", "rsa"] }
 rpassword = "7.2.0"
-
-[target.'cfg(target_os = "macos")'.dependencies]
-security-framework = "2.9.2"
-security-framework-sys = "2.9.1"
+keyring = "2"
 
 [dev-dependencies]
 tempfile = "3.3.0"
