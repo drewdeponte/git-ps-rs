@@ -2,7 +2,6 @@ use git2;
 use is_executable::IsExecutable;
 use std::path::{Path, PathBuf};
 
-const PATCH_STATES_RELATIVE_PATH: &str = "GIT-PATCH-STACK-PATCH-STATES-V3.json";
 const ISOLATE_LAST_BRANCH_RELATIVE_PATH: &str = "GIT-PATCH-STACK-ISOLATE-LAST-BRANCH";
 
 #[derive(Debug)]
@@ -12,10 +11,6 @@ pub enum PathsError {
 
 pub fn repo_root_path(repo: &git2::Repository) -> Result<&Path, PathsError> {
     repo.workdir().ok_or(PathsError::RepoWorkDirNotFound)
-}
-
-pub fn patch_states_path(repo: &git2::Repository) -> PathBuf {
-    repo.path().join(PATCH_STATES_RELATIVE_PATH)
 }
 
 pub fn isolate_last_branch_path(repo: &git2::Repository) -> PathBuf {
