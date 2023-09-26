@@ -1,7 +1,8 @@
 use super::super::super::ps;
 use super::super::private::git;
-use super::super::private::state_management;
+use super::super::private::state_computation;
 use super::paths;
+use std::collections::HashMap;
 use std::fmt;
 use std::result::Result;
 use uuid::Uuid;
@@ -21,10 +22,11 @@ pub enum RequestReviewBranchError {
     CherryPickFailed(git::GitError),
     GetPatchListFailed(ps::GetPatchListError),
     GetPatchMetaDataPathFailed(paths::PathsError),
-    ReadPatchMetaDataFailed(state_management::ReadPatchStatesError),
-    WritePatchMetaDataFailed(state_management::WritePatchStatesError),
     OpenGitConfigFailed(git2::Error),
     PatchCommitDiffPatchIdFailed(git::CommitDiffPatchIdError),
+    PatchStackHeadNoName,
+    GetListPatchInfoFailed(state_computation::GetListPatchInfoError),
+    PatchBranchAmbiguous,
 }
 
 impl From<git::CreateCwdRepositoryError> for RequestReviewBranchError {
@@ -89,25 +91,23 @@ impl fmt::Display for RequestReviewBranchError {
                     _patch_meta_data_path_error
                 )
             }
-            RequestReviewBranchError::ReadPatchMetaDataFailed(_read_patch_meta_data_error) => {
-                write!(
-                    f,
-                    "Failed to read patch meta data {:?}",
-                    _read_patch_meta_data_error
-                )
-            }
-            RequestReviewBranchError::WritePatchMetaDataFailed(_write_patch_meta_data_error) => {
-                write!(
-                    f,
-                    "Failed to write patch meta data {:?}",
-                    _write_patch_meta_data_error
-                )
-            }
             RequestReviewBranchError::OpenGitConfigFailed(_) => {
                 write!(f, "Failed to open git config")
             }
             RequestReviewBranchError::PatchCommitDiffPatchIdFailed(_) => {
                 write!(f, "Failed to get commit diff patch id")
+            }
+            RequestReviewBranchError::PatchStackHeadNoName => {
+                write!(f, "Patch Stack Head has no name")
+            }
+            RequestReviewBranchError::GetListPatchInfoFailed(_get_list_patch_info_error) => {
+                write!(f, "Failed to get list of patch Git info")
+            }
+            RequestReviewBranchError::PatchBranchAmbiguous => {
+                write!(
+                    f,
+                    "Patch Branch is Ambiguous - more than one branch associated with patch"
+                )
             }
         }
     }
@@ -123,10 +123,6 @@ pub fn request_review_branch(
 
     // - find the patch identified by the patch_index
     let patch_stack = ps::get_patch_stack(repo)?;
-    let patch_stack_base_commit = patch_stack
-        .base
-        .peel_to_commit()
-        .map_err(|_| RequestReviewBranchError::PatchStackBaseNotFound)?;
     let patches_vec = ps::get_patch_list(repo, &patch_stack)
         .map_err(RequestReviewBranchError::GetPatchListFailed)?;
     let patch_oid = patches_vec
@@ -136,9 +132,6 @@ pub fn request_review_branch(
     let patch_commit = repo
         .find_commit(patch_oid)
         .map_err(|_| RequestReviewBranchError::PatchCommitNotFound)?;
-    let patch_commit_diff_patch_id = git::commit_diff_patch_id(repo, &patch_commit)
-        .map_err(RequestReviewBranchError::PatchCommitDiffPatchIdFailed)?;
-
     let patch_message = patch_commit
         .message()
         .ok_or(RequestReviewBranchError::PatchMessageMissing)?;
@@ -154,21 +147,41 @@ pub fn request_review_branch(
         new_patch_oid = ps::add_ps_id(repo, &config, patch_oid, ps_id)?;
     }
 
-    // fetch patch meta data given repo and patch_id
-    let patch_meta_data_path = paths::patch_states_path(repo);
-    let mut patch_meta_data = state_management::read_patch_states(&patch_meta_data_path)
-        .map_err(RequestReviewBranchError::ReadPatchMetaDataFailed)?;
-    let branch_name = match patch_meta_data.get(&ps_id) {
-        Some(patch_meta_data) => patch_meta_data.state.branch_name(),
+    // fetch computed state from Git tree
+    let patch_stack_base_commit = patch_stack
+        .base
+        .peel_to_commit()
+        .map_err(|_| RequestReviewBranchError::PatchStackBaseNotFound)?;
+
+    let head_ref_name = patch_stack
+        .head
+        .shorthand()
+        .ok_or(RequestReviewBranchError::PatchStackHeadNoName)?;
+
+    let patch_info_collection: HashMap<Uuid, state_computation::PatchGitInfo> =
+        state_computation::get_list_patch_info(repo, patch_stack_base_commit.id(), head_ref_name)
+            .map_err(RequestReviewBranchError::GetListPatchInfoFailed)?;
+
+    // use provided branch name, or fall back to patch associated branch name, or fall back to
+    // generated branch name
+    let branch_name: String = match patch_info_collection.get(&ps_id) {
+        Some(patch_info) => {
+            if patch_info.branches.len() == 1 {
+                Ok(patch_info.branches.first().unwrap().name.clone())
+            } else {
+                Err(RequestReviewBranchError::PatchBranchAmbiguous)
+            }
+        }
         None => {
             let patch_summary = patch_commit
                 .summary()
                 .ok_or(RequestReviewBranchError::PatchSummaryMissing)?;
             let default_branch_name = ps::generate_rr_branch_name(patch_summary);
-            given_branch_name_option.unwrap_or(default_branch_name)
+            Ok(given_branch_name_option.unwrap_or(default_branch_name))
         }
-    };
+    }?;
 
+    // create branch on top of the patch stack base
     let branch = repo
         .branch(branch_name.as_str(), &patch_stack_base_commit, true)
         .map_err(|_| RequestReviewBranchError::CreateRrBranchFailed)?;
@@ -184,20 +197,6 @@ pub fn request_review_branch(
     let new_commit_oid =
         git::cherry_pick_no_working_copy(repo, &config, new_patch_oid, branch_ref_name, 1)
             .map_err(RequestReviewBranchError::CherryPickFailed)?;
-
-    // record patch state if there is no record
-    if patch_meta_data.get(&ps_id).is_none() {
-        let new_patch_meta_data = state_management::Patch {
-            patch_id: ps_id,
-            state: state_management::PatchState::BranchCreated(
-                branch_name,
-                patch_commit_diff_patch_id.to_string(),
-            ),
-        };
-        patch_meta_data.insert(ps_id, new_patch_meta_data);
-        state_management::write_patch_states(&patch_meta_data_path, &patch_meta_data)
-            .map_err(RequestReviewBranchError::WritePatchMetaDataFailed)?;
-    }
 
     Ok((branch, ps_id, new_commit_oid))
 }
