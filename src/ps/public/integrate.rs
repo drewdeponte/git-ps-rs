@@ -1,14 +1,15 @@
 use super::super::super::ps;
-use super::super::private::commit_is_behind;
 use super::super::private::config;
 use super::super::private::git;
 use super::super::private::hooks;
 use super::super::private::paths;
-use super::super::private::state_management;
+use super::super::private::state_computation;
 use super::super::private::utils;
 use super::super::public::pull;
 use super::super::public::show;
+use super::super::public::sync;
 use super::verify_isolation;
+use std::collections::HashMap;
 use uuid::Uuid;
 
 #[derive(Debug)]
@@ -16,7 +17,6 @@ pub enum IntegrateError {
     RepositoryNotFound,
     FindPatchCommitFailed(ps::FindPatchCommitError),
     CommitPsIdMissing,
-    GetPatchMetaDataFailed(ps::GetPatchMetaDataError),
     PatchMetaDataMissing,
     PatchHasNotBeenPushed,
     CurrentBranchNameMissing,
@@ -34,13 +34,11 @@ pub enum IntegrateError {
     PatchCommitDiffPatchIdFailed(git::CommitDiffPatchIdError),
     PatchesDiffer,
     PushFailed(ps::private::git::ExtForcePushError),
-    UpdatePatchMetaDataFailed(state_management::StorePatchStateError),
     DeleteLocalBranchFailed(git2::Error),
     DeleteRemoteBranchFailed(git::ExtDeleteRemoteBranchError),
     BranchOperationFailed(ps::private::request_review_branch::RequestReviewBranchError),
     GetBranchNameFailed(git2::Error),
     CreatedBranchMissingName,
-    SingularCommitOfBranchError(git::SingularCommitOfBranchError),
     UpdateLocalRequestReviewBranchFailed(
         ps::private::request_review_branch::RequestReviewBranchError,
     ),
@@ -52,12 +50,22 @@ pub enum IntegrateError {
     UserVerificationFailed(GetVerificationError),
     ShowFailed(show::ShowError),
     GetPatchStackFailed(ps::PatchStackError),
-    GetPatchStackBaseTargetFailed,
-    GetCommitIsBehindFailed(commit_is_behind::CommitIsBehindError),
     PatchIsBehind,
     PullFailed(pull::PullError),
     HookExecutionFailed(utils::ExecuteError),
     HookNotFound(hooks::FindHookError),
+    SyncFailed(sync::SyncError),
+    PatchStackBaseNotFound,
+    PatchStackHeadNoName,
+    GetListPatchInfoFailed(state_computation::GetListPatchInfoError),
+    PatchBranchAmbiguous,
+    PatchHasNoAssociatedBranch,
+    PatchBranchNotSingularCommit,
+    PatchHasNoAssociatedUpstreamBranch,
+    PatchUpstreamBranchNotSingularCommit,
+    AssociatedBranchPatchAndUpstreamBranchPatchMismatch,
+    PatchAndAssociatedBranchPatchMismatch,
+    FindAssociatedBranchFailed(git2::Error),
 }
 
 pub fn integrate(
@@ -72,6 +80,7 @@ pub fn integrate(
     // verify that the patch-index has a corresponding commit
     let patch_commit =
         ps::find_patch_commit(&repo, patch_index).map_err(IntegrateError::FindPatchCommitFailed)?;
+
     let patch_commit_diff_patch_id = git::commit_diff_patch_id(&repo, &patch_commit)
         .map_err(IntegrateError::PatchCommitDiffPatchIdFailed)?;
 
@@ -82,10 +91,21 @@ pub fn integrate(
     let repo_gitdir_str = repo_gitdir_path
         .to_str()
         .ok_or(IntegrateError::PathNotUtf8)?;
+
     let config = config::get_config(repo_root_str, repo_gitdir_str)
         .map_err(IntegrateError::GetConfigFailed)?;
 
     if force {
+        // force
+        //  x prompt for reassurance (based on config)
+        //  x fetch to get new remote state
+        //  x create/replace the local request review branch
+        //  x verify isolation (based on config)
+        //  x publish the patch from the local patch branch up to the patch stack uptstream
+        //  x execute the integrate_post_push hook
+        //  x delete local rr branch (based on command line option)
+
+        // prompt for reassurance
         if config.integrate.prompt_for_reassurance {
             match show::show(patch_index) {
                 Err(show::ShowError::ExitSignal(13)) => utils::print_warn(
@@ -107,7 +127,8 @@ pub fn integrate(
         // fetch so we get new remote state
         git::ext_fetch().map_err(IntegrateError::FetchFailed)?;
 
-        let (branch, ps_id, new_commit_oid) =
+        // create/replace the request review branch
+        let (patch_branch, _ps_id, new_commit_oid) =
             ps::private::request_review_branch::request_review_branch(
                 &repo,
                 patch_index,
@@ -115,48 +136,44 @@ pub fn integrate(
             )
             .map_err(IntegrateError::BranchOperationFailed)?;
 
-        // publish the patch from the local rr branch up to uptstream
-        let rr_branch_name = branch
+        let patch_branch_name = patch_branch
             .name()
             .map_err(IntegrateError::GetBranchNameFailed)?
             .ok_or(IntegrateError::CreatedBranchMissingName)?;
 
-        let cur_branch_name =
+        let cur_patch_stack_branch_name =
             git::get_current_branch(&repo).ok_or(IntegrateError::CurrentBranchNameMissing)?;
-        let branch_upstream_name = git::branch_upstream_name(&repo, cur_branch_name.as_str())
-            .map_err(|_| IntegrateError::GetUpstreamBranchNameFailed)?;
-        let remote_name = repo
-            .branch_remote_name(&branch_upstream_name)
+        let cur_patch_stack_branch_upstream_name =
+            git::branch_upstream_name(&repo, cur_patch_stack_branch_name.as_str())
+                .map_err(|_| IntegrateError::GetUpstreamBranchNameFailed)?;
+        let cur_patch_stack_remote_name = repo
+            .branch_remote_name(&cur_patch_stack_branch_upstream_name)
             .map_err(|_| IntegrateError::GetRemoteNameFailed)?;
-        let remote_name_str = remote_name
+        let cur_patch_stack_remote_name_str = cur_patch_stack_remote_name
             .as_str()
             .ok_or(IntegrateError::ConvertStringToStrFailed)?;
 
+        // verify isolation
         if config.integrate.verify_isolation {
             verify_isolation::verify_isolation(patch_index, None, color)
                 .map_err(IntegrateError::IsolationVerificationFailed)?;
         }
 
-        let pattern = format!("refs/remotes/{}/", remote_name_str);
-        let upstream_branch_shorthand = str::replace(&branch_upstream_name, pattern.as_str(), "");
+        let pattern = format!("refs/remotes/{}/", cur_patch_stack_remote_name_str);
+        let cur_patch_stack_upstream_branch_shorthand =
+            str::replace(&cur_patch_stack_branch_upstream_name, pattern.as_str(), "");
+
+        // publish the patch from the local patch branch up to the patch stack uptstream
         // e.g. git push origin ps/rr/whatever-branch:main
         git::ext_push(
             false,
-            remote_name_str,
-            rr_branch_name,
-            &upstream_branch_shorthand,
+            cur_patch_stack_remote_name_str,
+            patch_branch_name,
+            &cur_patch_stack_upstream_branch_shorthand,
         )
         .map_err(IntegrateError::PushFailed)?;
 
-        // update state of the patch to indicate it has been integrated
-        update_state(
-            &repo,
-            remote_name_str.to_string(),
-            rr_branch_name.to_string(),
-            patch_commit_diff_patch_id.to_string(),
-            ps_id,
-        )?;
-
+        // execute the integrate_post_push hook
         match hooks::find_hook(repo_root_str, repo_gitdir_str, "integrate_post_push") {
             Ok(hook_path) => utils::execute(
                 hook_path.to_str().ok_or(IntegrateError::PathNotUtf8)?,
@@ -175,14 +192,28 @@ pub fn integrate(
 
         // clean up the local rr branch
         if !keep_branch {
+            //  - TODO: in the force case, make the delete also delete the remote branch if exists
             let mut local_branch = repo
-                .find_branch(rr_branch_name, git2::BranchType::Local)
+                .find_branch(patch_branch_name, git2::BranchType::Local)
                 .map_err(IntegrateError::DeleteLocalBranchFailed)?;
             local_branch
                 .delete()
                 .map_err(IntegrateError::DeleteLocalBranchFailed)?;
         }
     } else {
+        // non-forced
+        //  x prompt for reassurance (based on config)
+        //  x verify that the commit has a patch stack id
+        //  x fetch to get new remote state
+        //  x make sure that the upstream patch branch has a singular commit
+        //  x verify that the remote rr branche's patche's diff hash matches that of the local patch in the patch stack
+        //  x verify that the patch stack upstream base hasn't left the remote patch behind
+        //  x verify isolation (based on config)
+        //  x publish patch from remote branch up to the patch stack upstream (e.g. git push origin origin/ps/rr/whatever-branch:main)
+        //  x execute the integrate_post_push hook
+        //  x delete local & remote rr branch (based on command line option)
+
+        // prompt for reassurance
         if config.integrate.prompt_for_reassurance {
             match show::show(patch_index) {
                 Err(show::ShowError::ExitSignal(13)) => utils::print_warn(
@@ -204,101 +235,147 @@ pub fn integrate(
         // verify that the commit has a patch stack id
         let ps_id = ps::commit_ps_id(&patch_commit).ok_or(IntegrateError::CommitPsIdMissing)?;
 
-        // verify that the patch has an associated branch and has been synced
-        let patch_meta_data = ps::get_patch_meta_data(&repo, ps_id)
-            .map_err(IntegrateError::GetPatchMetaDataFailed)?
-            .ok_or(IntegrateError::PatchMetaDataMissing)?;
-        if !patch_meta_data.state.has_been_pushed_to_remote() {
-            return Err(IntegrateError::PatchHasNotBeenPushed);
-        }
-
         // fetch so we get new remote state
         git::ext_fetch().map_err(IntegrateError::FetchFailed)?;
 
         let patch_stack =
             ps::get_patch_stack(&repo).map_err(IntegrateError::GetPatchStackFailed)?;
-        let patch_stack_base_oid = patch_stack
+
+        // fetch computed state from Git tree
+        let patch_stack_base_commit = patch_stack
             .base
-            .target()
-            .ok_or(IntegrateError::GetPatchStackBaseTargetFailed)?;
+            .peel_to_commit()
+            .map_err(|_| IntegrateError::PatchStackBaseNotFound)?;
 
-        // TODO: verify that the patch has been requested-review
+        let head_ref_name = patch_stack
+            .head
+            .shorthand()
+            .ok_or(IntegrateError::PatchStackHeadNoName)?;
 
-        // verify remote request-review branch has exactly one commit
-        let rr_branch_name = patch_meta_data.state.branch_name();
+        let patch_info_collection: HashMap<Uuid, state_computation::PatchGitInfo> =
+            state_computation::get_list_patch_info(
+                &repo,
+                patch_stack_base_commit.id(),
+                head_ref_name,
+            )
+            .map_err(IntegrateError::GetListPatchInfoFailed)?;
 
-        let cur_branch_name =
-            git::get_current_branch(&repo).ok_or(IntegrateError::CurrentBranchNameMissing)?;
-        let branch_upstream_name = git::branch_upstream_name(&repo, cur_branch_name.as_str())
-            .map_err(|_| IntegrateError::GetUpstreamBranchNameFailed)?;
-        let remote_name = repo
-            .branch_remote_name(&branch_upstream_name)
-            .map_err(|_| IntegrateError::GetRemoteNameFailed)?;
+        // get the associated branch name, or error
+        let patch_associated_branch_info: state_computation::ListBranchInfo =
+            match patch_info_collection.get(&ps_id) {
+                Some(patch_info) => {
+                    if patch_info.branches.len() == 1 {
+                        Ok(patch_info.branches.first().unwrap().clone())
+                    } else {
+                        Err(IntegrateError::PatchBranchAmbiguous)
+                    }
+                }
+                None => Err(IntegrateError::PatchHasNoAssociatedBranch),
+            }?;
 
-        let remote_name_str = remote_name
-            .as_str()
-            .ok_or(IntegrateError::ConvertStringToStrFailed)?;
-        let remote_rr_branch_refspec = format!("{}/{}", remote_name_str, rr_branch_name.as_str());
+        //  - make sure that the upstream patch branch has a singular commit
+        if patch_associated_branch_info.commit_count != 1 {
+            return Err(IntegrateError::PatchBranchNotSingularCommit);
+        }
+        let patch_associated_upstream_branch_info: state_computation::ListUpstreamBranchInfo =
+            match patch_associated_branch_info.upstream {
+                Some(patch_upstream_branch_info) => {
+                    if patch_upstream_branch_info.commit_count == 1 {
+                        Ok(patch_upstream_branch_info.clone())
+                    } else {
+                        Err(IntegrateError::PatchUpstreamBranchNotSingularCommit)
+                    }
+                }
+                None => Err(IntegrateError::PatchHasNoAssociatedUpstreamBranch),
+            }?;
 
-        let rr_branch_commit = git::singular_commit_of_branch(
-            &repo,
-            &remote_rr_branch_refspec,
-            git2::BranchType::Remote,
-            patch_stack_base_oid,
-        )
-        .map_err(IntegrateError::SingularCommitOfBranchError)?;
-
-        // verify that the remote rr branche's patche's diff hash matches that of
-        // the local patch in the patch stack
-        let rr_branch_commit_diff_patch_id = git::commit_diff_patch_id(&repo, &rr_branch_commit)
-            .map_err(IntegrateError::RrBranchCommitDiffPatchIdFailed)?;
-
-        if patch_commit_diff_patch_id != rr_branch_commit_diff_patch_id {
-            return Err(IntegrateError::PatchesDiffer);
+        // - verify the patch diffs match
+        if patch_associated_branch_info
+            .patches
+            .first()
+            .unwrap()
+            .commit_diff_id
+            != patch_associated_upstream_branch_info
+                .patches
+                .first()
+                .unwrap()
+                .commit_diff_id
+        {
+            return Err(IntegrateError::AssociatedBranchPatchAndUpstreamBranchPatchMismatch);
         }
 
-        // verify that upstream base hasn't left the remote patch behind
-        let is_behind = commit_is_behind::commit_is_behind(&rr_branch_commit, patch_stack_base_oid)
-            .map_err(IntegrateError::GetCommitIsBehindFailed)?;
-        if is_behind {
+        if patch_commit_diff_patch_id
+            != patch_associated_branch_info
+                .patches
+                .first()
+                .unwrap()
+                .commit_diff_id
+        {
+            return Err(IntegrateError::PatchAndAssociatedBranchPatchMismatch);
+        }
+
+        //  - verify that upstream base hasn't left the remote patch behind
+        let patch_associated_upstream_branch = repo
+            .find_branch(
+                &patch_associated_upstream_branch_info.name,
+                git2::BranchType::Remote,
+            )
+            .map_err(IntegrateError::FindAssociatedBranchFailed)?;
+        let patch_associated_upstream_branch_oid: git2::Oid =
+            patch_associated_upstream_branch.get().target().unwrap();
+
+        let common_ancestor_oid = git::common_ancestor(
+            &repo,
+            patch_associated_upstream_branch_oid,
+            patch_stack_base_commit.id(),
+        )
+        .map_err(IntegrateError::CommonAncestorFailed)?;
+
+        if common_ancestor_oid != patch_stack_base_commit.id() {
+            // patch stack base has left the remote patch behind
             return Err(IntegrateError::PatchIsBehind);
         }
 
+        // verify isolation
         if config.integrate.verify_isolation {
             verify_isolation::verify_isolation(patch_index, None, color)
                 .map_err(IntegrateError::IsolationVerificationFailed)?;
         }
 
+        //  - publish patch from remote branch up to the patch stack upstream (e.g. git push origin origin/ps/rr/whatever-branch:main)
         // At this point we are pretty confident that things are properly in sync
         // and therefore we allow the actual act of integrating into to upstream
         // happen.
-        let pattern = format!("refs/remotes/{}/", remote_name_str);
-        let upstream_branch_shorthand = str::replace(&branch_upstream_name, pattern.as_str(), "");
         // e.g. git push origin origin/ps/rr/whatever-branch:main
+        let cur_patch_stack_branch_name =
+            git::get_current_branch(&repo).ok_or(IntegrateError::CurrentBranchNameMissing)?;
+        let cur_patch_stack_branch_upstream_name =
+            git::branch_upstream_name(&repo, cur_patch_stack_branch_name.as_str())
+                .map_err(|_| IntegrateError::GetUpstreamBranchNameFailed)?;
+        let cur_patch_stack_remote_name = repo
+            .branch_remote_name(&cur_patch_stack_branch_upstream_name)
+            .map_err(|_| IntegrateError::GetRemoteNameFailed)?;
+        let cur_patch_stack_remote_name_str = cur_patch_stack_remote_name
+            .as_str()
+            .ok_or(IntegrateError::ConvertStringToStrFailed)?;
+
+        let pattern = format!("refs/remotes/{}/", cur_patch_stack_remote_name_str);
+        let cur_patch_stack_upstream_branch_name_relative_to_remote =
+            str::replace(&cur_patch_stack_branch_upstream_name, pattern.as_str(), "");
+
         git::ext_push(
             false,
-            remote_name_str,
-            &remote_rr_branch_refspec,
-            &upstream_branch_shorthand,
+            cur_patch_stack_remote_name_str,
+            &patch_associated_upstream_branch_info.name,
+            &cur_patch_stack_upstream_branch_name_relative_to_remote,
         )
         .map_err(IntegrateError::PushFailed)?;
 
-        // Update state so that it is aware of the fact that this patch has been
-        // integrated into upstream
-        update_state(
-            &repo,
-            remote_name_str.to_string(),
-            rr_branch_name.clone(),
-            patch_commit_diff_patch_id.to_string(),
-            ps_id,
-        )?;
-
-        let rr_branch_commit_oid = rr_branch_commit.id();
-
+        //  - execute the integrate_post_push hook
         match hooks::find_hook(repo_root_str, repo_gitdir_str, "integrate_post_push") {
             Ok(hook_path) => utils::execute(
                 hook_path.to_str().ok_or(IntegrateError::PathNotUtf8)?,
-                &[&format!("{}", rr_branch_commit_oid)],
+                &[&format!("{}", patch_associated_upstream_branch_oid)],
             )
             .map_err(IntegrateError::HookExecutionFailed)?,
             Err(hooks::FindHookError::NotFound) => integrate_post_push_hook_missing(color),
@@ -311,16 +388,24 @@ pub fn integrate(
             Err(e) => return Err(IntegrateError::HookNotFound(e)),
         }
 
-        // Cleanup the local and remote branches associated with this patch
+        //  - delete local & remote rr branch (based on command line option)
         if !keep_branch {
             let mut local_branch = repo
-                .find_branch(&rr_branch_name, git2::BranchType::Local)
+                .find_branch(&patch_associated_branch_info.name, git2::BranchType::Local)
                 .map_err(IntegrateError::DeleteLocalBranchFailed)?;
             local_branch
                 .delete()
                 .map_err(IntegrateError::DeleteLocalBranchFailed)?;
-            git::ext_delete_remote_branch(remote_name_str, &rr_branch_name)
-                .map_err(IntegrateError::DeleteRemoteBranchFailed)?;
+
+            let pattern = format!("{}/", &patch_associated_upstream_branch_info.remote);
+            let patch_associated_upstream_branch_name_relative_to_remote =
+                str::replace(&patch_associated_upstream_branch_info.name, &pattern, "");
+
+            git::ext_delete_remote_branch(
+                &patch_associated_upstream_branch_info.remote,
+                &patch_associated_upstream_branch_name_relative_to_remote,
+            )
+            .map_err(IntegrateError::DeleteRemoteBranchFailed)?;
         }
     }
 
@@ -328,40 +413,6 @@ pub fn integrate(
         pull::pull(color).map_err(IntegrateError::PullFailed)?;
     }
 
-    Ok(())
-}
-
-fn update_state(
-    repo: &git2::Repository,
-    remote_name: String,
-    rr_branch_name: String,
-    diff_hash: String,
-    ps_id: Uuid,
-) -> Result<(), IntegrateError> {
-    state_management::update_patch_state(repo, &ps_id, |patch_meta_data_option| {
-        match patch_meta_data_option {
-            Some(patch_meta_data) => match patch_meta_data.state {
-                state_management::PatchState::Integrated(_, _, _) => patch_meta_data,
-                _ => state_management::Patch {
-                    patch_id: ps_id,
-                    state: state_management::PatchState::Integrated(
-                        remote_name,
-                        rr_branch_name,
-                        diff_hash,
-                    ),
-                },
-            },
-            None => state_management::Patch {
-                patch_id: ps_id,
-                state: state_management::PatchState::Integrated(
-                    remote_name,
-                    rr_branch_name,
-                    diff_hash,
-                ),
-            },
-        }
-    })
-    .map_err(IntegrateError::UpdatePatchMetaDataFailed)?;
     Ok(())
 }
 

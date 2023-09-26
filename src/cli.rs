@@ -127,8 +127,8 @@ pub enum Command {
     /// utility to help you create a normal git branch from a patch or series of patches that is
     /// based on the patch stack base (e.g. origin/main).
     ///
-    /// Because this is a bridge back to the normal git concepts like branches and commits it does
-    /// no state tracking of these branches.
+    /// Because this is a bridge back to the normal git concepts like branches and commits it
+    /// only supports the verify isolation hook.
     ///
     /// It also has support for automatically pushing the branch to the remote. This is useful when
     /// you are stuck working with a team that doesn't do the Patch Stack workflow but you still
@@ -152,58 +152,85 @@ pub enum Command {
 (ls) - List the stack of patches and their associated state info
 
 The `list` command lists out your stack of patches in a format that exposes
-the patch index on the far left followed by the state information, followed by
-the short sha of the git commit, and finally followed by the patch summary.
+the patch index on the far left followed by the short sha of the git
+commit, followed by the patch summary, and finally followed by the state
+information.
 
-[index] [status]    [sha] [summary]
+[index] [sha] [summary (50 chars)         ]  ( [status] )
 
-The patch index value is used with other commands, e.g. `gps rr
+The patch index value is used with other commands, e.g. `gps show
 <patch-index>`.
 
-The state information is broken down into main states and modifiers. The main
-states are as follows.
+State information exists between a patch in the patch stack and a branch.
+As you use Git Patch Stack your patches will be associated with one or
+more local branches and each of those branches will likely have a remote
+tracking branch associated to them.
 
-b    - local branch has been created with the patch
-s    - the patch has been synced to the remote
-rr   - you have requested review of the patch
-int  - you have integrated the patch into upstream
+So we represent state with two main prefixes, l & r.
 
-Each of the states can have any of the following modifiers.
+l    - indicating that the following state indicators are between the local
+       branch & patch in the patch stack
+r    - indicating that the following state indicators are between the
+       remote branch & patch in the patch stack
 
-+    - the patch in your patch stack has changed since the operation
-!    - the remote patch has changed since the operation
-↓    - patch is behind, the patch stack base has been updated since the operation
+The presence of these prefixes also communicates the existance of a local
+or remote branch in association with the patch. So if you saw a state
+of ( ) it would indicate that the patch has no local branches & has no
+remote branches.
 
-To fully understand this lets look at an example. Let say you see the status
-`rr+!` when you ran the `list` command. This is telling you that the current
-patch is in a state of **requested review**, indicated by the `rr`. It is also
-telling you that since you last requested review of that patch changes have
-been made to it, in your patch stack. This is indicated by the `+` modifier.
-In addition it is telling you that the patch on the remote has also changed
-since you last requested review, indicated by the `!` modifier.
+Each of these prefixes are paired with zero or more of the following state
+indicators.
 
-The `+` by itself is a pretty common modifier to see as it is there to simply
-remind you that you have made changes to a patch and need to `sync` or
-`request-review` for that patch again.
+*    - the patch in the respective branch has a different diff than
+       the patch in the patch stack
+!    - the respective branch has one or more non-patch commits in it
 
-The `!` modifier is less common as it only happens when the patch on the
-remote has changed since the last operation. This is generally because someone
-either force pushed up a patch out of band of Git Patch Stack to replace that
-commit or because someone added a commit to the branch that Git Patch Stack
-created and associated to that patch. To resolve `!` modifiers you really need
-to go look at the commits on the remote branch and see if there are any
-changes there you want to keep. If so you should cherry-pick the ones you want
-into your patch stack and squash/fix them up into the logical patch using the
-`rebase` command. Then you should `sync` or `request-review` of that patch
-again to get it back in sync.
+The following are some simple examples of state indications so you can
+start to understand.
 
-The `↓` modifier indicates that the patch is conceptually behind. What this
-means is that when the last rr/sync operation was performed the base of the
-patch stack was at one point in the git tree but now it has progressed forward
-as someone integrated changes into it. This can be addressed by doing a `gps
-pull` to make sure that your local stack is up to date and integrates
-everything from upstream and then doing a `gps sync` or `gps rr` to update the
-remote with newly rebased patch.
+( )       - patch has no local & no remote branches associated
+( l )     - patch has a local branch associated & the diff match
+( lr )    - patch has a local branch & remote branch associated & the
+            diffs match
+( l*r* )  - patch has a local branch & remote branch associated, but the
+            diffs don't match
+( l*r*! ) - patch has a local branch & remote branch associated, but the
+            diffs don't match & the remote has a non-patch commit in it
+
+In the most common case you will have a single branch pairing
+(local & remote) associated with your patches and you will see the patch
+state simply represented as above.
+
+However, Git Patch Stack supports having multiple branch pairings associated
+with a patch and it also supports custom naming of branches if you don't want
+to use a generated branch name. This is especially useful when creating a
+patch series.
+
+If a patch falls into either of these scenarios the state will be presented
+in long form where the branch name is provided in front of each state
+indication. So each branch will have its branch name appear followed by its
+associated state indication.
+
+[branch-name] [state indications]
+
+These pairings of branch name and state indications are simply chained
+together with spaces. So for example, if we assume we have a patch that
+is associated with two branches, foo & bar. The patch state information
+might look something like the following.
+
+( foo lr bar l*r* )
+
+In the above state information example we can see that there are 4 branches
+that exist with the patch in them. Specifically, there is a local branch
+named `foo` and it has a remote tracking branch that also has the patch in it.
+We can see that because there is no `*` or `!` characters after the `l` or `r`,
+associated with the `foo` branch, we know that the patch diffs all match.
+
+We can also see that the patch exists in another local branch named `bar`, as
+well as the remote tracking branch of `bar`. The `*` characters here indicate
+that both the copy of the patch in both the local `bar` branch and the remote
+tracking branch of `bar` have different diffs than the patch in the patch
+stack.
 "
     )]
     List,

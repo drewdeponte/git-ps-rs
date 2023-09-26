@@ -3,6 +3,7 @@ extern crate lazy_static;
 
 mod ps;
 
+pub use ps::private::config::{get_config, GetConfigError, PsConfig};
 pub use ps::public::add_changes_to_stage::add_changes_to_stage;
 pub use ps::public::amend_patch::amend_patch;
 pub use ps::public::backup_stack::backup_stack;

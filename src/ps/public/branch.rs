@@ -31,6 +31,7 @@ pub enum BranchError {
     GetRepoRootPathFailed(paths::PathsError),
     PathNotUtf8,
     GetConfigFailed(config::GetConfigError),
+    SetPatchBranchUpstreamFailed(git2::Error),
 }
 
 pub fn branch(
@@ -82,7 +83,7 @@ pub fn branch(
     let branch_name = given_branch_name_option.unwrap_or(default_branch_name);
 
     // create a branch on the base of the current patch stack
-    let branch = repo
+    let mut branch = repo
         .branch(branch_name.as_str(), &patch_stack_base_commit, true)
         .map_err(BranchError::CreateBranchFailed)?;
     let branch_ref_name = branch.get().name().ok_or(BranchError::BranchNameNotUtf8)?;
@@ -114,14 +115,16 @@ pub fn branch(
         let remote_name = repo
             .branch_remote_name(&branch_upstream_name)
             .map_err(|_| BranchError::GetRemoteBranchNameFailed)?;
+        let remote_name_str = remote_name.as_str().unwrap();
 
-        git::ext_push(
-            true,
-            remote_name.as_str().unwrap(),
-            branch_ref_name,
-            branch_ref_name,
-        )
-        .map_err(BranchError::PushFailed)?;
+        git::ext_push(true, remote_name_str, branch_ref_name, branch_ref_name)
+            .map_err(BranchError::PushFailed)?;
+
+        branch
+            .set_upstream(Some(
+                format!("{}/{}", remote_name_str, &branch_name).as_str(),
+            ))
+            .map_err(BranchError::SetPatchBranchUpstreamFailed)?;
     }
 
     Ok(())

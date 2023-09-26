@@ -649,48 +649,6 @@ pub fn common_ancestor(
 }
 
 #[derive(Debug)]
-pub enum SingularCommitOfBranchError {
-    CommonAncestorFailed(CommonAncestorError),
-    FindBranchFailed(git2::Error),
-    BranchMissingTarget,
-    GetRevWalkerFailed(GitError),
-    BranchDoesntHaveExactlyOneCommit(String, usize),
-    FindBranchCommitFailed(git2::Error),
-}
-
-pub fn singular_commit_of_branch<'a>(
-    repo: &'a git2::Repository,
-    branch_name: &str,
-    branch_type: git2::BranchType,
-    base_oid: git2::Oid,
-) -> Result<git2::Commit<'a>, SingularCommitOfBranchError> {
-    let branch_oid = repo
-        .find_branch(branch_name, branch_type)
-        .map_err(SingularCommitOfBranchError::FindBranchFailed)?
-        .get()
-        .target()
-        .ok_or(SingularCommitOfBranchError::BranchMissingTarget)?;
-    let common_ancestor_oid = common_ancestor(repo, branch_oid, base_oid)
-        .map_err(SingularCommitOfBranchError::CommonAncestorFailed)?;
-
-    let revwalk = get_revs(repo, common_ancestor_oid, branch_oid, git2::Sort::REVERSE)
-        .map_err(SingularCommitOfBranchError::GetRevWalkerFailed)?;
-    let num_of_commits = revwalk.count();
-
-    if num_of_commits > 1 || num_of_commits == 0 && common_ancestor_oid != branch_oid {
-        Err(
-            SingularCommitOfBranchError::BranchDoesntHaveExactlyOneCommit(
-                branch_name.to_string(),
-                num_of_commits,
-            ),
-        )
-    } else {
-        repo.find_commit(branch_oid)
-            .map_err(SingularCommitOfBranchError::FindBranchCommitFailed)
-    }
-}
-
-#[derive(Debug)]
 pub enum UncommittedChangesError {
     StatusesFailed(git2::Error),
 }

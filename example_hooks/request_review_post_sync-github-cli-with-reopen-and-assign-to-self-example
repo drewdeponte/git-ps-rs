@@ -15,16 +15,19 @@
 # > brew install gh
 # > gh auth login
 
-re_requesting_review=$1 # string of "true" or "false"
-branch_to_integrate=$2 # string of the branch name to integrate (e.g. ps/rr/your-patches-branch-name)
-branch_to_integrate_into=$3 # string of the branch name to integrate into (e.g. main)
-remote_name=$4 # string of the remote name (e.g. origin)
-remote_url=$5 # string of the remote url
+patch_upstream_branch_name=$1 # string of the patch's associated upstream branch name (e.g. ps/rr/your-patches-branch-name)
+patch_stack_upstream_branch_name_relative_to_remote=$2 # string of the patch stack's branch name (e.g. main)
+patch_stack_upstream_remote_name=$3 # string of the patch stack's remote name (e.g. origin)
+patch_stack_upstream_remote_url=$4 # string of the patch stack's remote url
 
-# If true then open the PR to view it online else create it
-if [ "$re_requesting_review" == "true" ]; then
-  gh pr view "$branch_to_integrate" --web  -R "$remote_url"
-else
-  # Consider using the reviewer flag on a project level hook if you have teams like @dev ie: --reviewer @dev
-  gh pr create --assignee @me --fill --web --base "$branch_to_integrate_into" --head "$branch_to_integrate" -R "$remote_url"
+gh pr -R "$patch_stack_upstream_remote_url" view $patch_upstream_branch_name
+if [ $? -eq 0 ]; then
+  closed=$(gh pr -R "$patch_stack_upstream_remote_url" view $patch_upstream_branch_name --json closed --jq '.closed')
+  if [ $closed != "true" ]; then
+    exit 0
+  else
+    gh pr view "$patch_upstream_branch_name" --web  -R "$patch_stack_upstream_remote_url"
+  fi
 fi
+
+gh pr create --assignee @me --fill --web --base "$patch_stack_upstream_branch_name_relative_to_remote" --head "$patch_upstream_branch_name" -R "$patch_stack_upstream_remote_url"
