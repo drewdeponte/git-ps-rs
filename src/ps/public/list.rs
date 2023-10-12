@@ -55,8 +55,10 @@ pub fn list(color: bool) -> Result<(), ListError> {
             .unwrap();
 
     println!(
-        "Stack {} following {}\n",
-        &cur_patch_stack_branch_name, &cur_patch_stack_branch_upstream_name
+        "{} tracking {} [ahead {}]",
+        &cur_patch_stack_branch_name,
+        &cur_patch_stack_branch_upstream_name,
+        list_of_patches.len()
     );
 
     let list_of_patches_iter: Box<dyn Iterator<Item = _>> = if config.list.reverse_order {
