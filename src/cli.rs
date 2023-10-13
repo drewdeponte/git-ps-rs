@@ -1,4 +1,4 @@
-use clap::{Args, Parser, Subcommand};
+use clap::{ArgAction, Args, Parser, Subcommand};
 
 #[derive(Debug, Args)]
 pub struct RequestReview {
@@ -323,8 +323,7 @@ stack.
 #[command(name = "gps", author, version, about, long_about = None)]
 pub struct Cli {
     /// disable color output
-    // #[structopt(long = "no-color", parse(from_flag = std::ops::Not::not))]
-    #[arg(long = "no-color", default_value_t = false)]
+    #[arg(long = "no-color", global = true, action(ArgAction::SetFalse))]
     pub color: bool,
 
     #[command(subcommand)]
