@@ -1,19 +1,19 @@
-use structopt::StructOpt;
+use clap::{Args, Parser, Subcommand};
 
-#[derive(Debug, StructOpt)]
+#[derive(Debug, Args)]
 pub struct RequestReview {
     pub patch_index: usize,
     /// Use the provided branch name instead of generating one
-    #[structopt(short = "n")]
+    #[arg(short = 'n')]
     pub branch_name: Option<String>,
 }
 
-#[derive(Debug, StructOpt)]
+#[derive(Debug, Args)]
 pub struct BatchRequestReview {
     pub patch_index: Vec<usize>,
 }
 
-#[derive(Debug, StructOpt)]
+#[derive(Debug, Args)]
 pub struct BranchCmdOpts {
     /// index of patch to cherry-pick to branch or starting index of patch
     /// series to cherry-pick to the branch
@@ -21,50 +21,50 @@ pub struct BranchCmdOpts {
     /// ending patch index of the patch series to cherry-pick to the branch
     pub end_patch_index: Option<usize>,
     /// Use the provided branch name instead of generating one
-    #[structopt(short = "n")]
+    #[arg(short = 'n')]
     pub branch_name: Option<String>,
     /// Push branch of the same name to the remote
-    #[structopt(short = "p")]
+    #[arg(short = 'p')]
     pub push_to_remote: bool,
 }
 
-#[derive(Debug, StructOpt)]
+#[derive(Debug, Args)]
 pub struct RequestReviewBranchCmdOpts {
     pub patch_index: usize,
     /// Use the provided branch name instead of generating one
-    #[structopt(short = "n")]
+    #[arg(short = 'n')]
     pub branch_name: Option<String>,
 }
 
-#[derive(Debug, StructOpt)]
+#[derive(Debug, Args)]
 pub struct IntegrateCmdOpts {
     pub patch_index: usize,
     /// Use the provided branch name instead of generating one
-    #[structopt(short = "n")]
+    #[arg(short = 'n')]
     pub branch_name: Option<String>,
     /// Keep request-review branches around (a.k.a. don't clean up request
     /// review branches)
-    #[structopt(short = "k", long = "keep-branch")]
+    #[arg(short = 'k', long = "keep-branch")]
     pub keep_branch: bool,
     /// Skip safety checks and publish
-    #[structopt(short = "f", long = "force")]
+    #[arg(short = 'f', long = "force")]
     pub force: bool,
 }
 
-#[derive(Debug, StructOpt)]
+#[derive(Debug, Args)]
 pub struct ShowCmdOpts {
     pub patch_index: usize,
 }
 
-#[derive(Debug, StructOpt)]
+#[derive(Debug, Args)]
 pub struct SyncCmdOpts {
     pub patch_index: usize,
     /// Use the provided branch name instead of generating one
-    #[structopt(short = "n")]
+    #[arg(short = 'n')]
     pub branch_name: Option<String>,
 }
 
-#[derive(Debug, StructOpt)]
+#[derive(Debug, Args)]
 pub struct IsolateCmdOpts {
     /// index of patch to verify isolation for or starting index of patch
     /// series to verify isolation for
@@ -73,55 +73,55 @@ pub struct IsolateCmdOpts {
     pub end_patch_index: Option<usize>,
 }
 
-#[derive(Debug, StructOpt)]
+#[derive(Debug, Args)]
 pub struct CheckoutCmdOpts {
     pub patch_index: usize,
 }
 
-#[derive(Debug, StructOpt)]
+#[derive(Debug, Args)]
 pub struct AddCmdOpts {
     /// interactive picking
-    #[structopt(short = "i", long = "interactive")]
+    #[arg(short = 'i', long = "interactive")]
     pub interactive: bool,
     /// select hunks interactively
-    #[structopt(short = "p", long = "patch")]
+    #[arg(short = 'p', long = "patch")]
     pub patch: bool,
     /// edit current diff and apply
-    #[structopt(short = "e", long = "edit")]
+    #[arg(short = 'e', long = "edit")]
     pub edit: bool,
     /// add changes from all tracked and untracked files
-    #[structopt(short = "A", long = "all")]
+    #[arg(short = 'A', long = "all")]
     pub all: bool,
     /// specific files to add changes from, . for all files
     pub files: Vec<String>,
 }
 
-#[derive(Debug, StructOpt)]
+#[derive(Debug, Args)]
 pub struct RebaseCmdOpts {
     /// continue a rebase that was paused
-    #[structopt(long = "continue")]
+    #[arg(long = "continue")]
     pub r#continue: bool,
 }
 
-#[derive(Debug, StructOpt)]
+#[derive(Debug, Args)]
 pub struct AmendPatchOpts {
     /// pass `--no-edit` to git commit
-    #[structopt(long = "no-edit")]
+    #[arg(long = "no-edit")]
     pub no_edit: bool,
 }
 
-#[derive(Debug, StructOpt)]
+#[derive(Debug, Args)]
 pub struct UnstageCmdOpts {
     /// specific files to unstage changes for, leave blank for all staged files
     pub files: Vec<String>,
 }
 
-#[derive(Debug, StructOpt)]
+#[derive(Debug, Args)]
 pub struct BackupStackCmdOpts {
     pub branch_name: String,
 }
 
-#[derive(Debug, StructOpt)]
+#[derive(Debug, Subcommand)]
 pub enum Command {
     /// Your bridge back to the world of normal git and git concepts. The branch command is a
     /// utility to help you create a normal git branch from a patch or series of patches that is
@@ -137,15 +137,15 @@ pub enum Command {
     /// Create a request review branch on the patch stack base, cherry-pick
     /// the specified patch onto it, & record association between patch &
     /// branch
-    #[structopt(name = "request-review-branch")]
+    #[command(name = "request-review-branch")]
     RequestReviewBranch(RequestReviewBranchCmdOpts),
     /// (int) - Integrate the specified patch into the patch stacks upstream
     /// remote
-    #[structopt(name = "integrate", alias = "int")]
+    #[command(name = "integrate", alias = "int")]
     Integrate(IntegrateCmdOpts),
 
     /// (ls) - List the stack of patches and their associated state info
-    #[structopt(
+    #[command(
         name = "list",
         alias = "ls",
         long_about = r"
@@ -248,23 +248,23 @@ stack.
     ///
     /// To resume the rebase after making your necessary changes you can do so
     /// by running `gps rebase --continue`.
-    #[structopt(name = "rebase")]
+    #[command(name = "rebase")]
     Rebase(RebaseCmdOpts),
 
     /// Pull changes down from upstream and rebase stack on top
-    #[structopt(name = "pull")]
+    #[command(name = "pull")]
     Pull,
     /// (rr) - Request review of the specified patch
-    #[structopt(name = "request-review", alias = "rr")]
+    #[command(name = "request-review", alias = "rr")]
     RequestReview(RequestReview),
     /// (brr) - Request review of a batch of patches
-    #[structopt(name = "batch-request-review", alias = "brr")]
+    #[command(name = "batch-request-review", alias = "brr")]
     BatchRequestReview(BatchRequestReview),
     /// Show the identified patch in raw form
-    #[structopt(name = "show")]
+    #[command(name = "show")]
     Show(ShowCmdOpts),
     /// Synchronize patch with the remote
-    #[structopt(name = "sync")]
+    #[command(name = "sync")]
     Sync(SyncCmdOpts),
 
     /// (iso) - isolate a patch or series of patches for manual testing or evaluation.
@@ -279,21 +279,21 @@ stack.
     ///
     /// When you are done manually testing or evaluating the patch(es) in isolation you can return
     /// to the stack that you were on when you switched into isolation mode by running `gps iso`.
-    #[structopt(name = "isolate", alias = "iso")]
+    #[command(name = "isolate", alias = "iso")]
     Isolate(IsolateCmdOpts),
     /// (co) - Checkout the patch identified by the patch-index, leaving you
     /// in a headless state.
-    #[structopt(name = "checkout", alias = "co")]
+    #[command(name = "checkout", alias = "co")]
     Checkout(CheckoutCmdOpts),
     /// (c) - create a patch from the currently staged changes
-    #[structopt(name = "create-patch", alias = "c")]
+    #[command(name = "create-patch", alias = "c")]
     CreatePatch,
     /// (a) - amend the top most patch with the currently staged changes
-    #[structopt(name = "amend-patch", alias = "a")]
+    #[command(name = "amend-patch", alias = "a")]
     AmendPatch(AmendPatchOpts),
 
     /// (s) - get the status of local changes & staged changes
-    #[structopt(name = "status", alias = "s")]
+    #[command(name = "status", alias = "s")]
     Status,
 
     /// add changes to the stage (a.k.a stage local changes)
@@ -306,26 +306,27 @@ stack.
     Unstage(UnstageCmdOpts),
 
     /// (up) - List the upstream patches
-    #[structopt(name = "upstream-patches", alias = "up")]
+    #[command(name = "upstream-patches", alias = "up")]
     UpstreamPatches,
 
     /// (f) - Fetch state from remote and display upstream patches
-    #[structopt(name = "fetch", alias = "f")]
+    #[command(name = "fetch", alias = "f")]
     Fetch,
 
     /// (bs) backup your current patch stack to the given branch name
     #[cfg(feature = "backup_cmd")]
-    #[structopt(name = "backup-stack", alias = "bs")]
+    #[command(name = "backup-stack", alias = "bs")]
     BackupStack(BackupStackCmdOpts),
 }
 
-#[derive(Debug, StructOpt)]
-#[structopt(name = "gps")]
-pub struct ApplicationArguments {
+#[derive(Debug, Parser)]
+#[command(name = "gps", author, version, about, long_about = None)]
+pub struct Cli {
     /// disable color output
-    #[structopt(long = "no-color", parse(from_flag = std::ops::Not::not))]
+    // #[structopt(long = "no-color", parse(from_flag = std::ops::Not::not))]
+    #[arg(long = "no-color", default_value_t = false)]
     pub color: bool,
 
-    #[structopt(subcommand)]
+    #[command(subcommand)]
     pub command: Command,
 }
