@@ -139,3 +139,92 @@ fn gpg_sign_string(commit: String, signing_key: String) -> Result<String, GpgSig
         .map(|s| s.trim().to_string())
         .map_err(GpgSignStringError::FromUtf8)
 }
+
+#[cfg(test)]
+mod tests {
+
+    use cli_sandbox::{self, project, WithStdout};
+    use std::format;
+    use std::path::Path;
+    use std::process::{Command, Output};
+
+    fn run(path: &Path, prog: &str, args: &[&str]) -> Output {
+        Command::new(prog)
+            .current_dir(path)
+            .args(args)
+            .output()
+            .expect(&format!("{} failed", prog))
+    }
+
+    #[test]
+    fn gpg_sign_commit() {
+        cli_sandbox::init();
+
+        // Create fake remote repo
+
+        let fake_remote_repo = project().expect("sandbox failed");
+
+        run(fake_remote_repo.path(), "git", &["init", "--bare"]);
+
+        // Create fake repo
+
+        let mut proj = project().expect("sandbox failed");
+
+        proj.new_file("README.md", "# foo\n")
+            .expect("new file failed");
+
+        run(proj.path(), "git", &["init"]);
+        run(proj.path(), "git", &["add", "."]);
+        run(proj.path(), "git", &["commit", "-m", "initial commit"]);
+
+        run(proj.path(), "git", &["log", "--pretty=format:%s"]).with_stdout(r#"initial commit"#);
+
+        // Set up fake repo to push to fake remote repo
+        run(
+            proj.path(),
+            "git",
+            &[
+                "remote",
+                "add",
+                "origin",
+                fake_remote_repo.path().to_str().unwrap(),
+            ],
+        );
+
+        // set master branch to track fake remote
+        run(proj.path(), "git", &["branch", "-u", "origin/master"]);
+
+        // push to remote
+        run(proj.path(), "git", &["push"]);
+
+        // create another commit this time for the stack
+        proj.new_file("foo.md", "some new file")
+            .expect("failed to create foo.md");
+        run(proj.path(), "git", &["add", "."]);
+        run(proj.path(), "git", &["commit", "-m", "add foo.md"]);
+
+        // check the log and grab entries
+        let git_log_output = run(proj.path(), "git", &["log", "--pretty=format:%h %s"]).stdout;
+        let output = String::from_utf8(git_log_output).expect("couldn't parse utf8");
+        let commits_and_messages: Vec<(&str, &str)> = output
+            .lines()
+            .filter_map(|line| {
+                let mut parts = line.splitn(2, ' ');
+                if let (Some(hash), Some(message)) = (parts.next(), parts.next()) {
+                    Some((hash, message))
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        let gps_ls = proj.command(["ls", "--no-color"]).expect("gps ls failed");
+
+        gps_ls.with_stdout(format!(
+            r#"master tracking origin/master [ahead 1]
+0    {} {}                                         () 
+"#,
+            commits_and_messages[0].0, commits_and_messages[0].1
+        ));
+    }
+}
