@@ -1,5 +1,6 @@
 use super::password_store;
-use gpgme;
+use pgp::packet::SignatureConfigBuilder;
+use pgp::{Deserializable, SignedSecretKey};
 use ssh_key::PrivateKey;
 
 #[derive(Debug)]
@@ -91,7 +92,6 @@ pub fn gpg_signer(signing_key: String) -> impl Fn(String) -> Result<String, Sign
 
 #[derive(Debug)]
 enum GpgSignStringError {
-    GetGpgContext,
     GetSecretKey,
     AddSigner,
     CreateDetachedSignature,
@@ -101,7 +101,6 @@ enum GpgSignStringError {
 impl std::fmt::Display for GpgSignStringError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            GpgSignStringError::GetGpgContext => write!(f, "failed to get GPG context"),
             GpgSignStringError::GetSecretKey => write!(f, "failed to get GPG secret key"),
             GpgSignStringError::AddSigner => write!(f, "failed to add signer"),
             GpgSignStringError::CreateDetachedSignature => {
@@ -117,17 +116,23 @@ impl std::fmt::Display for GpgSignStringError {
 impl std::error::Error for GpgSignStringError {}
 
 fn gpg_sign_string(commit: String, signing_key: String) -> Result<String, GpgSignStringError> {
-    let mut ctx = gpgme::Context::from_protocol(gpgme::Protocol::OpenPgp)
-        .map_err(|_| GpgSignStringError::GetGpgContext)?;
-    ctx.set_armor(true);
-    let key = ctx
-        .get_secret_key(signing_key)
-        .map_err(|_| GpgSignStringError::GetSecretKey)?;
+    // Get the private (secret) key from the signing_key provided
+    let (secret_key, _) =
+        SignedSecretKey::from_string(&signing_key).map_err(|_| GpgSignStringError::GetSecretKey)?;
 
-    ctx.add_signer(&key)
+    // TODO error is nonsense, give a proper one
+    let signature = SignatureConfigBuilder::default()
+        .build()
+        .map_err(|_| GpgSignStringError::CreateDetachedSignature)?;
+
+    // No password, I suppose that's ok?
+    let encrypted = signature
+        .sign(&secret_key, || String::new(), std::io::Cursor::new(commit))
         .map_err(|_| GpgSignStringError::AddSigner)?;
+
     let mut output = Vec::new();
-    ctx.sign_detached(commit, &mut output)
+    // TODO error is nonsense, give a proper one
+    pgp::packet::write_packet(&mut output, &encrypted)
         .map_err(|_| GpgSignStringError::CreateDetachedSignature)?;
 
     String::from_utf8(output)
