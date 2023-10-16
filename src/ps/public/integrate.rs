@@ -128,10 +128,11 @@ pub fn integrate(
         git::ext_fetch().map_err(IntegrateError::FetchFailed)?;
 
         // create/replace the request review branch
-        let (patch_branch, _ps_id, new_commit_oid) =
+        let (patch_branch, new_commit_oid) =
             ps::private::request_review_branch::request_review_branch(
                 &repo,
                 patch_index,
+                None,
                 given_branch_name_option,
             )
             .map_err(IntegrateError::BranchOperationFailed)?;

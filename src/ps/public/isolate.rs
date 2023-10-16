@@ -85,12 +85,13 @@ pub fn isolate(
             )
             .map_err(IsolateError::FailedToMapIndexesForCherryPick)?;
 
-            git::cherry_pick(
+            ps::cherry_pick(
                 &repo,
                 &config,
                 cherry_pick_range.root_oid,
                 cherry_pick_range.leaf_oid,
                 branch_ref_name,
+                false,
             )
             .map_err(|_| IsolateError::CherryPickFailed)?;
 

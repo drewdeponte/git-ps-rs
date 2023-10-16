@@ -1,3 +1,5 @@
+use crate::ps::commit_ps_id;
+
 use super::super::super::ps;
 use super::super::private::git;
 use super::super::private::state_computation;
@@ -27,6 +29,10 @@ pub enum RequestReviewBranchError {
     PatchStackHeadNoName,
     GetListPatchInfoFailed(state_computation::GetListPatchInfoError),
     PatchBranchAmbiguous,
+    AddPatchIdsFailed(ps::AddPatchIdsError),
+    PatchIndexOutOfStackRange(usize),
+    AssociatedBranchAmbiguous(std::vec::Vec<String>),
+    PatchSeriesRequireBranchName,
 }
 
 impl From<git::CreateCwdRepositoryError> for RequestReviewBranchError {
@@ -109,42 +115,56 @@ impl fmt::Display for RequestReviewBranchError {
                     "Patch Branch is Ambiguous - more than one branch associated with patch"
                 )
             }
+            RequestReviewBranchError::AddPatchIdsFailed(_) => {
+                write!(f, "Failed to add patch ids to commits in the patch stack")
+            }
+            RequestReviewBranchError::PatchIndexOutOfStackRange(_) => {
+                write!(f, "Patch index out of patch stack range")
+            }
+            RequestReviewBranchError::AssociatedBranchAmbiguous(_) => {
+                write!(
+                    f,
+                    "The associated branch is ambiguous. Please specify the branch explicitly."
+                )
+            }
+            RequestReviewBranchError::PatchSeriesRequireBranchName => {
+                write!(
+                    f,
+                    "When creating a patch series you must specify the branch name."
+                )
+            }
         }
     }
 }
 
 pub fn request_review_branch(
     repo: &git2::Repository,
-    patch_index: usize,
+    start_patch_index: usize,
+    end_patch_index: Option<usize>,
     given_branch_name_option: Option<String>,
-) -> Result<(git2::Branch<'_>, Uuid, git2::Oid), RequestReviewBranchError> {
+) -> Result<(git2::Branch<'_>, git2::Oid), RequestReviewBranchError> {
     let config =
         git2::Config::open_default().map_err(RequestReviewBranchError::OpenGitConfigFailed)?;
 
-    // - find the patch identified by the patch_index
+    ps::add_patch_ids(repo, &config).map_err(RequestReviewBranchError::AddPatchIdsFailed)?;
+
     let patch_stack = ps::get_patch_stack(repo)?;
     let patches_vec = ps::get_patch_list(repo, &patch_stack)
         .map_err(RequestReviewBranchError::GetPatchListFailed)?;
-    let patch_oid = patches_vec
-        .get(patch_index)
-        .ok_or(RequestReviewBranchError::PatchIndexNotFound)?
-        .oid;
-    let patch_commit = repo
-        .find_commit(patch_oid)
-        .map_err(|_| RequestReviewBranchError::PatchCommitNotFound)?;
-    let patch_message = patch_commit
-        .message()
-        .ok_or(RequestReviewBranchError::PatchMessageMissing)?;
 
-    // fetch or add patch id given patch_message
-    let new_patch_oid: git2::Oid;
-    let ps_id: Uuid;
-    if let Some(extracted_ps_id) = ps::extract_ps_id(patch_message) {
-        ps_id = extracted_ps_id;
-        new_patch_oid = patch_oid;
-    } else {
-        ps_id = Uuid::new_v4();
-        new_patch_oid = ps::add_ps_id(repo, &config, patch_oid, ps_id)?;
+    // validate patch indexes are within bounds
+    if start_patch_index > (patches_vec.len() - 1) {
+        return Err(RequestReviewBranchError::PatchIndexOutOfStackRange(
+            start_patch_index,
+        ));
+    }
+
+    if let Some(end_index) = end_patch_index {
+        if end_index > (patches_vec.len() - 1) {
+            return Err(RequestReviewBranchError::PatchIndexOutOfStackRange(
+                end_index,
+            ));
+        }
     }
 
     // fetch computed state from Git tree
@@ -162,28 +182,51 @@ pub fn request_review_branch(
         state_computation::get_list_patch_info(repo, patch_stack_base_commit.id(), head_ref_name)
             .map_err(RequestReviewBranchError::GetListPatchInfoFailed)?;
 
-    // use provided branch name, or fall back to patch associated branch name, or fall back to
-    // generated branch name
-    let branch_name: String = match patch_info_collection.get(&ps_id) {
-        Some(patch_info) => {
-            if patch_info.branches.len() == 1 {
-                Ok(patch_info.branches.first().unwrap().name.clone())
-            } else {
-                Err(RequestReviewBranchError::PatchBranchAmbiguous)
-            }
+    // collect vector of indexes
+    let indexes_iter = match end_patch_index {
+        Some(end_index) => start_patch_index..=end_index,
+        None => start_patch_index..=start_patch_index,
+    };
+
+    // get unique branch names of patches in series
+    let mut range_patch_branches: Vec<String> = indexes_iter
+        .clone()
+        .map(|i| patches_vec.get(i).unwrap())
+        .map(|lp| {
+            let commit = repo.find_commit(lp.oid).unwrap();
+            commit_ps_id(&commit).unwrap()
+        })
+        .filter_map(|id| patch_info_collection.get(&id))
+        .flat_map(|pi| pi.branches.iter().map(|b| b.name.clone()))
+        .collect();
+    range_patch_branches.sort();
+    range_patch_branches.dedup();
+
+    // figure out the new branch name, either generate a new one, use the associated one, or
+    // require user to explicitly specify
+    let new_branch_name: String;
+    if let Some(given_branch_name) = given_branch_name_option {
+        new_branch_name = given_branch_name;
+    } else if range_patch_branches.is_empty() {
+        if end_patch_index.is_none() {
+            let patch_oid = patches_vec.get(indexes_iter.last().unwrap()).unwrap().oid;
+            let patch_commit = repo.find_commit(patch_oid).unwrap();
+            let patch_summary = patch_commit.summary().expect("Patch Missing Summary");
+            new_branch_name = ps::generate_rr_branch_name(patch_summary);
+        } else {
+            return Err(RequestReviewBranchError::PatchSeriesRequireBranchName);
         }
-        None => {
-            let patch_summary = patch_commit
-                .summary()
-                .ok_or(RequestReviewBranchError::PatchSummaryMissing)?;
-            let default_branch_name = ps::generate_rr_branch_name(patch_summary);
-            Ok(given_branch_name_option.unwrap_or(default_branch_name))
-        }
-    }?;
+    } else if range_patch_branches.len() == 1 {
+        new_branch_name = range_patch_branches.first().unwrap().to_string()
+    } else {
+        return Err(RequestReviewBranchError::AssociatedBranchAmbiguous(
+            range_patch_branches.clone(),
+        ));
+    }
 
     // create branch on top of the patch stack base
     let branch = repo
-        .branch(branch_name.as_str(), &patch_stack_base_commit, true)
+        .branch(new_branch_name.as_str(), &patch_stack_base_commit, true)
         .map_err(|_| RequestReviewBranchError::CreateRrBranchFailed)?;
 
     let branch_ref_name = branch
@@ -191,12 +234,36 @@ pub fn request_review_branch(
         .name()
         .ok_or(RequestReviewBranchError::RrBranchNameNotUtf8)?;
 
-    // cherry pick the patch onto new rr branch with commiter timestamp offset
-    // 1 second into the future so that it doesn't overlap with the
-    // add_ps_id()'s cherry pick committer timestamp
-    let new_commit_oid =
-        git::cherry_pick_no_working_copy(repo, &config, new_patch_oid, branch_ref_name, 1)
-            .map_err(RequestReviewBranchError::CherryPickFailed)?;
+    let start_patch_oid = patches_vec.get(start_patch_index).unwrap().oid;
+    let start_patch_commit = repo.find_commit(start_patch_oid).unwrap();
+    let start_patch_parent_commit = start_patch_commit.parent(0).unwrap();
+    let start_patch_parent_oid = start_patch_parent_commit.id();
 
-    Ok((branch, ps_id, new_commit_oid))
+    let last_commit_oid_cherry_picked = match end_patch_index {
+        Some(end_index) => {
+            let end_patch_oid = patches_vec.get(end_index).unwrap().oid;
+            ps::cherry_pick_no_working_copy_range(
+                repo,
+                &config,
+                start_patch_parent_oid,
+                end_patch_oid,
+                branch_ref_name,
+                1,
+                false,
+            )
+        }
+        None => ps::cherry_pick_no_working_copy_range(
+            repo,
+            &config,
+            start_patch_parent_oid,
+            start_patch_oid,
+            branch_ref_name,
+            1,
+            false,
+        ),
+    }
+    .map_err(RequestReviewBranchError::CherryPickFailed)?
+    .expect("No commits cherry picked, when we expected at least one");
+
+    Ok((branch, last_commit_oid_cherry_picked))
 }

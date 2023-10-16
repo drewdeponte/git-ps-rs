@@ -120,7 +120,7 @@ pub fn request_review(
     }
 
     // sync patch up to remote
-    let (patch_upstream_branch_name, _patch_upstream_branch_remote_name, _ps_id) =
+    let (patch_upstream_branch_name, _patch_upstream_branch_remote_name) =
         ps::public::sync::sync(patch_index, given_branch_name)
             .map_err(RequestReviewError::SyncFailed)?;
 
