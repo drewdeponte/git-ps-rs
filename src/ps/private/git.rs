@@ -248,7 +248,7 @@ pub fn create_commit(
                 }
             },
             None => {
-                eprintln!("Warning: Your git config gpg.format doesn't appear to be set even though commit.gpgsign is enalbed");
+                eprintln!("Warning: Your git config gpg.format doesn't appear to be set even though commit.gpgsign is enabled");
                 eprintln!("The commit has been created unsigned!");
                 create_unsigned_commit(
                     repo,
