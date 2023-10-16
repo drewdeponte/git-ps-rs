@@ -28,7 +28,7 @@ fn main() {
         ),
         cli::Command::RequestReviewBranch(opts) => {
             commands::request_review_branch::request_review_branch(
-                opts.patch_index,
+                opts.patch_index_or_range,
                 opts.branch_name,
             )
         }

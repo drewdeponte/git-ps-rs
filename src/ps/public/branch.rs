@@ -96,12 +96,13 @@ pub fn branch(
     )
     .map_err(BranchError::FailedToMapIndexesForCherryPick)?;
 
-    git::cherry_pick(
+    ps::cherry_pick(
         &repo,
         &git_config,
         cherry_pick_range.root_oid,
         cherry_pick_range.leaf_oid,
         branch_ref_name,
+        false,
     )
     .map_err(BranchError::CherryPickFailed)?;
 

@@ -1,6 +1,5 @@
 use super::super::super::ps;
 use super::super::private::git;
-use uuid::Uuid;
 
 #[derive(Debug)]
 pub enum SyncError {
@@ -21,7 +20,7 @@ pub enum SyncError {
 pub fn sync(
     patch_index: usize,
     given_branch_name: Option<String>,
-) -> Result<(String, String, Uuid), SyncError> {
+) -> Result<(String, String), SyncError> {
     let repo = git::create_cwd_repo().map_err(|_| SyncError::RepositoryNotFound)?;
 
     // get remote name of current branch
@@ -38,10 +37,11 @@ pub fn sync(
         .ok_or(SyncError::BranchRemoteNameNotUtf8)?;
 
     // create request review branch for patch
-    let (mut patch_branch, ps_id, _new_commit_oid) =
+    let (mut patch_branch, _new_commit_oid) =
         ps::private::request_review_branch::request_review_branch(
             &repo,
             patch_index,
+            None,
             given_branch_name,
         )
         .map_err(SyncError::CreateRrBranchFailed)?;
@@ -116,6 +116,5 @@ pub fn sync(
     Ok((
         upstream_patch_branch_name.to_string(),
         upstream_patch_remote_name,
-        ps_id,
     ))
 }

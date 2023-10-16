@@ -119,56 +119,6 @@ pub fn get_current_branch_shorthand(repo: &git2::Repository) -> Option<String> {
     }
 }
 
-/// Cherry pick the specified range of commits onto the destination ref
-///
-/// The given `repo` is the repository that you want to cherry pick the range of commits within.
-/// The `config` is the config used to facilitate commit creation, providing things like the
-/// author, email, etc.
-///
-/// The `root_oid` specifies the commit to start the ranged cherry picking process from,
-/// exclusively. Meaning this commit won't be included in the cherry picked commits, but its
-/// descendants will be, up to and including the `leaf_oid`. This commit should be an ancestor to
-/// the `leaf_oid`.
-///
-/// The `leaf_oid` specifies the commit to end the ranged cherry picking process on, inclusively.
-/// Meaning this commit will be included in the cherry picked commits. This commit should be a
-/// descendant to the `root_oid`.
-///
-/// The `dest_ref_name` specifies the reference (e.g. branch) to cherry pick the range of commits
-/// into.
-///
-/// It returns an Ok(Option(last_cherry_picked_commit_oid)) result in the case of success and an
-/// error result of GitError in the case of failure.
-pub fn cherry_pick_no_working_copy_range(
-    repo: &'_ git2::Repository,
-    config: &git2::Config,
-    root_oid: git2::Oid,
-    leaf_oid: git2::Oid,
-    dest_ref_name: &str,
-) -> Result<Option<git2::Oid>, GitError> {
-    let mut rev_walk = repo.revwalk()?;
-    rev_walk.push(leaf_oid)?; // start traversal from leaf_oid and walk to root_oid
-    rev_walk.hide(root_oid)?; // mark root_oid as where to hide from
-    rev_walk.set_sorting(git2::Sort::REVERSE)?; // reverse traversal order so we walk from child
-                                                // commit of the commit identified by root_oid and
-                                                // then iterate our way to the the commit
-                                                // identified by the leaf_oid
-
-    let mut last_cherry_picked_oid: Option<git2::Oid> = None;
-
-    for rev in rev_walk.flatten() {
-        last_cherry_picked_oid = Some(cherry_pick_no_working_copy(
-            repo,
-            config,
-            rev,
-            dest_ref_name,
-            0,
-        )?);
-    }
-
-    Ok(last_cherry_picked_oid)
-}
-
 #[derive(Debug)]
 pub enum ConfigGetError {
     Failed(git2::Error),
@@ -412,73 +362,6 @@ pub fn create_unsigned_commit(
     Ok(new_commit_oid)
 }
 
-/// Cherry pick the commit identified by the oid to the dest_ref_name with the
-/// given committer_time_offset. Note: The committer_time_offset is used to
-/// offset the Commiter's signature timestamp which is in seconds since epoch
-/// so that if we are performing multiple operations on the same commit within
-/// less than a second we can offset it in one direction or the other. The
-/// current use case for this is when we add patch stack id to a commit and
-/// then immediately cherry pick that commit into the ps/rr/whatever branch as
-/// part of the request_review_branch() operation.
-pub fn cherry_pick_no_working_copy<'a>(
-    repo: &'a git2::Repository,
-    config: &'a git2::Config,
-    oid: git2::Oid,
-    dest_ref_name: &str,
-    committer_time_offset: i64,
-) -> Result<git2::Oid, GitError> {
-    // https://www.pygit2.org/recipes/git-cherry-pick.html#cherry-picking-a-commit-without-a-working-copy
-    let commit = repo.find_commit(oid)?;
-    let commit_tree = commit.tree()?;
-
-    let commit_parent = commit.parent(0)?;
-    let commit_parent_tree = commit_parent.tree()?;
-
-    let destination_ref = repo.find_reference(dest_ref_name)?;
-    let destination_oid = destination_ref.target().ok_or(GitError::TargetNotFound)?;
-
-    // let common_ancestor_oid = repo.merge_base(oid, destination_oid)?;
-    // let common_ancestor_commit = repo.find_commit(common_ancestor_oid)?;
-    // let common_ancestor_tree = common_ancestor_commit.tree()?;
-
-    let destination_commit = repo.find_commit(destination_oid)?;
-    let destination_tree = destination_commit.tree()?;
-
-    let mut index = repo.merge_trees(&commit_parent_tree, &destination_tree, &commit_tree, None)?;
-    let tree_oid = index.write_tree_to(repo)?;
-    let tree = repo.find_tree(tree_oid)?;
-
-    let author = commit.author();
-    let committer = repo.signature().unwrap();
-
-    let message = commit.message().unwrap();
-
-    let new_time = git2::Time::new(
-        committer.when().seconds() + committer_time_offset,
-        committer.when().offset_minutes(),
-    );
-    let new_committer = git2::Signature::new(
-        committer.name().unwrap(),
-        committer.email().unwrap(),
-        &new_time,
-    )
-    .unwrap();
-
-    let new_commit_oid = create_commit(
-        repo,
-        config,
-        dest_ref_name,
-        &author,
-        &new_committer,
-        message,
-        &tree,
-        &[&destination_commit],
-    )
-    .unwrap();
-
-    Ok(new_commit_oid)
-}
-
 pub fn cherry_pick_no_working_copy_amend_message(
     repo: &'_ git2::Repository,
     config: &git2::Config,
@@ -694,57 +577,6 @@ pub fn read_hashed_object(
     let content = blob.content();
     let str_ref = std::str::from_utf8(content).map_err(ReadHashedObjectError::NotValidUtf8)?;
     Ok(str_ref.to_string())
-}
-
-/// Cherry pick either an individual commit identified by the `root_oid` Oid and None for
-/// `leaf_oid`, or a range of commits identified by the `root_oid` and `leaf_oid` both having Oids.
-///
-/// The given `repo` is the repository that you want to cherry pick the range of commits within.
-/// The `config` is the config used to facilitate commit creation, providing things like the
-/// author, email, etc.
-///
-/// The `root_oid` specifies the commit to start the ranged cherry picking process from,
-/// inclusively. Meaning this commit WILL be included in the cherry picked commits, as will all its
-/// descendants up to and including the `leaf_oid`. This commit should be an ancestor to the
-/// `leaf_oid`.
-///
-/// The `leaf_oid` specifies the commit to end the ranged cherry picking process on, inclusively.
-/// Meaning this commit will be included in the cherry picked commits. This commit should be a
-/// descendant to the `root_oid`.
-///
-/// The `dest_ref_name` specifies the reference (e.g. branch) to cherry pick the range of commits
-/// into.
-///
-/// It returns an Ok(Option(last_cherry_picked_commit_oid)) result in the case of success and an
-/// error result of GitError in the case of failure.
-pub fn cherry_pick(
-    repo: &'_ git2::Repository,
-    config: &git2::Config,
-    root_oid: git2::Oid,
-    leaf_oid: Option<git2::Oid>,
-    dest_ref_name: &str,
-) -> Result<Option<git2::Oid>, GitError> {
-    Ok(match leaf_oid {
-        Some(leaf_oid) => {
-            let root_commit = repo.find_commit(root_oid)?;
-            let root_commit_parent_commit = root_commit.parent(0)?;
-            let root_commit_parent_commit_oid = root_commit_parent_commit.id();
-            cherry_pick_no_working_copy_range(
-                repo,
-                config,
-                root_commit_parent_commit_oid,
-                leaf_oid,
-                dest_ref_name,
-            )?
-        }
-        None => Some(cherry_pick_no_working_copy(
-            repo,
-            config,
-            root_oid,
-            dest_ref_name,
-            0,
-        )?),
-    })
 }
 
 #[cfg(test)]
