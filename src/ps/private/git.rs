@@ -362,55 +362,6 @@ pub fn create_unsigned_commit(
     Ok(new_commit_oid)
 }
 
-pub fn cherry_pick_no_working_copy_amend_message(
-    repo: &'_ git2::Repository,
-    config: &git2::Config,
-    oid: git2::Oid,
-    dest_ref_name: &str,
-    message_amendment: &str,
-) -> Result<git2::Oid, GitError> {
-    // https://www.pygit2.org/recipes/git-cherry-pick.html#cherry-picking-a-commit-without-a-working-copy
-    let commit = repo.find_commit(oid)?;
-    let commit_tree = commit.tree()?;
-
-    let commit_parent = commit.parent(0)?;
-    let commit_parent_tree = commit_parent.tree()?;
-
-    let destination_ref = repo.find_reference(dest_ref_name)?;
-    let destination_oid = destination_ref.target().ok_or(GitError::TargetNotFound)?;
-
-    // let common_ancestor_oid = repo.merge_base(oid, destination_oid)?;
-    // let common_ancestor_commit = repo.find_commit(common_ancestor_oid)?;
-    // let common_ancestor_tree = common_ancestor_commit.tree()?;
-
-    let destination_commit = repo.find_commit(destination_oid)?;
-    let destination_tree = destination_commit.tree()?;
-
-    let mut index = repo.merge_trees(&commit_parent_tree, &destination_tree, &commit_tree, None)?;
-    let tree_oid = index.write_tree_to(repo)?;
-    let tree = repo.find_tree(tree_oid)?;
-
-    let author = commit.author();
-    let committer = repo.signature().unwrap();
-    let message = commit.message().ok_or(GitError::CommitMessageMissing)?;
-    let amended_message = format!("{}{}", message, message_amendment);
-
-    // let new_commit_oid = repo.commit(Option::Some(destination_ref_name), &author, &committer, amended_message.as_str(), &tree, &[&destination_commit])?;
-    let new_commit_oid = create_commit(
-        repo,
-        config,
-        dest_ref_name,
-        &author,
-        &committer,
-        amended_message.as_str(),
-        &tree,
-        &[&destination_commit],
-    )
-    .unwrap();
-
-    Ok(new_commit_oid)
-}
-
 #[derive(Debug)]
 pub enum ExtForcePushError {
     ExecuteFailed(utils::ExecuteError),

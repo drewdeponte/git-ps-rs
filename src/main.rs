@@ -33,7 +33,7 @@ fn main() {
             )
         }
         cli::Command::Integrate(opts) => commands::integrate::integrate(
-            opts.patch_index,
+            opts.patch_index_or_range,
             opts.force,
             opts.keep_branch,
             opts.branch_name,
@@ -50,7 +50,7 @@ fn main() {
         cli::Command::BatchRequestReview(opts) => {
             commands::batch_request_review::batch_request_review(opts.patch_index, cli.color)
         }
-        cli::Command::Show(opts) => commands::show::show(opts.patch_index),
+        cli::Command::Show(opts) => commands::show::show(opts.patch_index_or_range),
         cli::Command::Sync(opts) => {
             commands::sync::sync(opts.patch_index_or_range, opts.branch_name)
         }

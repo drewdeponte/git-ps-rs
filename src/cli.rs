@@ -38,7 +38,7 @@ pub struct RequestReviewBranchCmdOpts {
 
 #[derive(Debug, Args)]
 pub struct IntegrateCmdOpts {
-    pub patch_index: usize,
+    pub patch_index_or_range: String,
     /// Use the provided branch name instead of generating one
     #[arg(short = 'n')]
     pub branch_name: Option<String>,
@@ -53,7 +53,7 @@ pub struct IntegrateCmdOpts {
 
 #[derive(Debug, Args)]
 pub struct ShowCmdOpts {
-    pub patch_index: usize,
+    pub patch_index_or_range: String,
 }
 
 #[derive(Debug, Args)]

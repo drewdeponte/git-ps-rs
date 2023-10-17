@@ -6,9 +6,10 @@
 pub mod private;
 pub mod public;
 
+use std::collections::HashMap;
 use std::str::FromStr;
 
-use private::git;
+use private::{git, state_computation};
 // This is the `ps` module. It is responsible for housing functionality
 // specific to Patch Stack as a conceptual level.  It is responsible for
 // consuming functionality from other modules like the `git` and `utils`
@@ -422,156 +423,67 @@ pub fn add_patch_ids(
     Ok(())
 }
 
-#[derive(Debug)]
-pub enum AddPsIdError {
-    GitError(git2::Error),
-    FailedToGetCurrentBranch,
-    UpstreamBranchNotFound,
-    FailedToGetReferenceName,
-    TargetNotFound,
-    ReferenceNameMissing,
-    CommitMessageMissing,
-    FailedToFindCommonAncestor(git::CommonAncestorError),
-    FailedToFindCommit(git2::Error),
-    FailedToFindParentCommit(git2::Error),
-}
-
-impl From<git2::Error> for AddPsIdError {
-    fn from(e: git2::Error) -> Self {
-        Self::GitError(e)
-    }
-}
-
-impl From<git::GitError> for AddPsIdError {
-    fn from(e: git::GitError) -> Self {
-        match e {
-            git::GitError::NotFound => AddPsIdError::UpstreamBranchNotFound,
-            git::GitError::Git(err) => AddPsIdError::GitError(err),
-            git::GitError::TargetNotFound => AddPsIdError::TargetNotFound,
-            git::GitError::ReferenceNameMissing => AddPsIdError::ReferenceNameMissing,
-            git::GitError::CommitMessageMissing => AddPsIdError::CommitMessageMissing,
-        }
-    }
-}
-
-/// Add the given patch stack patch identifier to the given commit
-///
-/// It accomplishes this by getting the currently checked out branch and it's upstream tracking
-/// branch, finding the common ancestor between the currently checked out branch head commit and
-/// the upstream tracking branches head commit. Then it creates a temporary branch named
-/// ps/tmp/add_id_rework based on the common ancestor commit. It then gets the commit and the first
-/// parent commit. It then cherry picks the parent commit into the ps/tmp/add_id_rework branch.
-/// Then it cherry picks the specified commit into the ps/tmp/add_id_rework branch while also
-/// amending the commit message with the given ps_id. Then it cherry picks the range from the
-/// specified commit to the head of the branch, trueing the ps/tmp/add_id_rework branch up in terms
-/// of replicating the currently checked out branch, but now with a commit with a ps_id. Then it
-/// sets the branch to point at the head of ps/tmp/add_id_rework and deletes the
-/// ps/tmp/add_id_rework reference.
-pub fn add_ps_id(
-    repo: &git2::Repository,
-    config: &git2::Config,
-    commit_oid: git2::Oid,
-    ps_id: Uuid,
-) -> Result<git2::Oid, AddPsIdError> {
-    // Get currently checked out branch
-    let branch_ref_name =
-        git::get_current_branch(repo).ok_or(AddPsIdError::FailedToGetCurrentBranch)?;
-    let mut branch_ref = repo.find_reference(&branch_ref_name)?;
-    let cur_branch_obj = repo.revparse_single(&branch_ref_name)?;
-    let cur_branch_oid = cur_branch_obj.id();
-
-    // Get current branches upstream tracking branch
-    let upstream_branch_ref_name = git::branch_upstream_name(repo, &branch_ref_name)?;
-    let upstream_branch_obj = repo.revparse_single(&upstream_branch_ref_name)?;
-    let upstream_branch_oid = upstream_branch_obj.id();
-
-    // find the commmon ancestor
-    let common_ancestor_oid = git::common_ancestor(repo, cur_branch_oid, upstream_branch_oid)
-        .map_err(AddPsIdError::FailedToFindCommonAncestor)?;
-    let common_anccestor_commit = repo.find_commit(common_ancestor_oid)?;
-
-    // create branch
-    let add_id_rework_branch =
-        repo.branch("ps/tmp/add_id_rework", &common_anccestor_commit, true)?;
-    let add_id_rework_branch_ref_name = add_id_rework_branch
-        .get()
-        .name()
-        .ok_or(AddPsIdError::FailedToGetReferenceName)?;
-
-    // cherry pick
-    let commit = repo
-        .find_commit(commit_oid)
-        .map_err(AddPsIdError::FailedToFindCommit)?;
-    let parent_commit = commit
-        .parent(0)
-        .map_err(AddPsIdError::FailedToFindParentCommit)?;
-    cherry_pick_no_working_copy_range(
-        repo,
-        config,
-        upstream_branch_oid,
-        parent_commit.id(),
-        add_id_rework_branch_ref_name,
-        0,
-        false,
-    )?;
-
-    let message_amendment = format!("\n<!-- ps-id: {} -->", ps_id.hyphenated());
-    let amended_patch_oid = git::cherry_pick_no_working_copy_amend_message(
-        repo,
-        config,
-        commit_oid,
-        add_id_rework_branch_ref_name,
-        message_amendment.as_str(),
-    )?;
-
-    let cherry_picked_commit_oid = cherry_pick_no_working_copy_range(
-        repo,
-        config,
-        commit_oid,
-        cur_branch_oid,
-        add_id_rework_branch_ref_name,
-        0,
-        false,
-    )?;
-
-    match cherry_picked_commit_oid {
-        Some(oid) => branch_ref.set_target(oid, "swap branch to add_id_rework")?,
-        None => branch_ref.set_target(amended_patch_oid, "swap branch to add_id_rework")?,
-    };
-
-    // delete temporary branch
-    let mut tmp_branch_ref = repo.find_reference(add_id_rework_branch_ref_name)?;
-    tmp_branch_ref.delete()?;
-
-    Ok(amended_patch_oid)
-}
-
-#[derive(Debug)]
-pub enum FindPatchCommitError {
-    GetPatchStackDescFailed(PatchStackError),
-    GetPatchListFailed(GetPatchListError),
-    PatchWithIndexNotFound(usize),
-    FindCommitWithOidFailed(git2::Oid, git2::Error),
-}
-
-pub fn find_patch_commit(
-    repo: &git2::Repository,
-    patch_index: usize,
-) -> Result<git2::Commit, FindPatchCommitError> {
-    let patch_stack =
-        get_patch_stack(repo).map_err(FindPatchCommitError::GetPatchStackDescFailed)?;
-    let patches_vec =
-        get_patch_list(repo, &patch_stack).map_err(FindPatchCommitError::GetPatchListFailed)?;
-    let patch_oid = patches_vec
-        .get(patch_index)
-        .ok_or(FindPatchCommitError::PatchWithIndexNotFound(patch_index))?
-        .oid;
-    repo.find_commit(patch_oid)
-        .map_err(|e| FindPatchCommitError::FindCommitWithOidFailed(patch_oid, e))
-}
-
 pub fn commit_ps_id(commit: &git2::Commit) -> Option<Uuid> {
     commit.message().and_then(extract_ps_id)
+}
+
+#[derive(Debug)]
+pub enum PatchRangeWithinStackBoundsError {
+    StartPatchIndexOutOfBounds(usize),
+    EndPatchIndexOutOfBounds(usize),
+}
+
+pub fn patch_range_within_stack_bounds(
+    start_patch_index: usize,
+    end_patch_index: Option<usize>,
+    stack_patches: &Vec<ListPatch>,
+) -> Result<(), PatchRangeWithinStackBoundsError> {
+    if start_patch_index > (stack_patches.len() - 1) {
+        return Err(
+            PatchRangeWithinStackBoundsError::StartPatchIndexOutOfBounds(start_patch_index),
+        );
+    }
+
+    if let Some(end_index) = end_patch_index {
+        if end_index > (stack_patches.len() - 1) {
+            return Err(PatchRangeWithinStackBoundsError::EndPatchIndexOutOfBounds(
+                end_index,
+            ));
+        }
+    }
+
+    Ok(())
+}
+
+/// Get a vec of all the unique branch names associated with specified patch series
+pub fn patch_series_unique_branch_names(
+    repo: &git2::Repository,
+    stack_patches: &Vec<ListPatch>,
+    patch_info_collection: &HashMap<Uuid, state_computation::PatchGitInfo>,
+    start_patch_index: usize,
+    end_patch_index: Option<usize>,
+) -> Vec<String> {
+    // collect vector of indexes
+    let indexes_iter = match end_patch_index {
+        Some(end_index) => start_patch_index..=end_index,
+        None => start_patch_index..=start_patch_index,
+    };
+
+    // get unique branch names of patches in series
+    let mut range_patch_branches: Vec<String> = indexes_iter
+        .clone()
+        .map(|i| stack_patches.get(i).unwrap())
+        .map(|lp| {
+            let commit = repo.find_commit(lp.oid).unwrap();
+            commit_ps_id(&commit).unwrap()
+        })
+        .filter_map(|id| patch_info_collection.get(&id))
+        .flat_map(|pi| pi.branches.iter().map(|b| b.name.clone()))
+        .collect();
+    range_patch_branches.sort();
+    range_patch_branches.dedup();
+
+    range_patch_branches
 }
 
 #[cfg(test)]

@@ -12,7 +12,6 @@ use std::result::Result;
 #[derive(Debug)]
 pub enum RequestReviewError {
     OpenRepositoryFailed(git::CreateCwdRepositoryError),
-    FindPatchCommitFailed(ps::FindPatchCommitError),
     GetRepoRootPathFailed(paths::PathsError),
     PathNotUtf8,
     GetConfigFailed(config::GetConfigError),
@@ -81,7 +80,6 @@ impl fmt::Display for RequestReviewError {
             Self::IsolationVerificationFailed(e) => {
                 write!(f, "Isolation verification failed - {:?}", e)
             }
-            Self::FindPatchCommitFailed(e) => write!(f, "Failed to find patch commit - {:?}", e),
             Self::RemoteUrlNotUtf8 => write!(f, "Failed to process remote url as it is NOT utf8"),
             Self::FindRemoteFailed(e) => {
                 write!(f, "Failed to find remote - {:?}", e)
