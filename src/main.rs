@@ -42,9 +42,11 @@ fn main() {
         cli::Command::List => commands::list::list(cli.color),
         cli::Command::Rebase(opts) => commands::rebase::rebase(opts.r#continue),
         cli::Command::Pull => commands::pull::pull(cli.color),
-        cli::Command::RequestReview(opts) => {
-            commands::request_review::request_review(opts.patch_index, opts.branch_name, cli.color)
-        }
+        cli::Command::RequestReview(opts) => commands::request_review::request_review(
+            opts.patch_index_or_range,
+            opts.branch_name,
+            cli.color,
+        ),
         cli::Command::BatchRequestReview(opts) => {
             commands::batch_request_review::batch_request_review(opts.patch_index, cli.color)
         }
