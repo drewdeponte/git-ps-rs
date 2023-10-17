@@ -55,7 +55,7 @@ fn main() {
             commands::sync::sync(opts.patch_index_or_range, opts.branch_name)
         }
         cli::Command::Isolate(opts) => {
-            commands::isolate::isolate(opts.start_patch_index, opts.end_patch_index, cli.color)
+            commands::isolate::isolate(opts.patch_index_or_range, cli.color)
         }
         cli::Command::Checkout(opts) => commands::checkout::checkout(opts.patch_index),
         cli::Command::CreatePatch => commands::create_patch::create_patch(),

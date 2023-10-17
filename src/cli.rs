@@ -66,11 +66,7 @@ pub struct SyncCmdOpts {
 
 #[derive(Debug, Args)]
 pub struct IsolateCmdOpts {
-    /// index of patch to verify isolation for or starting index of patch
-    /// series to verify isolation for
-    pub start_patch_index: Option<usize>,
-    /// ending patch index of the patch series to verify isolation for
-    pub end_patch_index: Option<usize>,
+    pub patch_index_or_range: Option<String>,
 }
 
 #[derive(Debug, Args)]
