@@ -27,20 +27,42 @@ impl From<utils::ExecuteError> for ShowError {
     }
 }
 
-pub fn show(patch_index: usize) -> Result<(), ShowError> {
+pub fn show(start_patch_index: usize, end_patch_index: Option<usize>) -> Result<(), ShowError> {
     let repo = git::create_cwd_repo().map_err(|_| ShowError::RepositoryMissing)?;
 
     let patch_stack = ps::get_patch_stack(&repo).map_err(ShowError::GetPatchStackFailed)?;
     let patches_vec =
         ps::get_patch_list(&repo, &patch_stack).map_err(ShowError::GetPatchListFailed)?;
-    let patch_oid = patches_vec
-        .get(patch_index)
+
+    let start_patch_oid = patches_vec
+        .get(start_patch_index)
         .ok_or(ShowError::PatchIndexNotFound)?
         .oid;
 
-    utils::execute(
-        "git",
-        &["show", "--pretty=raw", format!("{}", patch_oid).as_str()],
-    )
-    .map_err(ShowError::from)
+    if let Some(end_index) = end_patch_index {
+        let end_patch_oid = patches_vec
+            .get(end_index)
+            .ok_or(ShowError::PatchIndexNotFound)?
+            .oid;
+
+        utils::execute(
+            "git",
+            &[
+                "show",
+                "--pretty=raw",
+                format!("{}^...{}", start_patch_oid, end_patch_oid).as_str(),
+            ],
+        )
+        .map_err(ShowError::from)
+    } else {
+        utils::execute(
+            "git",
+            &[
+                "show",
+                "--pretty=raw",
+                format!("{}", start_patch_oid).as_str(),
+            ],
+        )
+        .map_err(ShowError::from)
+    }
 }

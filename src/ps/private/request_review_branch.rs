@@ -1,5 +1,3 @@
-use crate::ps::commit_ps_id;
-
 use super::super::super::ps;
 use super::super::private::git;
 use super::super::private::state_computation;
@@ -17,7 +15,6 @@ pub enum RequestReviewBranchError {
     PatchIndexNotFound,
     PatchCommitNotFound,
     PatchMessageMissing,
-    AddPsIdToPatchFailed(ps::AddPsIdError),
     PatchSummaryMissing,
     CreateRrBranchFailed,
     RrBranchNameNotUtf8,
@@ -30,9 +27,9 @@ pub enum RequestReviewBranchError {
     GetListPatchInfoFailed(state_computation::GetListPatchInfoError),
     PatchBranchAmbiguous,
     AddPatchIdsFailed(ps::AddPatchIdsError),
-    PatchIndexOutOfStackRange(usize),
     AssociatedBranchAmbiguous(std::vec::Vec<String>),
     PatchSeriesRequireBranchName,
+    PatchIndexRangeOutOfBounds(ps::PatchRangeWithinStackBoundsError),
 }
 
 impl From<git::CreateCwdRepositoryError> for RequestReviewBranchError {
@@ -55,12 +52,6 @@ impl From<ps::PatchStackError> for RequestReviewBranchError {
     }
 }
 
-impl From<ps::AddPsIdError> for RequestReviewBranchError {
-    fn from(e: ps::AddPsIdError) -> Self {
-        RequestReviewBranchError::AddPsIdToPatchFailed(e)
-    }
-}
-
 impl fmt::Display for RequestReviewBranchError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -74,9 +65,6 @@ impl fmt::Display for RequestReviewBranchError {
             RequestReviewBranchError::PatchIndexNotFound => write!(f, "Patch Index out of range"),
             RequestReviewBranchError::PatchCommitNotFound => write!(f, "Patch commit not found"),
             RequestReviewBranchError::PatchMessageMissing => write!(f, "Patch missing message"),
-            RequestReviewBranchError::AddPsIdToPatchFailed(_add_ps_id_error) => {
-                write!(f, "Failed to add patch stack id to patch")
-            }
             RequestReviewBranchError::PatchSummaryMissing => write!(f, "Patch missing summary"),
             RequestReviewBranchError::CreateRrBranchFailed => {
                 write!(f, "Failed to create request-review branch")
@@ -118,8 +106,8 @@ impl fmt::Display for RequestReviewBranchError {
             RequestReviewBranchError::AddPatchIdsFailed(_) => {
                 write!(f, "Failed to add patch ids to commits in the patch stack")
             }
-            RequestReviewBranchError::PatchIndexOutOfStackRange(_) => {
-                write!(f, "Patch index out of patch stack range")
+            RequestReviewBranchError::PatchIndexRangeOutOfBounds(_) => {
+                write!(f, "Patch index range out of patch stack bounds")
             }
             RequestReviewBranchError::AssociatedBranchAmbiguous(_) => {
                 write!(
@@ -153,19 +141,8 @@ pub fn request_review_branch(
         .map_err(RequestReviewBranchError::GetPatchListFailed)?;
 
     // validate patch indexes are within bounds
-    if start_patch_index > (patches_vec.len() - 1) {
-        return Err(RequestReviewBranchError::PatchIndexOutOfStackRange(
-            start_patch_index,
-        ));
-    }
-
-    if let Some(end_index) = end_patch_index {
-        if end_index > (patches_vec.len() - 1) {
-            return Err(RequestReviewBranchError::PatchIndexOutOfStackRange(
-                end_index,
-            ));
-        }
-    }
+    ps::patch_range_within_stack_bounds(start_patch_index, end_patch_index, &patches_vec)
+        .map_err(RequestReviewBranchError::PatchIndexRangeOutOfBounds)?;
 
     // fetch computed state from Git tree
     let patch_stack_base_commit = patch_stack
@@ -189,18 +166,13 @@ pub fn request_review_branch(
     };
 
     // get unique branch names of patches in series
-    let mut range_patch_branches: Vec<String> = indexes_iter
-        .clone()
-        .map(|i| patches_vec.get(i).unwrap())
-        .map(|lp| {
-            let commit = repo.find_commit(lp.oid).unwrap();
-            commit_ps_id(&commit).unwrap()
-        })
-        .filter_map(|id| patch_info_collection.get(&id))
-        .flat_map(|pi| pi.branches.iter().map(|b| b.name.clone()))
-        .collect();
-    range_patch_branches.sort();
-    range_patch_branches.dedup();
+    let range_patch_branches = ps::patch_series_unique_branch_names(
+        repo,
+        &patches_vec,
+        &patch_info_collection,
+        start_patch_index,
+        end_patch_index,
+    );
 
     // figure out the new branch name, either generate a new one, use the associated one, or
     // require user to explicitly specify
