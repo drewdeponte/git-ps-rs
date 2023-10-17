@@ -15,6 +15,7 @@ pub mod integrate;
 pub mod isolate;
 pub mod list;
 pub mod log;
+pub mod patch_index_range;
 pub mod pull;
 pub mod rebase;
 pub mod request_review;

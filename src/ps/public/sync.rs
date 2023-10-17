@@ -18,7 +18,8 @@ pub enum SyncError {
 }
 
 pub fn sync(
-    patch_index: usize,
+    start_patch_index: usize,
+    end_patch_index: Option<usize>,
     given_branch_name: Option<String>,
 ) -> Result<(String, String), SyncError> {
     let repo = git::create_cwd_repo().map_err(|_| SyncError::RepositoryNotFound)?;
@@ -40,8 +41,8 @@ pub fn sync(
     let (mut patch_branch, _new_commit_oid) =
         ps::private::request_review_branch::request_review_branch(
             &repo,
-            patch_index,
-            None,
+            start_patch_index,
+            end_patch_index,
             given_branch_name,
         )
         .map_err(SyncError::CreateRrBranchFailed)?;
