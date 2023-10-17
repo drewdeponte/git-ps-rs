@@ -91,7 +91,8 @@ impl fmt::Display for RequestReviewError {
 }
 
 pub fn request_review(
-    patch_index: usize,
+    start_patch_index: usize,
+    end_patch_index: Option<usize>,
     given_branch_name: Option<String>,
     color: bool,
 ) -> Result<(), RequestReviewError> {
@@ -115,13 +116,13 @@ pub fn request_review(
 
     // verify isolation
     if config.request_review.verify_isolation {
-        verify_isolation::verify_isolation(patch_index, None, color)
+        verify_isolation::verify_isolation(start_patch_index, end_patch_index, color)
             .map_err(RequestReviewError::IsolationVerificationFailed)?;
     }
 
     // sync patch up to remote
     let (patch_upstream_branch_name, _patch_upstream_branch_remote_name) =
-        ps::public::sync::sync(patch_index, None, given_branch_name)
+        ps::public::sync::sync(start_patch_index, end_patch_index, given_branch_name)
             .map_err(RequestReviewError::SyncFailed)?;
 
     // execute post sync hook

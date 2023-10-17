@@ -5,15 +5,24 @@
 // be strongly considered if they fit better in one of the other modules
 // inside of the `ps` module.
 
+use super::patch_index_range::PatchIndexRange;
 use super::utils::print_err;
 use gps as ps;
+use std::str::FromStr;
 
-pub fn request_review(patch_index: usize, branch_name: Option<String>, color: bool) {
-    match ps::request_review(patch_index, branch_name, color) {
-        Ok(_) => {}
-        Err(ps::RequestReviewError::PostSyncHookNotFound) => print_err(
-            color,
-            r#"
+pub fn request_review(patch_index_or_range: String, branch_name: Option<String>, color: bool) {
+    match PatchIndexRange::from_str(&patch_index_or_range) {
+        Ok(patch_index_range) => {
+            match ps::request_review(
+                patch_index_range.start_index,
+                patch_index_range.end_index,
+                branch_name,
+                color,
+            ) {
+                Ok(_) => {}
+                Err(ps::RequestReviewError::PostSyncHookNotFound) => print_err(
+                    color,
+                    r#"
   The request_review_post_sync hook was not found!
 
   This hook is required to be installed and configured for the
@@ -38,11 +47,11 @@ pub fn request_review(patch_index: usize, branch_name: Option<String>, color: bo
 
   https://github.com/uptech/git-ps-rs#hooks
 "#,
-        ),
-        Err(ps::RequestReviewError::PostSyncHookNotExecutable(path)) => {
-            let path_str = path.to_str().unwrap_or("unknow path");
-            let msg = format!(
-                r#"
+                ),
+                Err(ps::RequestReviewError::PostSyncHookNotExecutable(path)) => {
+                    let path_str = path.to_str().unwrap_or("unknow path");
+                    let msg = format!(
+                        r#"
   The request_review_post_sync hook was found at
 
     {}
@@ -53,27 +62,35 @@ pub fn request_review(patch_index: usize, branch_name: Option<String>, color: bo
 
     chmod u+x {}
 "#,
-                path_str, path_str
-            );
-            print_err(color, &msg);
-            std::process::exit(1);
-        }
-        Err(ps::RequestReviewError::IsolationVerificationFailed(
-            ps::VerifyIsolationError::IsolateFailed(ps::IsolateError::UncommittedChangesExist),
-        )) => {
-            print_err(
-                color,
-                r#"
+                        path_str, path_str
+                    );
+                    print_err(color, &msg);
+                    std::process::exit(1);
+                }
+                Err(ps::RequestReviewError::IsolationVerificationFailed(
+                    ps::VerifyIsolationError::IsolateFailed(
+                        ps::IsolateError::UncommittedChangesExist,
+                    ),
+                )) => {
+                    print_err(
+                        color,
+                        r#"
   gps request-review command requires a clean working directory when verifying isolation, but it looks like yours is dirty.
 
   It is recommended that you create a WIP commit. But, you could also use git stash if you prefer.
         "#,
-            );
-            std::process::exit(1);
+                    );
+                    std::process::exit(1);
+                }
+                Err(e) => {
+                    print_err(color, format!("\nError: {}\n", e).as_str());
+                    std::process::exit(1);
+                }
+            };
         }
         Err(e) => {
-            print_err(color, format!("\nError: {}\n", e).as_str());
+            eprintln!("Error: {:?}", e);
             std::process::exit(1);
         }
-    };
+    }
 }
