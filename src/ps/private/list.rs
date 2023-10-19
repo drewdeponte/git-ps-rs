@@ -116,6 +116,7 @@ mod tests {
         let cell = ListCell {
             width: Some(4),
             color: Some(Blue),
+            bg_color: None,
             value: "hello".to_string(),
         };
         assert_eq!(format!("{}", cell), "\u{1b}[34mhell\u{1b}[0m");
@@ -126,6 +127,7 @@ mod tests {
         let cell = ListCell {
             width: Some(6),
             color: None,
+            bg_color: None,
             value: "hello".to_string(),
         };
         assert_eq!(format!("{}", cell), "hello ");
@@ -136,6 +138,7 @@ mod tests {
         let cell = ListCell {
             width: None,
             color: None,
+            bg_color: None,
             value: "hello".to_string(),
         };
         assert_eq!(format!("{}", cell), "hello");
@@ -157,7 +160,7 @@ mod tests {
     fn test_list_row_add_cell() {
         let mut row = ListRow::new(false);
         let cell_value = "hello".to_string();
-        row.add_cell(None, None, &cell_value);
+        row.add_cell(None, None, None, &cell_value);
         assert_eq!(
             row,
             ListRow {
@@ -165,6 +168,7 @@ mod tests {
                 cells: vec![ListCell {
                     width: None,
                     color: None,
+                    bg_color: None,
                     value: cell_value
                 }]
             }
@@ -177,16 +181,28 @@ mod tests {
         let first_cell = ListCell {
             width: Some(10),
             color: Some(Blue),
+            bg_color: None,
             value: "Hello".to_string(),
         };
         let second_cell = ListCell {
             width: None,
             color: None,
+            bg_color: None,
             value: "World".to_string(),
         };
-        row.add_cell(first_cell.width, first_cell.color, first_cell.value);
-        row.add_cell(second_cell.width, second_cell.color, second_cell.value);
-        assert_eq!(format!("{}", row), "\u{1b}[34mHello     \u{1b}[0m World ")
+        row.add_cell(
+            first_cell.width,
+            first_cell.color,
+            first_cell.bg_color,
+            first_cell.value,
+        );
+        row.add_cell(
+            second_cell.width,
+            second_cell.color,
+            second_cell.bg_color,
+            second_cell.value,
+        );
+        assert_eq!(format!("{}", row), "\u{1b}[34mHello     \u{1b}[0mWorld")
     }
 
     #[test]
@@ -195,15 +211,27 @@ mod tests {
         let first_cell = ListCell {
             width: Some(10),
             color: Some(Blue),
+            bg_color: None,
             value: "Hello".to_string(),
         };
         let second_cell = ListCell {
             width: None,
             color: None,
+            bg_color: None,
             value: "World".to_string(),
         };
-        row.add_cell(first_cell.width, first_cell.color, first_cell.value);
-        row.add_cell(second_cell.width, second_cell.color, second_cell.value);
-        assert_eq!(format!("{}", row), "Hello      World ")
+        row.add_cell(
+            first_cell.width,
+            first_cell.color,
+            first_cell.bg_color,
+            first_cell.value,
+        );
+        row.add_cell(
+            second_cell.width,
+            second_cell.color,
+            second_cell.bg_color,
+            second_cell.value,
+        );
+        assert_eq!(format!("{}", row), "Hello     World")
     }
 }
