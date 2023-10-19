@@ -50,15 +50,18 @@ impl std::str::FromStr for PatchIndexRange {
             let patch_end_index = patch_end_index_str.parse::<usize>().map_err(|e| {
                 ParsePatchIndexOrRangeError::UnparsableIndex(patch_end_index_str.to_string(), e)
             })?;
-            if patch_end_index > patch_start_index {
-                Ok(PatchIndexRange {
+            match patch_end_index.cmp(&patch_start_index) {
+                std::cmp::Ordering::Greater => Ok(PatchIndexRange {
                     start_index: patch_start_index,
                     end_index: Some(patch_end_index),
-                })
-            } else {
-                Err(ParsePatchIndexOrRangeError::StartPatchIndexLargerThanEnd(
-                    s.to_string(),
-                ))
+                }),
+                std::cmp::Ordering::Equal => Ok(PatchIndexRange {
+                    start_index: patch_start_index,
+                    end_index: None,
+                }),
+                std::cmp::Ordering::Less => Err(
+                    ParsePatchIndexOrRangeError::StartPatchIndexLargerThanEnd(s.to_string()),
+                ),
             }
         } else {
             Err(ParsePatchIndexOrRangeError::InvalidIndexRange(
@@ -164,12 +167,16 @@ fn range2() {
     );
 }
 
-// CR-someday alizter: We don't accept reflexive ranges, maybe we should?
-// It seems simple enought to parse this as a single patch index.
 #[test]
 fn range3() {
-    let patch_index_or_range = "2-2".parse::<PatchIndexRange>();
-    assert!(patch_index_or_range.is_err());
+    let patch_index_or_range = "2-2".parse::<PatchIndexRange>().unwrap();
+    assert_eq!(
+        patch_index_or_range,
+        PatchIndexRange {
+            start_index: 2,
+            end_index: None,
+        },
+    );
 }
 
 #[test]
