@@ -458,7 +458,7 @@ pub fn patch_range_within_stack_bounds(
 /// Get a vec of all the unique branch names associated with specified patch series
 pub fn patch_series_unique_branch_names(
     repo: &git2::Repository,
-    stack_patches: &Vec<ListPatch>,
+    stack_patches: &[ListPatch],
     patch_info_collection: &HashMap<Uuid, state_computation::PatchGitInfo>,
     start_patch_index: usize,
     end_patch_index: Option<usize>,
@@ -473,9 +473,9 @@ pub fn patch_series_unique_branch_names(
     let mut range_patch_branches: Vec<String> = indexes_iter
         .clone()
         .map(|i| stack_patches.get(i).unwrap())
-        .map(|lp| {
+        .filter_map(|lp| {
             let commit = repo.find_commit(lp.oid).unwrap();
-            commit_ps_id(&commit).unwrap()
+            commit_ps_id(&commit)
         })
         .filter_map(|id| patch_info_collection.get(&id))
         .flat_map(|pi| pi.branches.iter().map(|b| b.name.clone()))
