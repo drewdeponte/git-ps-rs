@@ -1,12 +1,13 @@
-use ansi_term::ANSIGenericString;
+use ansi_term::{ANSIGenericString, Style};
 use std::{fmt, str::Utf8Error};
 
 use super::{hooks, utils};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 struct ListCell {
     width: Option<usize>,
     color: Option<ansi_term::Colour>,
+    bg_color: Option<ansi_term::Colour>,
     value: String,
 }
 
@@ -18,9 +19,15 @@ impl ListCell {
     }
 
     fn get_colored_text<'a>(&'a self, str: &'a str) -> ANSIGenericString<str> {
-        self.color
-            .map(|c| c.paint(str))
-            .unwrap_or(ANSIGenericString::from(str))
+        if self.color.is_some() && self.bg_color.is_some() {
+            self.color.unwrap().on(self.bg_color.unwrap()).paint(str)
+        } else if self.color.is_some() && self.bg_color.is_none() {
+            self.color.unwrap().paint(str)
+        } else if self.color.is_none() & self.bg_color.is_some() {
+            Style::new().on(self.bg_color.unwrap()).paint(str)
+        } else {
+            ANSIGenericString::from(str)
+        }
     }
 }
 
@@ -33,7 +40,7 @@ impl fmt::Display for ListCell {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct ListRow {
     cells: Vec<ListCell>,
     with_color: bool,
@@ -51,12 +58,15 @@ impl ListRow {
         &mut self,
         width: Option<usize>,
         text_color: Option<ansi_term::Colour>,
+        bg_color: Option<ansi_term::Colour>,
         value: impl fmt::Display,
     ) {
         let color = if self.with_color { text_color } else { None };
+        let bg_color = if self.with_color { bg_color } else { None };
         let cell = ListCell {
             width,
             color,
+            bg_color,
             value: value.to_string(),
         };
         self.cells.push(cell)
@@ -69,7 +79,6 @@ impl fmt::Display for ListRow {
 
         for column in &self.cells {
             row_str.push_str(&column.to_string());
-            row_str.push(' ');
         }
         write!(f, "{}", row_str)
     }

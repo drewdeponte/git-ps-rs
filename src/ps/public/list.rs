@@ -4,7 +4,7 @@ use super::super::private::git;
 use super::super::private::paths;
 use super::super::private::state_computation;
 use crate::ps::private::list;
-use ansi_term::Colour::{Blue, Cyan, Green, Yellow};
+use ansi_term::Colour::{Blue, Cyan, Fixed, Green, Yellow};
 use std::cmp::Ordering;
 
 #[derive(Debug)]
@@ -19,6 +19,29 @@ pub enum ListError {
     GetHookOutputError(list::ListHookError),
     CurrentBranchNameMissing,
     GetUpstreamBranchNameFailed,
+}
+
+fn bg_color(
+    is_connected_to_prev_row: bool,
+    prev_row_showed_color: bool,
+) -> Option<ansi_term::Colour> {
+    let super_light_gray = Fixed(237);
+
+    if (is_connected_to_prev_row && prev_row_showed_color)
+        || (!is_connected_to_prev_row && !prev_row_showed_color)
+    {
+        Some(super_light_gray)
+    } else {
+        None
+    }
+}
+
+fn is_connected_to_prev_row(prev_patch_branches: &[String], cur_patch_branches: &[String]) -> bool {
+    cur_patch_branches
+        .iter()
+        .map(|cb| prev_patch_branches.contains(cb))
+        .reduce(|acc, v| acc || v)
+        .unwrap()
 }
 
 pub fn list(color: bool) -> Result<(), ListError> {
@@ -67,30 +90,64 @@ pub fn list(color: bool) -> Result<(), ListError> {
         Box::new(list_of_patches.into_iter().rev())
     };
 
+    let mut prev_patch_branches: Vec<String> = vec![];
+    let mut connected_to_prev_row: bool;
+    let mut prev_row_included_bg: bool = true;
+
     for patch in list_of_patches_iter {
         let mut row = list::ListRow::new(color);
+
         let commit = repo.find_commit(patch.oid).unwrap();
 
         let commit_diff_id = git::commit_diff_patch_id(&repo, &commit)
             .map_err(ListError::GetCommitDiffPatchIdFailed)?;
 
-        row.add_cell(Some(4), Some(Green), patch.index);
-        row.add_cell(Some(7), Some(Yellow), patch.oid);
-        row.add_cell(Some(50), None, patch.summary.clone());
+        if let Some(ps_id) = ps::commit_ps_id(&commit) {
+            if let Some(patch_info) = patch_info_collection.get(&ps_id) {
+                let cur_row_branches: Vec<String> =
+                    patch_info.branches.iter().map(|b| b.name.clone()).collect();
+                connected_to_prev_row =
+                    is_connected_to_prev_row(&prev_patch_branches, &cur_row_branches);
+                prev_patch_branches = cur_row_branches.to_vec();
+            } else {
+                connected_to_prev_row = false;
+                prev_patch_branches = vec![];
+            }
+        } else {
+            connected_to_prev_row = false;
+            prev_patch_branches = vec![];
+        }
+
+        let bg_color = bg_color(connected_to_prev_row, prev_row_included_bg);
+        prev_row_included_bg = bg_color.is_some();
+
+        row.add_cell(Some(5), Some(Green), bg_color, format!("{} ", patch.index));
+        row.add_cell(
+            Some(8),
+            Some(Yellow),
+            bg_color,
+            format!("{:.7} ", patch.oid),
+        );
+        row.add_cell(
+            Some(51),
+            None,
+            bg_color,
+            format!("{} ", patch.summary.clone()),
+        );
 
         if let Some(ps_id) = ps::commit_ps_id(&commit) {
             if let Some(patch_info) = patch_info_collection.get(&ps_id) {
-                row.add_cell(Some(1), Some(Cyan), "(");
+                row.add_cell(Some(2), Some(Cyan), bg_color, "( ");
                 for b in patch_info.branches.iter() {
                     match patch_info.branches.len().cmp(&1) {
                         Ordering::Greater => {
-                            row.add_cell(None, None, b.name.clone());
+                            row.add_cell(None, None, bg_color, format!("{} ", b.name.clone()));
                         }
                         Ordering::Less => {}
                         Ordering::Equal => {
                             let branch_info = patch_info.branches.first().unwrap();
                             if !branch_info.name.starts_with("ps/rr/") {
-                                row.add_cell(None, None, b.name.clone());
+                                row.add_cell(None, None, bg_color, format!("{} ", b.name.clone()));
                             }
                         }
                     }
@@ -145,7 +202,7 @@ pub fn list(color: bool) -> Result<(), ListError> {
                             state_string.push('!');
                         }
                     }
-                    row.add_cell(None, Some(Blue), &state_string);
+                    row.add_cell(None, Some(Blue), bg_color, format!("{} ", &state_string));
 
                     if config.list.add_extra_patch_info {
                         let hook_stdout = list::execute_list_additional_info_hook(
@@ -160,18 +217,23 @@ pub fn list(color: bool) -> Result<(), ListError> {
                         )
                         .map_err(ListError::GetHookOutputError)?;
                         let hook_stdout_len = config.list.extra_patch_info_length;
-                        row.add_cell(Some(hook_stdout_len), Some(Blue), hook_stdout);
+                        row.add_cell(
+                            Some(hook_stdout_len + 1),
+                            Some(Blue),
+                            bg_color,
+                            format!("{} ", hook_stdout),
+                        );
                     }
                 }
-                row.add_cell(Some(1), Some(Cyan), ")");
+                row.add_cell(Some(2), Some(Cyan), bg_color, " )");
             } else {
-                row.add_cell(None, Some(Cyan), "()")
+                row.add_cell(None, Some(Cyan), bg_color, "()")
             }
         } else {
-            row.add_cell(None, Some(Cyan), "()")
+            row.add_cell(None, Some(Cyan), bg_color, "()")
         }
 
-        println!("{}", row)
+        println!("{}", row);
     }
 
     // TODO: handle the reorder option
