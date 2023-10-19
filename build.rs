@@ -31,8 +31,8 @@ fn main() -> Result<(), Error> {
         generate_to(Shell::Bash, &mut cmd, env!("CARGO_PKG_NAME"), &outdir)?;
     let _zsh_completion_path = generate_to(Shell::Zsh, &mut cmd, env!("CARGO_PKG_NAME"), &outdir)?;
 
-    println!("cargo:warning=completion file is generated: {_bash_completion_path:?}");
-    println!("cargo:warning=completion file is generated: {_zsh_completion_path:?}");
+    // println!("cargo:warning=completion file is generated: {_bash_completion_path:?}");
+    // println!("cargo:warning=completion file is generated: {_zsh_completion_path:?}");
 
     // Generate primary man page
     let man = clap_mangen::Man::new(cmd.clone());
@@ -41,7 +41,7 @@ fn main() -> Result<(), Error> {
     let _man_path = format!("{}/gps.1", outdir.to_str().unwrap());
 
     std::fs::write(_man_path.as_str(), buffer)?;
-    println!("cargo:warning=man file is generated: {_man_path:?}");
+    // println!("cargo:warning=man file is generated: {_man_path:?}");
 
     // Generate subcommand man pages
     let name = "gps";
@@ -58,7 +58,7 @@ fn main() -> Result<(), Error> {
         man.render(&mut buffer)?;
         let _man_path = format!("{}/{}.1", outdir.to_str().unwrap(), &subcommand_man_name);
         std::fs::write(_man_path.as_str(), buffer)?;
-        println!("cargo:warning=man file is generated: {_man_path:?}");
+        // println!("cargo:warning=man file is generated: {_man_path:?}");
     }
 
     Ok(())
