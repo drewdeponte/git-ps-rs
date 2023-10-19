@@ -21,9 +21,16 @@ patch_stack_upstream_remote_url=$4 # string of the patch stack's remote url
 
 gh pr -R "$patch_stack_upstream_remote_url" view $patch_upstream_branch_name
 if [ $? -eq 0 ]; then
+  echo "gh pr -R \"$patch_stack_upstream_remote_url\" view $patch_upstream_branch_name succeded"
+
   closed=$(gh pr -R "$patch_stack_upstream_remote_url" view $patch_upstream_branch_name --json closed --jq '.closed')
-  if [ $closed != "true" ]; then
-    exit 0
+  if [ $? -eq 0 ]; then
+    echo "gh pr -R \"$patch_stack_upstream_remote_url\" view $patch_upstream_branch_name --json closed --jq '.closed' succeded"
+    echo "closed=$closed"
+    if [ $closed != "true" ]; then
+      echo "An open PR was found for the branch, so exiting to prevent duplicate PR creation."
+      exit 0
+    fi
   fi
 fi
 
