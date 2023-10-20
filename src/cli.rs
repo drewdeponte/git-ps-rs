@@ -221,7 +221,25 @@ stack.
 }
 
 #[derive(Debug, Parser)]
-#[command(name = "gps", author, version, about, long_about = None)]
+#[command(
+    name = "gps",
+    author,
+    version,
+    long_about = r"
+Git Patch Stack has two main categories of commands, CORE & ANCILLARY.
+
+The CORE commands make up the basis of all the core functionality. These include the following.
+
+pull, list, rebase, request-review, integrate
+
+The ANCILLARY commands are simply there in support of the other commands. These include the
+following.
+
+fetch, branch, checkout, show, isolate
+
+So, if you are just getting started. Starting with the CORE commands will probably help.
+"
+)]
 pub struct Cli {
     /// disable color output
     #[arg(long = "no-color", global = true, action(ArgAction::SetFalse))]
