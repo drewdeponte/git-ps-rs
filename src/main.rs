@@ -58,7 +58,6 @@ fn main() {
             commands::isolate::isolate(opts.patch_index_or_range, cli.color)
         }
         cli::Command::Checkout(opts) => commands::checkout::checkout(opts.patch_index),
-        cli::Command::Log => commands::log::log(),
         cli::Command::Fetch => commands::fetch::fetch(cli.color),
         #[cfg(feature = "backup_cmd")]
         cli::Command::BackupStack(opts) => commands::backup_stack::backup_stack(opts.branch_name),

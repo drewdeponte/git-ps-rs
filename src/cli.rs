@@ -251,9 +251,6 @@ stack.
     #[command(name = "checkout", alias = "co")]
     Checkout(CheckoutCmdOpts),
 
-    /// display a log of integrated patches
-    Log,
-
     /// (f) - Fetch state from remote and display upstream patches
     #[command(name = "fetch", alias = "f")]
     Fetch,

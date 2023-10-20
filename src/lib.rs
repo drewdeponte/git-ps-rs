@@ -13,7 +13,6 @@ pub use ps::public::integrate;
 pub use ps::public::isolate::{isolate, IsolateError};
 pub use ps::public::latest_github_release::{newer_release_available, notify_of_newer_release};
 pub use ps::public::list::list;
-pub use ps::public::log::log;
 pub use ps::public::pull::{pull, PullError};
 pub use ps::public::rebase::rebase;
 pub use ps::public::request_review::{request_review, RequestReviewError};

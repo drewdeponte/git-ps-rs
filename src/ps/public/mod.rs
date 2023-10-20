@@ -7,7 +7,6 @@ pub mod integrate;
 pub mod isolate;
 pub mod latest_github_release;
 pub mod list;
-pub mod log;
 pub mod pull;
 pub mod rebase;
 pub mod request_review;
