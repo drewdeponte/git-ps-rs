@@ -1,0 +1,31 @@
+#!/bin/sh
+
+# isolate_post_checkout hook using GitHub CLI (https://cli.github.com)
+#
+# This hook handles verifying a patch is isolated after checking out the
+# temporary ps/tmp/isolate branch.
+#
+# gps exposes the remote name and remote url respective as arg 1 and 2
+#
+# Generally you want this script to verify that your code builds,
+# your tests pass, and any other constraints you want to add here
+# to make sure your code is good prior to integration. People often add linting
+
+remote_name=$1 # string of the remote name (e.g. origin)
+remote_url=$2 # string of the remote url
+
+cargo build
+BUILD_EXIT_CODE=$?
+if [ $BUILD_EXIT_CODE -ne 0 ]; then
+  echo "cargo build failed with exit code $BUILD_EXIT_CODE"
+  exit 1
+fi
+
+cargo test -q
+TEST_EXIT_CODE=$?
+if [ $TEST_EXIT_CODE -ne 0 ]; then
+  echo "cargo test failed with exit code $TEST_EXIT_CODE"
+  exit 2
+fi
+
+exit 0
