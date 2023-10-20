@@ -43,9 +43,6 @@ fn main() {
             commands::batch_request_review::batch_request_review(opts.patch_index, cli.color)
         }
         cli::Command::Show(opts) => commands::show::show(opts.patch_index_or_range),
-        cli::Command::Sync(opts) => {
-            commands::sync::sync(opts.patch_index_or_range, opts.branch_name)
-        }
         cli::Command::Isolate(opts) => {
             commands::isolate::isolate(opts.patch_index_or_range, cli.color)
         }

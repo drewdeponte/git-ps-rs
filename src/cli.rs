@@ -48,14 +48,6 @@ pub struct ShowCmdOpts {
 }
 
 #[derive(Debug, Args)]
-pub struct SyncCmdOpts {
-    pub patch_index_or_range: String,
-    /// Use the provided branch name instead of generating one
-    #[arg(short = 'n')]
-    pub branch_name: Option<String>,
-}
-
-#[derive(Debug, Args)]
 pub struct IsolateCmdOpts {
     pub patch_index_or_range: Option<String>,
 }
@@ -206,9 +198,6 @@ stack.
     /// Show the identified patch in raw form
     #[command(name = "show")]
     Show(ShowCmdOpts),
-    /// Synchronize patch with the remote
-    #[command(name = "sync")]
-    Sync(SyncCmdOpts),
 
     /// (iso) - isolate a patch or series of patches for manual testing or evaluation.
     ///
