@@ -82,13 +82,6 @@ pub struct RebaseCmdOpts {
 }
 
 #[derive(Debug, Args)]
-pub struct AmendPatchOpts {
-    /// pass `--no-edit` to git commit
-    #[arg(long = "no-edit")]
-    pub no_edit: bool,
-}
-
-#[derive(Debug, Args)]
 pub struct BackupStackCmdOpts {
     pub branch_name: String,
 }
@@ -260,9 +253,6 @@ stack.
     /// (c) - create a patch from the currently staged changes
     #[command(name = "create-patch", alias = "c")]
     CreatePatch,
-    /// (a) - amend the top most patch with the currently staged changes
-    #[command(name = "amend-patch", alias = "a")]
-    AmendPatch(AmendPatchOpts),
 
     /// display a log of integrated patches
     Log,
