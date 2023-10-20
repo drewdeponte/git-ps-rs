@@ -280,10 +280,6 @@ stack.
     /// unstage currently staged changes
     Unstage(UnstageCmdOpts),
 
-    /// (up) - List the upstream patches
-    #[command(name = "upstream-patches", alias = "up")]
-    UpstreamPatches,
-
     /// (f) - Fetch state from remote and display upstream patches
     #[command(name = "fetch", alias = "f")]
     Fetch,

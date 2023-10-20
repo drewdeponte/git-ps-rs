@@ -63,7 +63,6 @@ fn main() {
         cli::Command::Status => commands::status::status(),
         cli::Command::Log => commands::log::log(),
         cli::Command::Unstage(opts) => commands::unstage::unstage(opts.files),
-        cli::Command::UpstreamPatches => commands::upstream_patches::upstream_patches(cli.color),
         cli::Command::Fetch => commands::fetch::fetch(cli.color),
         #[cfg(feature = "backup_cmd")]
         cli::Command::BackupStack(opts) => commands::backup_stack::backup_stack(opts.branch_name),
