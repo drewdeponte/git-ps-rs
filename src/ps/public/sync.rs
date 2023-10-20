@@ -7,7 +7,7 @@ pub enum SyncError {
     CurrentBranchNameMissing,
     GetUpstreamBranchNameFailed,
     GetPatchStackBranchRemoteNameFailed(git2::Error),
-    CreateRrBranchFailed(ps::private::request_review_branch::RequestReviewBranchError),
+    CreateRrBranchFailed(ps::private::branch::BranchError),
     PatchBranchNameMissing,
     PatchUpstreamBranchNameMissing,
     BranchRemoteNameNotUtf8,
@@ -39,13 +39,8 @@ pub fn sync(
 
     // create request review branch for patch
     let (mut patch_branch, _new_commit_oid) =
-        ps::private::request_review_branch::request_review_branch(
-            &repo,
-            start_patch_index,
-            end_patch_index,
-            given_branch_name,
-        )
-        .map_err(SyncError::CreateRrBranchFailed)?;
+        ps::private::branch::branch(&repo, start_patch_index, end_patch_index, given_branch_name)
+            .map_err(SyncError::CreateRrBranchFailed)?;
 
     // get upstream branch name & remote of patch branch or fallback to using patch branch name &
     // cur patch stack remote.

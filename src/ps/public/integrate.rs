@@ -38,7 +38,7 @@ pub enum IntegrateError {
     PatchAndRemotePatchIdMissmatch(usize),
     PatchDiffHashMissmatch(usize),
     PatchMissingDiffHash,
-    CreateOrReplaceBranchFailed(ps::private::request_review_branch::RequestReviewBranchError),
+    CreateOrReplaceBranchFailed(ps::private::branch::BranchError),
     IsolationVerificationFailed(verify_isolation::VerifyIsolationError),
     GetPatchBranchNameFailed(git2::Error),
     CreatedBranchMissingName,
@@ -293,7 +293,7 @@ happens.
     }
 
     // create/replace the request review branch
-    let (patch_branch, new_commit_oid) = ps::private::request_review_branch::request_review_branch(
+    let (patch_branch, new_commit_oid) = ps::private::branch::branch(
         &repo,
         start_patch_index,
         end_patch_index,

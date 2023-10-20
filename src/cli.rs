@@ -14,7 +14,7 @@ pub struct BatchRequestReview {
 }
 
 #[derive(Debug, Args)]
-pub struct RequestReviewBranchCmdOpts {
+pub struct BranchCmdOpts {
     pub patch_index_or_range: String,
     /// Use the provided branch name instead of generating one
     #[arg(short = 'n')]
@@ -73,11 +73,9 @@ pub struct BackupStackCmdOpts {
 
 #[derive(Debug, Subcommand)]
 pub enum Command {
-    /// Create a request review branch on the patch stack base, cherry-pick
-    /// the specified patch onto it, & record association between patch &
-    /// branch
-    #[command(name = "request-review-branch")]
-    RequestReviewBranch(RequestReviewBranchCmdOpts),
+    /// (b) - Create a branch for a patch or patch series
+    #[command(name = "branch", alias = "b")]
+    Branch(BranchCmdOpts),
     /// (int) - Integrate the specified patch into the patch stacks upstream
     /// remote
     #[command(name = "integrate", alias = "int")]

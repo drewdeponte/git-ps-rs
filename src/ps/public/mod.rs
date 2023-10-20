@@ -1,5 +1,6 @@
 pub mod backup_stack;
 pub mod batch_request_review;
+pub mod branch;
 pub mod checkout;
 pub mod fetch;
 pub mod integrate;
@@ -9,7 +10,6 @@ pub mod list;
 pub mod pull;
 pub mod rebase;
 pub mod request_review;
-pub mod request_review_branch;
 pub mod show;
 pub mod sync;
 pub mod upstream_patches;

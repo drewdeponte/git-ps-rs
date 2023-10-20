@@ -19,11 +19,8 @@ fn main() {
     let cli = cli::Cli::parse();
 
     match cli.command {
-        cli::Command::RequestReviewBranch(opts) => {
-            commands::request_review_branch::request_review_branch(
-                opts.patch_index_or_range,
-                opts.branch_name,
-            )
+        cli::Command::Branch(opts) => {
+            commands::branch::branch(opts.patch_index_or_range, opts.branch_name)
         }
         cli::Command::Integrate(opts) => commands::integrate::integrate(
             opts.patch_index_or_range,

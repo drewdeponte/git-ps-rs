@@ -8,7 +8,7 @@ use std::result::Result;
 use uuid::Uuid;
 
 #[derive(Debug)]
-pub enum RequestReviewBranchError {
+pub enum BranchError {
     RepositoryMissing,
     PatchStackNotFound,
     PatchStackBaseNotFound,
@@ -32,90 +32,90 @@ pub enum RequestReviewBranchError {
     PatchIndexRangeOutOfBounds(ps::PatchRangeWithinStackBoundsError),
 }
 
-impl From<git::CreateCwdRepositoryError> for RequestReviewBranchError {
+impl From<git::CreateCwdRepositoryError> for BranchError {
     fn from(_e: git::CreateCwdRepositoryError) -> Self {
-        RequestReviewBranchError::RepositoryMissing
+        BranchError::RepositoryMissing
     }
 }
 
-impl From<ps::PatchStackError> for RequestReviewBranchError {
+impl From<ps::PatchStackError> for BranchError {
     fn from(e: ps::PatchStackError) -> Self {
         match e {
             ps::PatchStackError::GitError(_git2_error) => {
-                RequestReviewBranchError::PatchStackNotFound
+                BranchError::PatchStackNotFound
             }
-            ps::PatchStackError::HeadNoName => RequestReviewBranchError::PatchStackNotFound,
+            ps::PatchStackError::HeadNoName => BranchError::PatchStackNotFound,
             ps::PatchStackError::UpstreamBranchNameNotFound => {
-                RequestReviewBranchError::PatchStackNotFound
+                BranchError::PatchStackNotFound
             }
         }
     }
 }
 
-impl fmt::Display for RequestReviewBranchError {
+impl fmt::Display for BranchError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            RequestReviewBranchError::RepositoryMissing => {
+            BranchError::RepositoryMissing => {
                 write!(f, "Repository not found in current working directory")
             }
-            RequestReviewBranchError::PatchStackNotFound => write!(f, "Patch Stack not found"),
-            RequestReviewBranchError::PatchStackBaseNotFound => {
+            BranchError::PatchStackNotFound => write!(f, "Patch Stack not found"),
+            BranchError::PatchStackBaseNotFound => {
                 write!(f, "Patch Stack Base not found")
             }
-            RequestReviewBranchError::PatchIndexNotFound => write!(f, "Patch Index out of range"),
-            RequestReviewBranchError::PatchCommitNotFound => write!(f, "Patch commit not found"),
-            RequestReviewBranchError::PatchMessageMissing => write!(f, "Patch missing message"),
-            RequestReviewBranchError::PatchSummaryMissing => write!(f, "Patch missing summary"),
-            RequestReviewBranchError::CreateRrBranchFailed => {
+            BranchError::PatchIndexNotFound => write!(f, "Patch Index out of range"),
+            BranchError::PatchCommitNotFound => write!(f, "Patch commit not found"),
+            BranchError::PatchMessageMissing => write!(f, "Patch missing message"),
+            BranchError::PatchSummaryMissing => write!(f, "Patch missing summary"),
+            BranchError::CreateRrBranchFailed => {
                 write!(f, "Failed to create request-review branch")
             }
-            RequestReviewBranchError::RrBranchNameNotUtf8 => {
+            BranchError::RrBranchNameNotUtf8 => {
                 write!(f, "request-review branch is not utf8")
             }
-            RequestReviewBranchError::CherryPickFailed(_git_error) => {
+            BranchError::CherryPickFailed(_git_error) => {
                 write!(f, "Failed to cherry pick")
             }
-            RequestReviewBranchError::GetPatchListFailed(_patch_list_error) => {
+            BranchError::GetPatchListFailed(_patch_list_error) => {
                 write!(f, "Failed to get patch list")
             }
-            RequestReviewBranchError::GetPatchMetaDataPathFailed(_patch_meta_data_path_error) => {
+            BranchError::GetPatchMetaDataPathFailed(_patch_meta_data_path_error) => {
                 write!(
                     f,
                     "Failed to get patch meta data path {:?}",
                     _patch_meta_data_path_error
                 )
             }
-            RequestReviewBranchError::OpenGitConfigFailed(_) => {
+            BranchError::OpenGitConfigFailed(_) => {
                 write!(f, "Failed to open git config")
             }
-            RequestReviewBranchError::PatchCommitDiffPatchIdFailed(_) => {
+            BranchError::PatchCommitDiffPatchIdFailed(_) => {
                 write!(f, "Failed to get commit diff patch id")
             }
-            RequestReviewBranchError::PatchStackHeadNoName => {
+            BranchError::PatchStackHeadNoName => {
                 write!(f, "Patch Stack Head has no name")
             }
-            RequestReviewBranchError::GetListPatchInfoFailed(_get_list_patch_info_error) => {
+            BranchError::GetListPatchInfoFailed(_get_list_patch_info_error) => {
                 write!(f, "Failed to get list of patch Git info")
             }
-            RequestReviewBranchError::PatchBranchAmbiguous => {
+            BranchError::PatchBranchAmbiguous => {
                 write!(
                     f,
                     "Patch Branch is Ambiguous - more than one branch associated with patch"
                 )
             }
-            RequestReviewBranchError::AddPatchIdsFailed(_) => {
+            BranchError::AddPatchIdsFailed(_) => {
                 write!(f, "Failed to add patch ids to commits in the patch stack")
             }
-            RequestReviewBranchError::PatchIndexRangeOutOfBounds(_) => {
+            BranchError::PatchIndexRangeOutOfBounds(_) => {
                 write!(f, "Patch index range out of patch stack bounds")
             }
-            RequestReviewBranchError::AssociatedBranchAmbiguous(_) => {
+            BranchError::AssociatedBranchAmbiguous(_) => {
                 write!(
                     f,
                     "The associated branch is ambiguous. Please specify the branch explicitly."
                 )
             }
-            RequestReviewBranchError::PatchSeriesRequireBranchName => {
+            BranchError::PatchSeriesRequireBranchName => {
                 write!(
                     f,
                     "When creating a patch series you must specify the branch name."
@@ -125,39 +125,39 @@ impl fmt::Display for RequestReviewBranchError {
     }
 }
 
-pub fn request_review_branch(
+pub fn branch(
     repo: &git2::Repository,
     start_patch_index: usize,
     end_patch_index: Option<usize>,
     given_branch_name_option: Option<String>,
-) -> Result<(git2::Branch<'_>, git2::Oid), RequestReviewBranchError> {
+) -> Result<(git2::Branch<'_>, git2::Oid), BranchError> {
     let config =
-        git2::Config::open_default().map_err(RequestReviewBranchError::OpenGitConfigFailed)?;
+        git2::Config::open_default().map_err(BranchError::OpenGitConfigFailed)?;
 
-    ps::add_patch_ids(repo, &config).map_err(RequestReviewBranchError::AddPatchIdsFailed)?;
+    ps::add_patch_ids(repo, &config).map_err(BranchError::AddPatchIdsFailed)?;
 
     let patch_stack = ps::get_patch_stack(repo)?;
     let patches_vec = ps::get_patch_list(repo, &patch_stack)
-        .map_err(RequestReviewBranchError::GetPatchListFailed)?;
+        .map_err(BranchError::GetPatchListFailed)?;
 
     // validate patch indexes are within bounds
     ps::patch_range_within_stack_bounds(start_patch_index, end_patch_index, &patches_vec)
-        .map_err(RequestReviewBranchError::PatchIndexRangeOutOfBounds)?;
+        .map_err(BranchError::PatchIndexRangeOutOfBounds)?;
 
     // fetch computed state from Git tree
     let patch_stack_base_commit = patch_stack
         .base
         .peel_to_commit()
-        .map_err(|_| RequestReviewBranchError::PatchStackBaseNotFound)?;
+        .map_err(|_| BranchError::PatchStackBaseNotFound)?;
 
     let head_ref_name = patch_stack
         .head
         .shorthand()
-        .ok_or(RequestReviewBranchError::PatchStackHeadNoName)?;
+        .ok_or(BranchError::PatchStackHeadNoName)?;
 
     let patch_info_collection: HashMap<Uuid, state_computation::PatchGitInfo> =
         state_computation::get_list_patch_info(repo, patch_stack_base_commit.id(), head_ref_name)
-            .map_err(RequestReviewBranchError::GetListPatchInfoFailed)?;
+            .map_err(BranchError::GetListPatchInfoFailed)?;
 
     // collect vector of indexes
     let indexes_iter = match end_patch_index {
@@ -186,12 +186,12 @@ pub fn request_review_branch(
             let patch_summary = patch_commit.summary().expect("Patch Missing Summary");
             new_branch_name = ps::generate_rr_branch_name(patch_summary);
         } else {
-            return Err(RequestReviewBranchError::PatchSeriesRequireBranchName);
+            return Err(BranchError::PatchSeriesRequireBranchName);
         }
     } else if range_patch_branches.len() == 1 {
         new_branch_name = range_patch_branches.first().unwrap().to_string()
     } else {
-        return Err(RequestReviewBranchError::AssociatedBranchAmbiguous(
+        return Err(BranchError::AssociatedBranchAmbiguous(
             range_patch_branches.clone(),
         ));
     }
@@ -199,12 +199,12 @@ pub fn request_review_branch(
     // create branch on top of the patch stack base
     let branch = repo
         .branch(new_branch_name.as_str(), &patch_stack_base_commit, true)
-        .map_err(|_| RequestReviewBranchError::CreateRrBranchFailed)?;
+        .map_err(|_| BranchError::CreateRrBranchFailed)?;
 
     let branch_ref_name = branch
         .get()
         .name()
-        .ok_or(RequestReviewBranchError::RrBranchNameNotUtf8)?;
+        .ok_or(BranchError::RrBranchNameNotUtf8)?;
 
     let start_patch_oid = patches_vec.get(start_patch_index).unwrap().oid;
     let start_patch_commit = repo.find_commit(start_patch_oid).unwrap();
@@ -234,7 +234,7 @@ pub fn request_review_branch(
             false,
         ),
     }
-    .map_err(RequestReviewBranchError::CherryPickFailed)?
+    .map_err(BranchError::CherryPickFailed)?
     .expect("No commits cherry picked, when we expected at least one");
 
     Ok((branch, last_commit_oid_cherry_picked))
