@@ -281,7 +281,7 @@ happens.
                 ],
             )
             .map_err(IntegrateError::VerifyHookExecutionFailed)?,
-            Err(hooks::FindHookError::NotFound) => integrate_verify_hook_missing(color),
+            Err(hooks::FindHookError::NotFound) => {}
             Err(hooks::FindHookError::NotExecutable(hook_path)) => {
                 integrate_verify_hook_not_executable(
                     color,
@@ -347,7 +347,7 @@ happens.
             &[&format!("{}", new_commit_oid)],
         )
         .map_err(IntegrateError::HookExecutionFailed)?,
-        Err(hooks::FindHookError::NotFound) => integrate_post_push_hook_missing(color),
+        Err(hooks::FindHookError::NotFound) => {}
         Err(hooks::FindHookError::NotExecutable(hook_path)) => {
             integrate_post_push_hook_not_executable(
                 color,
@@ -421,20 +421,6 @@ fn get_verification() -> Result<(), GetVerificationError> {
     }
 }
 
-fn integrate_post_push_hook_missing(color: bool) {
-    utils::print_warn(
-        color,
-        r#"
-The integrate_post_push hook was not found, therefore skipping.
-
-You can find more information and examples of this hook and others at
-the following.
-
-https://book.git-ps.sh/tool/hooks.html
-"#,
-    );
-}
-
 fn integrate_post_push_hook_not_executable(color: bool, hook_path: &str) {
     let msg = format!(
         r#"
@@ -450,20 +436,6 @@ this can be corrected with the following.
         hook_path, hook_path
     );
     utils::print_warn(color, &msg);
-}
-
-fn integrate_verify_hook_missing(color: bool) {
-    utils::print_warn(
-        color,
-        r#"
-The integrate_verify hook was not found, therefore skipping.
-
-You can find more information and examples of this hook and others at
-the following.
-
-https://book.git-ps.sh/tool/hooks.html
-"#,
-    );
 }
 
 fn integrate_verify_hook_not_executable(color: bool, hook_path: &str) {
