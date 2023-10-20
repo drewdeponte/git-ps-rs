@@ -15,11 +15,6 @@ pub struct RequestReview {
 }
 
 #[derive(Debug, Args)]
-pub struct BatchRequestReview {
-    pub patch_index: Vec<usize>,
-}
-
-#[derive(Debug, Args)]
 pub struct BranchCmdOpts {
     pub patch_index_or_range: String,
     /// Use the provided branch name instead of generating one
@@ -192,9 +187,6 @@ stack.
     /// (rr) - Request review of the specified patch
     #[command(name = "request-review", alias = "rr")]
     RequestReview(RequestReview),
-    /// (brr) - Request review of a batch of patches
-    #[command(name = "batch-request-review", alias = "brr")]
-    BatchRequestReview(BatchRequestReview),
     /// Show the identified patch in raw form
     #[command(name = "show")]
     Show(ShowCmdOpts),

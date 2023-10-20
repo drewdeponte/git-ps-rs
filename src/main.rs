@@ -39,9 +39,6 @@ fn main() {
             opts.isolation_verification_hook,
             opts.post_sync_hook,
         ),
-        cli::Command::BatchRequestReview(opts) => {
-            commands::batch_request_review::batch_request_review(opts.patch_index, cli.color)
-        }
         cli::Command::Show(opts) => commands::show::show(opts.patch_index_or_range),
         cli::Command::Isolate(opts) => {
             commands::isolate::isolate(opts.patch_index_or_range, cli.color)
