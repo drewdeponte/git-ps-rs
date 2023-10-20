@@ -276,10 +276,6 @@ pub fn cherry_pick_no_working_copy<'a>(
         .target()
         .ok_or(git::GitError::TargetNotFound)?;
 
-    // let common_ancestor_oid = repo.merge_base(oid, destination_oid)?;
-    // let common_ancestor_commit = repo.find_commit(common_ancestor_oid)?;
-    // let common_ancestor_tree = common_ancestor_commit.tree()?;
-
     let destination_commit = repo.find_commit(destination_oid)?;
     let destination_tree = destination_commit.tree()?;
 
