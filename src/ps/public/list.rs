@@ -99,8 +99,13 @@ pub fn list(color: bool) -> Result<(), ListError> {
 
         let commit = repo.find_commit(patch.oid).unwrap();
 
-        let commit_diff_id = git::commit_diff_patch_id(&repo, &commit)
-            .map_err(ListError::GetCommitDiffPatchIdFailed)?;
+        let commit_diff_id: Option<git2::Oid> = match git::commit_diff_patch_id(&repo, &commit) {
+            Ok(id) => Some(id),
+            Err(git::CommitDiffPatchIdError::GetDiffFailed(git::CommitDiffError::MergeCommit)) => {
+                None
+            }
+            Err(e) => return Err(ListError::GetCommitDiffPatchIdFailed(e)),
+        };
 
         if let Some(ps_id) = ps::commit_ps_id(&commit) {
             if let Some(patch_info) = patch_info_collection.get(&ps_id) {
@@ -173,12 +178,13 @@ pub fn list(color: bool) -> Result<(), ListError> {
                         .clone();
                     state_string.push('l');
 
-                    if branch_patch.commit_diff_id != commit_diff_id {
-                        state_string.push('*');
-                    }
-
-                    if b.patches.len() < b.commit_count {
-                        state_string.push('!');
+                    match commit_diff_id {
+                        Some(id) => {
+                            if branch_patch.commit_diff_id != id {
+                                state_string.push('*');
+                            }
+                        }
+                        None => state_string.push('*'),
                     }
 
                     let upstream_opt = b.upstream.clone();
@@ -194,8 +200,13 @@ pub fn list(color: bool) -> Result<(), ListError> {
                             .unwrap()
                             .clone();
 
-                        if upstream_branch_patch.commit_diff_id != commit_diff_id {
-                            state_string.push('*');
+                        match commit_diff_id {
+                            Some(id) => {
+                                if upstream_branch_patch.commit_diff_id != id {
+                                    state_string.push('*');
+                                }
+                            }
+                            None => state_string.push('*'),
                         }
 
                         if upstream.patches.len() < upstream.commit_count {
