@@ -20,6 +20,5 @@ pub mod rebase;
 pub mod request_review;
 pub mod request_review_branch;
 pub mod show;
-pub mod status;
 pub mod sync;
 pub mod utils;

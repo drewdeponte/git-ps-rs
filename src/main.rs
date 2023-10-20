@@ -60,7 +60,6 @@ fn main() {
         cli::Command::Checkout(opts) => commands::checkout::checkout(opts.patch_index),
         cli::Command::CreatePatch => commands::create_patch::create_patch(),
         cli::Command::AmendPatch(opts) => commands::amend_patch::amend_patch(opts.no_edit),
-        cli::Command::Status => commands::status::status(),
         cli::Command::Log => commands::log::log(),
         cli::Command::Fetch => commands::fetch::fetch(cli.color),
         #[cfg(feature = "backup_cmd")]

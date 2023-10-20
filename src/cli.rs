@@ -264,10 +264,6 @@ stack.
     #[command(name = "amend-patch", alias = "a")]
     AmendPatch(AmendPatchOpts),
 
-    /// (s) - get the status of local changes & staged changes
-    #[command(name = "status", alias = "s")]
-    Status,
-
     /// display a log of integrated patches
     Log,
 

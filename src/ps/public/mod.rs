@@ -15,7 +15,6 @@ pub mod rebase;
 pub mod request_review;
 pub mod request_review_branch;
 pub mod show;
-pub mod status;
 pub mod sync;
 pub mod upstream_patches;
 pub mod verify_isolation;
