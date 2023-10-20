@@ -5,30 +5,64 @@
 // be strongly considered if they fit better in one of the other modules
 // inside of the `ps` module.
 
-use super::patch_index_range::PatchIndexRange;
+use super::patch_index_range_batch::PatchIndexRangeBatch;
 use super::utils::print_err;
 use gps as ps;
-use std::str::FromStr;
 
 pub fn request_review(
-    patch_index_or_range: String,
+    patch_index_or_range_batch: String,
     branch_name: Option<String>,
     color: bool,
     isolation_verification_hook: bool,
     post_sync_hook: bool,
 ) {
-    match PatchIndexRange::from_str(&patch_index_or_range) {
-        Ok(patch_index_range) => {
-            match ps::request_review(
-                patch_index_range.start_index,
-                patch_index_range.end_index,
-                branch_name,
+    let batch = match patch_index_or_range_batch.parse::<PatchIndexRangeBatch>() {
+        Ok(b) => b,
+        Err(e) => {
+            print_err(
                 color,
-                isolation_verification_hook,
-                post_sync_hook,
-            ) {
-                Ok(_) => {}
-                Err(ps::RequestReviewError::PostSyncHookNotFound) => print_err(
+                &format!(
+                    "Failed to parse patch index range batch, \"{}\"",
+                    &patch_index_or_range_batch
+                ),
+            );
+            eprintln!("Error: {:?}", e);
+            std::process::exit(1);
+        }
+    };
+
+    if batch.len() > 1 && branch_name.is_some() {
+        print_err(
+            color,
+            r#"
+  Specifying a branch name does not work when batching.
+
+  You can associate custom branch names with patches or patch series by
+  using the branch command prior to requesting review of them as a batch.
+  The request-review command will use the associated branch name for each
+  patch or patch series respectively.
+
+  For patches or patch series that you have not previously associated a
+  custom branch name to. The request-review command will simply generate
+  a branch name for each of them.
+"#,
+        );
+        std::process::exit(1);
+    }
+
+    for patch_index_range in batch {
+        println!("Running request-review for {}", patch_index_range);
+        match ps::request_review(
+            patch_index_range.start_index,
+            patch_index_range.end_index,
+            branch_name.clone(),
+            color,
+            isolation_verification_hook,
+            post_sync_hook,
+        ) {
+            Ok(_) => {}
+            Err(e) => match e {
+                ps::RequestReviewError::PostSyncHookNotFound => print_err(
                     color,
                     r#"
   The request_review_post_sync hook was not found!
@@ -56,7 +90,7 @@ pub fn request_review(
   https://github.com/uptech/git-ps-rs#hooks
 "#,
                 ),
-                Err(ps::RequestReviewError::PostSyncHookNotExecutable(path)) => {
+                ps::RequestReviewError::PostSyncHookNotExecutable(path) => {
                     let path_str = path.to_str().unwrap_or("unknow path");
                     let msg = format!(
                         r#"
@@ -73,13 +107,12 @@ pub fn request_review(
                         path_str, path_str
                     );
                     print_err(color, &msg);
-                    std::process::exit(1);
                 }
-                Err(ps::RequestReviewError::IsolationVerificationFailed(
+                ps::RequestReviewError::IsolationVerificationFailed(
                     ps::VerifyIsolationError::IsolateFailed(
                         ps::IsolateError::UncommittedChangesExist,
                     ),
-                )) => {
+                ) => {
                     print_err(
                         color,
                         r#"
@@ -88,17 +121,11 @@ pub fn request_review(
   It is recommended that you create a WIP commit. But, you could also use git stash if you prefer.
         "#,
                     );
-                    std::process::exit(1);
                 }
-                Err(e) => {
+                _ => {
                     print_err(color, format!("\nError: {}\n", e).as_str());
-                    std::process::exit(1);
                 }
-            };
-        }
-        Err(e) => {
-            eprintln!("Error: {:?}", e);
-            std::process::exit(1);
-        }
+            },
+        };
     }
 }

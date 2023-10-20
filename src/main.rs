@@ -33,7 +33,7 @@ fn main() {
         cli::Command::Rebase(opts) => commands::rebase::rebase(opts.r#continue),
         cli::Command::Pull => commands::pull::pull(cli.color),
         cli::Command::RequestReview(opts) => commands::request_review::request_review(
-            opts.patch_index_or_range,
+            opts.patch_index_or_range_batch,
             opts.branch_name,
             cli.color,
             opts.isolation_verification_hook,
