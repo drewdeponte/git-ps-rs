@@ -250,9 +250,6 @@ stack.
     /// in a headless state.
     #[command(name = "checkout", alias = "co")]
     Checkout(CheckoutCmdOpts),
-    /// (c) - create a patch from the currently staged changes
-    #[command(name = "create-patch", alias = "c")]
-    CreatePatch,
 
     /// display a log of integrated patches
     Log,

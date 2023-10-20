@@ -8,7 +8,6 @@ pub use ps::public::backup_stack::backup_stack;
 pub use ps::public::batch_request_review::{batch_request_review, BatchRequestReviewError};
 pub use ps::public::branch::{branch, BranchError};
 pub use ps::public::checkout::checkout;
-pub use ps::public::create_patch::create_patch;
 pub use ps::public::fetch::fetch;
 pub use ps::public::integrate;
 pub use ps::public::isolate::{isolate, IsolateError};

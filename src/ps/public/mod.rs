@@ -2,7 +2,6 @@ pub mod backup_stack;
 pub mod batch_request_review;
 pub mod branch;
 pub mod checkout;
-pub mod create_patch;
 pub mod fetch;
 pub mod integrate;
 pub mod isolate;
