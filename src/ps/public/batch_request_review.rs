@@ -12,7 +12,7 @@ pub fn batch_request_review(
 ) -> Result<(), BatchRequestReviewError> {
     let mut errors: Vec<request_review::RequestReviewError> = Vec::new();
     for patch_index in patch_indexes {
-        match request_review::request_review(patch_index, None, None, color) {
+        match request_review::request_review(patch_index, None, None, color, true, true) {
             Ok(_) => {}
             Err(e) => errors.push(e),
         };

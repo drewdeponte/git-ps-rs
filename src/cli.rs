@@ -6,6 +6,12 @@ pub struct RequestReview {
     /// Use the provided branch name instead of generating one
     #[arg(short = 'n')]
     pub branch_name: Option<String>,
+    /// disable isolation verification hook
+    #[arg(long = "no-isolation-verification-hook", action(ArgAction::SetFalse))]
+    pub isolation_verification_hook: bool,
+    /// disable post sync hook
+    #[arg(long = "no-post-sync-hook", action(ArgAction::SetFalse))]
+    pub post_sync_hook: bool,
 }
 
 #[derive(Debug, Args)]

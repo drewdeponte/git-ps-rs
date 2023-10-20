@@ -93,6 +93,8 @@ pub fn request_review(
     end_patch_index: Option<usize>,
     given_branch_name: Option<String>,
     color: bool,
+    isolation_verification_hook: bool,
+    post_sync_hook: bool,
 ) -> Result<(), RequestReviewError> {
     let repo = git::create_cwd_repo().map_err(RequestReviewError::OpenRepositoryFailed)?;
 
@@ -113,7 +115,7 @@ pub fn request_review(
         .map_err(RequestReviewError::GetConfigFailed)?;
 
     // verify isolation
-    if config.request_review.verify_isolation {
+    if isolation_verification_hook && config.request_review.verify_isolation {
         verify_isolation::verify_isolation(start_patch_index, end_patch_index, color)
             .map_err(RequestReviewError::IsolationVerificationFailed)?;
     }
@@ -150,18 +152,20 @@ pub fn request_review(
     let cur_patch_stack_upstream_branch_name_relative_to_remote =
         str::replace(&cur_patch_stack_upstream_branch_name, pattern.as_str(), "");
 
-    utils::execute(
-        request_review_post_sync_hook_path
-            .to_str()
-            .ok_or(RequestReviewError::PathNotUtf8)?,
-        &[
-            &patch_upstream_branch_name,
-            &cur_patch_stack_upstream_branch_name_relative_to_remote,
-            cur_patch_stack_upstream_branch_remote_name_str,
-            cur_patch_stack_upstream_branch_remote_url_str,
-        ],
-    )
-    .map_err(RequestReviewError::HookExecutionFailed)?;
+    if post_sync_hook {
+        utils::execute(
+            request_review_post_sync_hook_path
+                .to_str()
+                .ok_or(RequestReviewError::PathNotUtf8)?,
+            &[
+                &patch_upstream_branch_name,
+                &cur_patch_stack_upstream_branch_name_relative_to_remote,
+                cur_patch_stack_upstream_branch_remote_name_str,
+                cur_patch_stack_upstream_branch_remote_url_str,
+            ],
+        )
+        .map_err(RequestReviewError::HookExecutionFailed)?;
+    }
 
     Ok(())
 }

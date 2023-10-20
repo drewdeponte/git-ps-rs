@@ -10,7 +10,13 @@ use super::utils::print_err;
 use gps as ps;
 use std::str::FromStr;
 
-pub fn request_review(patch_index_or_range: String, branch_name: Option<String>, color: bool) {
+pub fn request_review(
+    patch_index_or_range: String,
+    branch_name: Option<String>,
+    color: bool,
+    isolation_verification_hook: bool,
+    post_sync_hook: bool,
+) {
     match PatchIndexRange::from_str(&patch_index_or_range) {
         Ok(patch_index_range) => {
             match ps::request_review(
@@ -18,6 +24,8 @@ pub fn request_review(patch_index_or_range: String, branch_name: Option<String>,
                 patch_index_range.end_index,
                 branch_name,
                 color,
+                isolation_verification_hook,
+                post_sync_hook,
             ) {
                 Ok(_) => {}
                 Err(ps::RequestReviewError::PostSyncHookNotFound) => print_err(

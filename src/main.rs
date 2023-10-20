@@ -36,6 +36,8 @@ fn main() {
             opts.patch_index_or_range,
             opts.branch_name,
             cli.color,
+            opts.isolation_verification_hook,
+            opts.post_sync_hook,
         ),
         cli::Command::BatchRequestReview(opts) => {
             commands::batch_request_review::batch_request_review(opts.patch_index, cli.color)
