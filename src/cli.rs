@@ -14,21 +14,6 @@ pub struct BatchRequestReview {
 }
 
 #[derive(Debug, Args)]
-pub struct BranchCmdOpts {
-    /// index of patch to cherry-pick to branch or starting index of patch
-    /// series to cherry-pick to the branch
-    pub start_patch_index: usize,
-    /// ending patch index of the patch series to cherry-pick to the branch
-    pub end_patch_index: Option<usize>,
-    /// Use the provided branch name instead of generating one
-    #[arg(short = 'n')]
-    pub branch_name: Option<String>,
-    /// Push branch of the same name to the remote
-    #[arg(short = 'p')]
-    pub push_to_remote: bool,
-}
-
-#[derive(Debug, Args)]
 pub struct RequestReviewBranchCmdOpts {
     pub patch_index_or_range: String,
     /// Use the provided branch name instead of generating one
@@ -88,17 +73,6 @@ pub struct BackupStackCmdOpts {
 
 #[derive(Debug, Subcommand)]
 pub enum Command {
-    /// Your bridge back to the world of normal git and git concepts. The branch command is a
-    /// utility to help you create a normal git branch from a patch or series of patches that is
-    /// based on the patch stack base (e.g. origin/main).
-    ///
-    /// Because this is a bridge back to the normal git concepts like branches and commits it
-    /// only supports the verify isolation hook.
-    ///
-    /// It also has support for automatically pushing the branch to the remote. This is useful when
-    /// you are stuck working with a team that doesn't do the Patch Stack workflow but you still
-    /// want to do it locally.
-    Branch(BranchCmdOpts),
     /// Create a request review branch on the patch stack base, cherry-pick
     /// the specified patch onto it, & record association between patch &
     /// branch

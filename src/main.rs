@@ -19,13 +19,6 @@ fn main() {
     let cli = cli::Cli::parse();
 
     match cli.command {
-        cli::Command::Branch(opts) => commands::branch::branch(
-            opts.start_patch_index,
-            opts.end_patch_index,
-            opts.branch_name,
-            opts.push_to_remote,
-            cli.color,
-        ),
         cli::Command::RequestReviewBranch(opts) => {
             commands::request_review_branch::request_review_branch(
                 opts.patch_index_or_range,

@@ -140,11 +140,6 @@ pub fn generate_rr_branch_name(summary: &str) -> String {
     format!("ps/rr/{}", slug)
 }
 
-pub fn generate_branch_branch_name(summary: &str) -> String {
-    let slug = slugify(summary);
-    format!("ps/branch/{}", slug)
-}
-
 /// Cherry pick either an individual commit identified by the `root_oid` Oid and None for
 /// `leaf_oid`, or a range of commits identified by the `root_oid` and `leaf_oid` both having Oids.
 ///
@@ -522,14 +517,6 @@ mod tests {
         assert_eq!(
             super::generate_rr_branch_name("Hello & Goodbye"),
             "ps/rr/hello___goodbye"
-        );
-    }
-
-    #[test]
-    fn test_generate_branch_branch_name() {
-        assert_eq!(
-            super::generate_branch_branch_name("Hello & Goodbye"),
-            "ps/branch/hello___goodbye"
         );
     }
 }
