@@ -71,7 +71,36 @@ impl std::str::FromStr for PatchIndexRange {
     }
 }
 
+impl std::fmt::Display for PatchIndexRange {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.end_index {
+            Some(ei) => write!(f, "{}-{}", self.start_index, ei),
+            None => write!(f, "{}", self.start_index),
+        }
+    }
+}
+
 // Tests
+
+// Display
+
+#[test]
+fn test_single_patch_index_display() {
+    let range = PatchIndexRange {
+        start_index: 1,
+        end_index: None,
+    };
+    assert_eq!("1", format!("{}", range));
+}
+
+#[test]
+fn test_both_patch_indexes_display() {
+    let range = PatchIndexRange {
+        start_index: 1,
+        end_index: Some(2),
+    };
+    assert_eq!("1-2", format!("{}", range));
+}
 
 // Parsing of single patch indexes
 
