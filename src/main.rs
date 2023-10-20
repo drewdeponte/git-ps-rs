@@ -61,13 +61,6 @@ fn main() {
         cli::Command::CreatePatch => commands::create_patch::create_patch(),
         cli::Command::AmendPatch(opts) => commands::amend_patch::amend_patch(opts.no_edit),
         cli::Command::Status => commands::status::status(),
-        cli::Command::Add(opts) => commands::add_changes_to_stage::add_changes_to_stage(
-            opts.interactive,
-            opts.patch,
-            opts.edit,
-            opts.all,
-            opts.files,
-        ),
         cli::Command::Log => commands::log::log(),
         cli::Command::Unstage(opts) => commands::unstage::unstage(opts.files),
         cli::Command::UpstreamPatches => commands::upstream_patches::upstream_patches(cli.color),

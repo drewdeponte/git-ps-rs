@@ -1,4 +1,3 @@
-pub mod add_changes_to_stage;
 pub mod amend_patch;
 pub mod backup_stack;
 pub mod batch_request_review;

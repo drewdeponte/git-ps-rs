@@ -75,24 +75,6 @@ pub struct CheckoutCmdOpts {
 }
 
 #[derive(Debug, Args)]
-pub struct AddCmdOpts {
-    /// interactive picking
-    #[arg(short = 'i', long = "interactive")]
-    pub interactive: bool,
-    /// select hunks interactively
-    #[arg(short = 'p', long = "patch")]
-    pub patch: bool,
-    /// edit current diff and apply
-    #[arg(short = 'e', long = "edit")]
-    pub edit: bool,
-    /// add changes from all tracked and untracked files
-    #[arg(short = 'A', long = "all")]
-    pub all: bool,
-    /// specific files to add changes from, . for all files
-    pub files: Vec<String>,
-}
-
-#[derive(Debug, Args)]
 pub struct RebaseCmdOpts {
     /// continue a rebase that was paused
     #[arg(long = "continue")]
@@ -291,9 +273,6 @@ stack.
     /// (s) - get the status of local changes & staged changes
     #[command(name = "status", alias = "s")]
     Status,
-
-    /// add changes to the stage (a.k.a stage local changes)
-    Add(AddCmdOpts),
 
     /// display a log of integrated patches
     Log,
