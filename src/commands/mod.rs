@@ -22,5 +22,4 @@ pub mod request_review_branch;
 pub mod show;
 pub mod status;
 pub mod sync;
-pub mod unstage;
 pub mod utils;

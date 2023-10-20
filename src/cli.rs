@@ -89,12 +89,6 @@ pub struct AmendPatchOpts {
 }
 
 #[derive(Debug, Args)]
-pub struct UnstageCmdOpts {
-    /// specific files to unstage changes for, leave blank for all staged files
-    pub files: Vec<String>,
-}
-
-#[derive(Debug, Args)]
 pub struct BackupStackCmdOpts {
     pub branch_name: String,
 }
@@ -276,9 +270,6 @@ stack.
 
     /// display a log of integrated patches
     Log,
-
-    /// unstage currently staged changes
-    Unstage(UnstageCmdOpts),
 
     /// (f) - Fetch state from remote and display upstream patches
     #[command(name = "fetch", alias = "f")]

@@ -23,6 +23,5 @@ pub use ps::public::request_review_branch::{request_review_branch, RequestReview
 pub use ps::public::show::show;
 pub use ps::public::status::status;
 pub use ps::public::sync::{sync, SyncError};
-pub use ps::public::unstage::unstage;
 pub use ps::public::upstream_patches::upstream_patches;
 pub use ps::public::verify_isolation::{verify_isolation, VerifyIsolationError};
