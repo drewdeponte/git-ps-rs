@@ -24,20 +24,8 @@ pub enum RequestReviewError {
     FindRemoteFailed(git2::Error),
     RemoteUrlNotUtf8,
     HookExecutionFailed(utils::ExecuteError),
-    PostSyncHookNotFound,
     PostSyncHookNotExecutable(PathBuf),
     FindHookFailed(hooks::FindHookError),
-}
-
-impl From<hooks::FindHookError> for RequestReviewError {
-    fn from(e: hooks::FindHookError) -> Self {
-        match e {
-            hooks::FindHookError::NotFound => Self::PostSyncHookNotFound,
-            hooks::FindHookError::NotExecutable(path) => Self::PostSyncHookNotExecutable(path),
-            hooks::FindHookError::PathExpandHomeFailed(_) => Self::FindHookFailed(e),
-            hooks::FindHookError::HomeDirNotFound => Self::FindHookFailed(e),
-        }
-    }
 }
 
 impl fmt::Display for RequestReviewError {
@@ -54,7 +42,6 @@ impl fmt::Display for RequestReviewError {
                 "Failed to process repository root path as it is NOT utf8"
             ),
             Self::BranchNameNotUtf8 => write!(f, "Failed to process remote name as it is NOT utf8"),
-            Self::PostSyncHookNotFound => write!(f, "request_review_post_sync hook not found"),
             Self::PostSyncHookNotExecutable(path) => write!(
                 f,
                 "request_review_post_sync hook - {} - is not executable",
@@ -108,8 +95,21 @@ pub fn request_review(
     let repo_gitdir_str = repo_gitdir_path
         .to_str()
         .ok_or(RequestReviewError::PathNotUtf8)?;
-    let request_review_post_sync_hook_path =
-        hooks::find_hook(repo_root_str, repo_gitdir_str, "request_review_post_sync")?;
+
+    let mut post_sync_hook_path: Option<PathBuf> = None;
+    if post_sync_hook {
+        post_sync_hook_path =
+            match hooks::find_hook(repo_root_str, repo_gitdir_str, "request_review_post_sync") {
+                Ok(hook_path) => Some(hook_path),
+                Err(hooks::FindHookError::NotFound) => None,
+                Err(hooks::FindHookError::NotExecutable(p)) => {
+                    return Err(RequestReviewError::PostSyncHookNotExecutable(p));
+                }
+                Err(e) => {
+                    return Err(RequestReviewError::FindHookFailed(e));
+                }
+            }
+    }
 
     let config = config::get_config(repo_root_str, repo_gitdir_str)
         .map_err(RequestReviewError::GetConfigFailed)?;
@@ -152,11 +152,9 @@ pub fn request_review(
     let cur_patch_stack_upstream_branch_name_relative_to_remote =
         str::replace(&cur_patch_stack_upstream_branch_name, pattern.as_str(), "");
 
-    if post_sync_hook {
+    if let Some(hook_path) = post_sync_hook_path {
         utils::execute(
-            request_review_post_sync_hook_path
-                .to_str()
-                .ok_or(RequestReviewError::PathNotUtf8)?,
+            hook_path.to_str().ok_or(RequestReviewError::PathNotUtf8)?,
             &[
                 &patch_upstream_branch_name,
                 &cur_patch_stack_upstream_branch_name_relative_to_remote,
