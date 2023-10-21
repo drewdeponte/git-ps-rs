@@ -131,29 +131,7 @@ pub fn isolate(
                     &[remote_name_str, remote_url_str],
                 )
                 .map_err(IsolateError::HookExecutionFailed)?,
-                Err(hooks::FindHookError::NotFound) => utils::print_warn(
-                    color,
-                    r#"
-  The isolate_post_checkout hook was not found!
-
-  This hook is NOT required but it is strongly recommended that you set it
-  up. It is executed after the temporary isolation branch has been created,
-  the patch cherry-picked into it and the isolation branch checked out.
-
-  It is intended to be used to further verify patch isolation by verifying
-  that your code bases build succeeds and your test suite passes.
-
-  You can effectively have it do whatever you want as it is just a hook.
-  An exit status of 0, success, informs gps that the further isolation
-  verification was successful. Any non-zero exit status will indicate failure
-  and cause gps to abort.
-
-  You can find more information and examples of this hook and others at
-  the following.
-
-  https://book.git-ps.sh/tool/hooks.html
-"#,
-                ),
+                Err(hooks::FindHookError::NotFound) => {}
                 Err(hooks::FindHookError::NotExecutable(hook_path)) => {
                     let path_str = hook_path.to_str().unwrap_or("unknow path");
                     let msg = format!(
@@ -202,17 +180,7 @@ pub fn isolate(
                     utils::execute(hook_path.to_str().ok_or(IsolateError::PathNotUtf8)?, &[])
                         .map_err(IsolateError::HookExecutionFailed)?
                 }
-                Err(hooks::FindHookError::NotFound) => utils::print_warn(
-                    color,
-                    r#"
-  The isolate_post_cleanup hook was not found! Skipping...
-
-  You can find more information and examples of this hook and others at
-  the following.
-
-  https://book.git-ps.sh/tool/hooks.html
-"#,
-                ),
+                Err(hooks::FindHookError::NotFound) => {}
                 Err(hooks::FindHookError::NotExecutable(hook_path)) => {
                     let path_str = hook_path.to_str().unwrap_or("unknow path");
                     let msg = format!(
