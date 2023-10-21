@@ -137,7 +137,7 @@ pub fn list(color: bool) -> Result<(), ListError> {
             Some(51),
             None,
             bg_color,
-            format!("{} ", patch.summary.clone()),
+            format!("{:.50} ", patch.summary.clone()),
         );
 
         if let Some(ps_id) = ps::commit_ps_id(&commit) {
@@ -236,7 +236,7 @@ pub fn list(color: bool) -> Result<(), ListError> {
                         );
                     }
                 }
-                row.add_cell(Some(2), Some(Cyan), bg_color, " )");
+                row.add_cell(Some(2), Some(Cyan), bg_color, ")");
             } else {
                 row.add_cell(None, Some(Cyan), bg_color, "()")
             }
