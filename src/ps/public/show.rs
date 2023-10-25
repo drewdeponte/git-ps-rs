@@ -15,6 +15,25 @@ pub enum ShowError {
     PatchIndexNotFound,
 }
 
+impl std::fmt::Display for ShowError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::ExitStatus(status) => write!(f, "show exited with status {}", status),
+            Self::ExitSignal(signal) => write!(f, "show exited with signal {}", signal),
+            Self::IOError(e) => write!(f, "{}", e),
+            Self::Unknown => write!(f, "Unknown failure"),
+            Self::RepositoryMissing => write!(f, "repository missing"),
+            Self::GetPatchStackFailed(e) => write!(f, "get patch stack failed, {}", e),
+            Self::GetPatchListFailed(e) => {
+                write!(f, "get patch stack list of patches failed, {}", e)
+            }
+            Self::PatchIndexNotFound => write!(f, "patch index not found"),
+        }
+    }
+}
+
+impl std::error::Error for ShowError {}
+
 impl From<utils::ExecuteError> for ShowError {
     fn from(e: utils::ExecuteError) -> Self {
         match e {

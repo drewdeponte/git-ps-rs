@@ -3,7 +3,6 @@ extern crate lazy_static;
 
 mod ps;
 
-pub use ps::private::config::{get_config, GetConfigError, PsConfig};
 pub use ps::public::backup_stack::backup_stack;
 pub use ps::public::branch::{branch, BranchError};
 pub use ps::public::checkout::checkout;

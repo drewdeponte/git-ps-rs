@@ -20,6 +20,24 @@ pub enum ParsePatchIndexOrRangeError {
     StartPatchIndexLargerThanEnd(String),
 }
 
+impl std::fmt::Display for ParsePatchIndexOrRangeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::StartPatchIndexLargerThanEnd(s) => write!(
+                f,
+                "starting patch index larger than ending patch index {}",
+                s
+            ),
+            Self::UnparsableIndex(parsed_str, e) => {
+                write!(f, "unable to parse index {}, {}", parsed_str, e)
+            }
+            Self::InvalidIndexRange(s) => write!(f, "invalid index range {}", s),
+        }
+    }
+}
+
+impl std::error::Error for ParsePatchIndexOrRangeError {}
+
 impl std::str::FromStr for PatchIndexRange {
     type Err = ParsePatchIndexOrRangeError;
 

@@ -9,7 +9,7 @@ pub mod public;
 use std::collections::HashMap;
 use std::str::FromStr;
 
-use private::{git, state_computation};
+use private::{cherry_picking, git, state_computation};
 // This is the `ps` module. It is responsible for housing functionality
 // specific to Patch Stack as a conceptual level.  It is responsible for
 // consuming functionality from other modules like the `git` and `utils`
@@ -39,6 +39,18 @@ impl From<git2::Error> for PatchStackError {
         Self::GitError(e)
     }
 }
+
+impl std::fmt::Display for PatchStackError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::GitError(e) => write!(f, "{}", e),
+            Self::HeadNoName => write!(f, "head no name"),
+            Self::UpstreamBranchNameNotFound => write!(f, "upstream branch name not found"),
+        }
+    }
+}
+
+impl std::error::Error for PatchStackError {}
 
 pub fn get_patch_stack(repo: &git2::Repository) -> Result<PatchStack<'_>, PatchStackError> {
     let head_ref = repo.head()?;
@@ -74,6 +86,18 @@ pub enum GetPatchListError {
     StackHeadTargetMissing,
     StackBaseTargetMissing,
 }
+
+impl std::fmt::Display for GetPatchListError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::CreateRevWalkFailed(e) => write!(f, "{}", e),
+            Self::StackBaseTargetMissing => write!(f, "Stack base target is missing"),
+            Self::StackHeadTargetMissing => write!(f, "Stack head target is missing"),
+        }
+    }
+}
+
+impl std::error::Error for GetPatchListError {}
 
 pub fn get_patch_list(
     repo: &git2::Repository,
@@ -140,208 +164,88 @@ pub fn generate_rr_branch_name(summary: &str) -> String {
     format!("ps/rr/{}", slug)
 }
 
-/// Cherry pick either an individual commit identified by the `root_oid` Oid and None for
-/// `leaf_oid`, or a range of commits identified by the `root_oid` and `leaf_oid` both having Oids.
-///
-/// The given `repo` is the repository that you want to cherry pick the range of commits within.
-/// The `config` is the config used to facilitate commit creation, providing things like the
-/// author, email, etc.
-///
-/// The `root_oid` specifies the commit to start the ranged cherry picking process from,
-/// inclusively. Meaning this commit WILL be included in the cherry picked commits, as will all its
-/// descendants up to and including the `leaf_oid`. This commit should be an ancestor to the
-/// `leaf_oid`.
-///
-/// The `leaf_oid` specifies the commit to end the ranged cherry picking process on, inclusively.
-/// Meaning this commit will be included in the cherry picked commits. This commit should be a
-/// descendant to the `root_oid`.
-///
-/// The `dest_ref_name` specifies the reference (e.g. branch) to cherry pick the range of commits
-/// into.
-///
-/// It returns an Ok(Option(last_cherry_picked_commit_oid)) result in the case of success and an
-/// error result of GitError in the case of failure.
-pub fn cherry_pick(
-    repo: &'_ git2::Repository,
-    config: &git2::Config,
-    root_oid: git2::Oid,
-    leaf_oid: Option<git2::Oid>,
-    dest_ref_name: &str,
-    add_missing_patch_ids: bool,
-) -> Result<Option<git2::Oid>, git::GitError> {
-    Ok(match leaf_oid {
-        Some(leaf_oid) => {
-            let root_commit = repo.find_commit(root_oid)?;
-            let root_commit_parent_commit = root_commit.parent(0)?;
-            let root_commit_parent_commit_oid = root_commit_parent_commit.id();
-            cherry_pick_no_working_copy_range(
-                repo,
-                config,
-                root_commit_parent_commit_oid,
-                leaf_oid,
-                dest_ref_name,
-                0,
-                add_missing_patch_ids,
-            )?
-        }
-        None => Some(cherry_pick_no_working_copy(
-            repo,
-            config,
-            root_oid,
-            dest_ref_name,
-            0,
-            add_missing_patch_ids,
-        )?),
-    })
-}
-
-/// Cherry pick the specified range of commits onto the destination ref
-///
-/// The given `repo` is the repository that you want to cherry pick the range of commits within.
-/// The `config` is the config used to facilitate commit creation, providing things like the
-/// author, email, etc.
-///
-/// The `root_oid` specifies the commit to start the ranged cherry picking process from,
-/// exclusively. Meaning this commit won't be included in the cherry picked commits, but its
-/// descendants will be, up to and including the `leaf_oid`. This commit should be an ancestor to
-/// the `leaf_oid`.
-///
-/// The `leaf_oid` specifies the commit to end the ranged cherry picking process on, inclusively.
-/// Meaning this commit will be included in the cherry picked commits. This commit should be a
-/// descendant to the `root_oid`.
-///
-/// The `dest_ref_name` specifies the reference (e.g. branch) to cherry pick the range of commits
-/// into.
-///
-/// It returns an Ok(Option(last_cherry_picked_commit_oid)) result in the case of success and an
-/// error result of GitError in the case of failure.
-pub fn cherry_pick_no_working_copy_range(
-    repo: &'_ git2::Repository,
-    config: &git2::Config,
-    root_oid: git2::Oid,
-    leaf_oid: git2::Oid,
-    dest_ref_name: &str,
-    committer_time_offset: i64,
-    add_missing_patch_ids: bool,
-) -> Result<Option<git2::Oid>, git::GitError> {
-    let mut rev_walk = repo.revwalk()?;
-    rev_walk.push(leaf_oid)?; // start traversal from leaf_oid and walk to root_oid
-    rev_walk.hide(root_oid)?; // mark root_oid as where to hide from
-    rev_walk.set_sorting(git2::Sort::REVERSE)?; // reverse traversal order so we walk from child
-                                                // commit of the commit identified by root_oid and
-                                                // then iterate our way to the the commit
-                                                // identified by the leaf_oid
-
-    let mut last_cherry_picked_oid: Option<git2::Oid> = None;
-
-    for rev in rev_walk.flatten() {
-        last_cherry_picked_oid = Some(cherry_pick_no_working_copy(
-            repo,
-            config,
-            rev,
-            dest_ref_name,
-            committer_time_offset,
-            add_missing_patch_ids,
-        )?);
-    }
-
-    Ok(last_cherry_picked_oid)
-}
-
-/// Cherry pick the commit identified by the oid to the dest_ref_name with the
-/// given committer_time_offset. Note: The committer_time_offset is used to
-/// offset the Commiter's signature timestamp which is in seconds since epoch
-/// so that if we are performing multiple operations on the same commit within
-/// less than a second we can offset it in one direction or the other. The
-/// current use case for this is when we add patch stack id to a commit and
-/// then immediately cherry pick that commit into the ps/rr/whatever branch as
-/// part of the request_review_branch() operation.
-pub fn cherry_pick_no_working_copy<'a>(
-    repo: &'a git2::Repository,
-    config: &'a git2::Config,
-    oid: git2::Oid,
-    dest_ref_name: &str,
-    committer_time_offset: i64,
-    add_missing_patch_id: bool,
-) -> Result<git2::Oid, git::GitError> {
-    // https://www.pygit2.org/recipes/git-cherry-pick.html#cherry-picking-a-commit-without-a-working-copy
-    let commit = repo.find_commit(oid)?;
-    let commit_tree = commit.tree()?;
-
-    let commit_parent = commit.parent(0)?;
-    let commit_parent_tree = commit_parent.tree()?;
-
-    let destination_ref = repo.find_reference(dest_ref_name)?;
-    let destination_oid = destination_ref
-        .target()
-        .ok_or(git::GitError::TargetNotFound)?;
-
-    let destination_commit = repo.find_commit(destination_oid)?;
-    let destination_tree = destination_commit.tree()?;
-
-    let mut index = repo.merge_trees(&commit_parent_tree, &destination_tree, &commit_tree, None)?;
-    let tree_oid = index.write_tree_to(repo)?;
-    let tree = repo.find_tree(tree_oid)?;
-
-    let author = commit.author();
-    let committer = repo.signature().unwrap();
-
-    let message = commit.message().unwrap();
-
-    let new_time = git2::Time::new(
-        committer.when().seconds() + committer_time_offset,
-        committer.when().offset_minutes(),
-    );
-    let new_committer = git2::Signature::new(
-        committer.name().unwrap(),
-        committer.email().unwrap(),
-        &new_time,
-    )
-    .unwrap();
-
-    let possibly_amended_mesesage = match add_missing_patch_id {
-        true => match commit_ps_id(&commit) {
-            Some(_) => message.to_string(),
-            None => {
-                let patch_id: uuid::Uuid = uuid::Uuid::new_v4();
-                let message_amendment = format!("\n<!-- ps-id: {} -->", patch_id.hyphenated());
-                format!("{}{}", message, message_amendment)
-            }
-        },
-        false => message.to_string(),
-    };
-
-    let new_commit_oid = git::create_commit(
-        repo,
-        config,
-        dest_ref_name,
-        &author,
-        &new_committer,
-        &possibly_amended_mesesage,
-        &tree,
-        &[&destination_commit],
-    )
-    .unwrap();
-
-    Ok(new_commit_oid)
-}
-
 #[derive(Debug)]
 pub enum AddPatchIdsError {
     GetCurrentBranch,
-    FindCurrentBranchReference(git2::Error),
-    RevParseCurrentBranchReference(git2::Error),
-    GetCurrentBranchUpstreamName(git::GitError),
-    RevParseCurrentBranchUpstreamReference(git2::Error),
-    FindCommonAncestor(git::CommonAncestorError),
-    FindCommonAncestorCommit(git2::Error),
-    CreateAddIdReworkBranch(git2::Error),
+    FindCurrentBranchReference(Box<dyn std::error::Error>),
+    RevParseCurrentBranchReference(Box<dyn std::error::Error>),
+    GetCurrentBranchUpstreamName(Box<dyn std::error::Error>),
+    RevParseCurrentBranchUpstreamReference(Box<dyn std::error::Error>),
+    FindCommonAncestor(Box<dyn std::error::Error>),
+    FindCommonAncestorCommit(Box<dyn std::error::Error>),
+    CreateAddIdReworkBranch(Box<dyn std::error::Error>),
     GetAddIdReworkBranchReferenceName,
-    CherryPickNoWorkingCopyRange(git::GitError),
-    SetCurrentBranchTarget(git2::Error),
-    FindAddIdReworkReference(git2::Error),
-    DeleteAppIdReworkBranch(git2::Error),
+    ConflictsExist(String, String),
+    MergeCommitDetected(String),
+    CherryPickNoWorkingCopyRange(Box<dyn std::error::Error>),
+    SetCurrentBranchTarget(Box<dyn std::error::Error>),
+    FindAddIdReworkReference(Box<dyn std::error::Error>),
+    DeleteAppIdReworkBranch(Box<dyn std::error::Error>),
 }
+
+impl From<cherry_picking::CherryPickError> for AddPatchIdsError {
+    fn from(value: cherry_picking::CherryPickError) -> Self {
+        match value {
+            cherry_picking::CherryPickError::ConflictsExist(src_oid, dst_oid) => {
+                Self::ConflictsExist(src_oid, dst_oid)
+            }
+            cherry_picking::CherryPickError::MergeCommitDetected(oid) => {
+                Self::MergeCommitDetected(oid)
+            }
+            _ => Self::CherryPickNoWorkingCopyRange(value.into()),
+        }
+    }
+}
+
+impl std::fmt::Display for AddPatchIdsError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::GetCurrentBranch => write!(f, "failed to get current branch"),
+            Self::FindCurrentBranchReference(e) => {
+                write!(f, "find current branch reference failed, {}", e)
+            }
+            Self::RevParseCurrentBranchReference(e) => {
+                write!(f, "rev parse current branch reference failed, {}", e)
+            }
+            Self::GetCurrentBranchUpstreamName(e) => {
+                write!(f, "get current branch upstream name failed, {}", e)
+            }
+            Self::RevParseCurrentBranchUpstreamReference(e) => write!(
+                f,
+                "rev parse current branch upstream reference failed, {}",
+                e
+            ),
+            Self::FindCommonAncestor(e) => write!(f, "find common ancestor failed, {}", e),
+            Self::FindCommonAncestorCommit(e) => {
+                write!(f, "find common ancestor commit failed, {}", e)
+            }
+            Self::CreateAddIdReworkBranch(e) => {
+                write!(f, "create add id rework branch failed, {}", e)
+            }
+            Self::GetAddIdReworkBranchReferenceName => {
+                write!(f, "get add id rework branch reference name failed")
+            }
+            Self::ConflictsExist(src_oid, dst_oid) => write!(
+                f,
+                "conflict(s) detected when playing {} on top of {}",
+                src_oid, dst_oid
+            ),
+            Self::MergeCommitDetected(oid) => {
+                write!(f, "merge commit detected with sha {}", oid)
+            }
+            Self::CherryPickNoWorkingCopyRange(e) => write!(f, "cherry pick failed, {}", e),
+            Self::SetCurrentBranchTarget(e) => write!(f, "set current branch target failed, {}", e),
+            Self::FindAddIdReworkReference(e) => {
+                write!(f, "find add id rework reference failed, {}", e)
+            }
+            Self::DeleteAppIdReworkBranch(e) => {
+                write!(f, "delete app id rework branch failed, {}", e)
+            }
+        }
+    }
+}
+
+impl std::error::Error for AddPatchIdsError {}
 
 /// Rebase the currently checked out branch, amending commits with patch identifiers if they are
 /// missing.
@@ -354,62 +258,62 @@ pub fn add_patch_ids(
         git::get_current_branch(repo).ok_or(AddPatchIdsError::GetCurrentBranch)?;
     let mut branch_ref = repo
         .find_reference(&branch_ref_name)
-        .map_err(AddPatchIdsError::FindCurrentBranchReference)?;
+        .map_err(|e| AddPatchIdsError::FindCurrentBranchReference(e.into()))?;
     let cur_branch_obj = repo
         .revparse_single(&branch_ref_name)
-        .map_err(AddPatchIdsError::RevParseCurrentBranchReference)?;
+        .map_err(|e| AddPatchIdsError::RevParseCurrentBranchReference(e.into()))?;
     let cur_branch_oid = cur_branch_obj.id();
 
     // Get current branches upstream tracking branch
     let upstream_branch_ref_name = git::branch_upstream_name(repo, &branch_ref_name)
-        .map_err(AddPatchIdsError::GetCurrentBranchUpstreamName)?;
+        .map_err(|e| AddPatchIdsError::GetCurrentBranchUpstreamName(e.into()))?;
     let upstream_branch_obj = repo
         .revparse_single(&upstream_branch_ref_name)
-        .map_err(AddPatchIdsError::RevParseCurrentBranchUpstreamReference)?;
+        .map_err(|e| AddPatchIdsError::RevParseCurrentBranchUpstreamReference(e.into()))?;
     let upstream_branch_oid = upstream_branch_obj.id();
 
     // find the commmon ancestor
     let common_ancestor_oid = git::common_ancestor(repo, cur_branch_oid, upstream_branch_oid)
-        .map_err(AddPatchIdsError::FindCommonAncestor)?;
+        .map_err(|e| AddPatchIdsError::FindCommonAncestor(e.into()))?;
     let common_anccestor_commit = repo
         .find_commit(common_ancestor_oid)
-        .map_err(AddPatchIdsError::FindCommonAncestorCommit)?;
+        .map_err(|e| AddPatchIdsError::FindCommonAncestorCommit(e.into()))?;
 
     // create branch
     let add_id_rework_branch = repo
         .branch("ps/tmp/add_id_rework", &common_anccestor_commit, true)
-        .map_err(AddPatchIdsError::CreateAddIdReworkBranch)?;
+        .map_err(|e| AddPatchIdsError::CreateAddIdReworkBranch(e.into()))?;
     let add_id_rework_branch_ref_name = add_id_rework_branch
         .get()
         .name()
         .ok_or(AddPatchIdsError::GetAddIdReworkBranchReferenceName)?;
 
     // cherry pick commits to add_id_rework branch adding patch id if missing
-    let last_cherry_picked_commit_oid = cherry_pick_no_working_copy_range(
+    let last_cherry_picked_commit_oid = cherry_picking::cherry_pick(
         repo,
         config,
         upstream_branch_oid,
-        cur_branch_oid,
+        Some(cur_branch_oid),
         add_id_rework_branch_ref_name,
         0,
         true,
-    )
-    .map_err(AddPatchIdsError::CherryPickNoWorkingCopyRange)?;
+        false,
+    )?;
 
     // reset the current branch to point to the add id rework branch head commit
     if let Some(oid) = last_cherry_picked_commit_oid {
         branch_ref
             .set_target(oid, "swap branch to add_id_rework")
-            .map_err(AddPatchIdsError::SetCurrentBranchTarget)?;
+            .map_err(|e| AddPatchIdsError::SetCurrentBranchTarget(e.into()))?;
     }
 
     // delete the add id rework branch
     let mut tmp_branch_ref = repo
         .find_reference(add_id_rework_branch_ref_name)
-        .map_err(AddPatchIdsError::FindAddIdReworkReference)?;
+        .map_err(|e| AddPatchIdsError::FindAddIdReworkReference(e.into()))?;
     tmp_branch_ref
         .delete()
-        .map_err(AddPatchIdsError::DeleteAppIdReworkBranch)?;
+        .map_err(|e| AddPatchIdsError::DeleteAppIdReworkBranch(e.into()))?;
 
     Ok(())
 }
@@ -423,6 +327,21 @@ pub enum PatchRangeWithinStackBoundsError {
     StartPatchIndexOutOfBounds(usize),
     EndPatchIndexOutOfBounds(usize),
 }
+
+impl std::fmt::Display for PatchRangeWithinStackBoundsError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::StartPatchIndexOutOfBounds(idx) => {
+                write!(f, "start patch index ({}) out of bounds", idx)
+            }
+            Self::EndPatchIndexOutOfBounds(idx) => {
+                write!(f, "end patch index ({}) out of bounds", idx)
+            }
+        }
+    }
+}
+
+impl std::error::Error for PatchRangeWithinStackBoundsError {}
 
 pub fn patch_range_within_stack_bounds(
     start_patch_index: usize,

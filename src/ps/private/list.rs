@@ -90,6 +90,17 @@ pub enum ListHookError {
     HookOutputInvalid(Utf8Error),
 }
 
+impl std::fmt::Display for ListHookError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::GetHookOutputError(e) => write!(f, "get hook output failed, {}", e),
+            Self::HookOutputInvalid(e) => write!(f, "hook output invalid, {}", e),
+        }
+    }
+}
+
+impl std::error::Error for ListHookError {}
+
 pub fn execute_list_additional_info_hook(
     repo_root_str: &str,
     repo_gitdir_str: &str,

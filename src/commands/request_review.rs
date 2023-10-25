@@ -26,7 +26,7 @@ pub fn request_review(
                     &patch_index_or_range_batch
                 ),
             );
-            eprintln!("Error: {:?}", e);
+            eprintln!("Error: {}", e);
             std::process::exit(1);
         }
     };
@@ -62,6 +62,33 @@ pub fn request_review(
         ) {
             Ok(_) => {}
             Err(e) => match e {
+                ps::RequestReviewError::MergeCommitDetected(oid) => {
+                    print_err(
+                        color,
+                        &format!(
+                            r#"
+  Detected a merge commit ({}) in the patch(es) selection.
+
+  This should only occur if you have a merge commit that hasn't been flatten in your patch stack.
+  To flatten merge commits in your patch stack you can simply run gps rebase and then try to request review again.
+        "#,
+                            oid
+                        ),
+                    );
+                }
+                ps::RequestReviewError::ConflictsExist(src_oid, dst_oid) => {
+                    print_err(
+                        color,
+                        &format!(
+                            r#"
+  Cherry picking commit ({}) onto commit ({}) failed due to conflicts.
+
+  Please make sure that you aren't missing a dependent patch in your patch(es) selection.
+        "#,
+                            src_oid, dst_oid
+                        ),
+                    );
+                }
                 ps::RequestReviewError::PostSyncHookNotExecutable(path) => {
                     let path_str = path.to_str().unwrap_or("unknow path");
                     let msg = format!(

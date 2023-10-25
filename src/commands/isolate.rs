@@ -23,13 +23,42 @@ pub fn isolate(patch_index_or_range: Option<String>, color: bool) {
                     );
                     std::process::exit(1);
                 }
+                Err(ps::IsolateError::MergeCommitDetected(oid)) => {
+                    print_err(
+                        color,
+                        &format!(
+                            r#"
+  Detected a merge commit ({}) in the patch(es) to isolate.
+
+  This should only occur if you have a merge commit that hasn't been flatten in your patch stack.
+  To flatten merge commits in your patch stack you can simply run gps rebase and then try to isolate again.
+        "#,
+                            oid
+                        ),
+                    );
+                    std::process::exit(1);
+                }
+                Err(ps::IsolateError::ConflictsExist(src_oid, dst_oid)) => {
+                    print_err(
+                        color,
+                        &format!(
+                            r#"
+  Cherry picking commit ({}) onto commit ({}) failed due to conflicts.
+
+  Please make sure that you aren't missing a dependent patch in your patch(es) selection.
+        "#,
+                            src_oid, dst_oid
+                        ),
+                    );
+                    std::process::exit(1);
+                }
                 Err(e) => {
-                    print_err(color, format!("\nError: {:?}\n", e).as_str());
+                    print_err(color, format!("\nError: {}\n", e).as_str());
                     std::process::exit(1);
                 }
             },
             Err(e) => {
-                eprintln!("Error: {:?}", e);
+                eprintln!("Error: {}", e);
                 std::process::exit(1);
             }
         },
@@ -47,7 +76,7 @@ pub fn isolate(patch_index_or_range: Option<String>, color: bool) {
                 std::process::exit(1);
             }
             Err(e) => {
-                print_err(color, format!("\nError: {:?}\n", e).as_str());
+                print_err(color, format!("\nError: {}\n", e).as_str());
                 std::process::exit(1);
             }
         },

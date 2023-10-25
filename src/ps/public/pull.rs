@@ -18,6 +18,24 @@ pub enum PullError {
     ListFailed(list::ListError),
 }
 
+impl std::fmt::Display for PullError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::RepositoryMissing => write!(f, "repository missing"),
+            Self::GetHeadBranchNameFailed => write!(f, "get head branch name failed"),
+            Self::GetUpstreamBranchNameFailed => write!(f, "get upstream branch name failed"),
+            Self::RebaseFailed(e) => write!(f, "rebase failed, {}", e),
+            Self::FetchFailed(e) => write!(f, "fetch failed, {}", e),
+            Self::GetRepoRootPathFailed(e) => write!(f, "get repository root path failed, {}", e),
+            Self::PathNotUtf8 => write!(f, "path not utf-8"),
+            Self::GetConfigFailed(e) => write!(f, "get config failed, {}", e),
+            Self::ListFailed(e) => write!(f, "get list failed, {}", e),
+        }
+    }
+}
+
+impl std::error::Error for PullError {}
+
 pub fn pull(color: bool) -> Result<(), PullError> {
     let repo = git::create_cwd_repo().map_err(|_| PullError::RepositoryMissing)?;
 

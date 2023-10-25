@@ -48,7 +48,7 @@ pub fn latest_github_release(
     .set("Accept", "application/vnd.github.v3+json")
     .timeout(Duration::from_secs(1))
     .call()
-    .map_err(|e| LatestGitHubReleaseError::Call(Box::new(e)))?
+    .map_err(|e| LatestGitHubReleaseError::Call(e.into()))?
     .into_string()
     .map_err(LatestGitHubReleaseError::IntoString)?;
 

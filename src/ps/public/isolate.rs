@@ -3,43 +3,112 @@ use super::super::private::cherry_picking;
 use super::super::private::git;
 use super::super::private::hooks;
 use super::super::private::paths;
-use super::super::private::string_file_io::{
-    read_str_from_file, write_str_to_file, ReadStringFromFileError, WriteStrToFileError,
-};
+use super::super::private::string_file_io::{read_str_from_file, write_str_to_file};
 use super::super::private::utils;
 use std::result::Result;
 
 #[derive(Debug)]
 pub enum IsolateError {
-    OpenGitRepositoryFailed(git::CreateCwdRepositoryError),
-    GetPatchStackFailed(ps::PatchStackError),
-    GetPatchListFailed(ps::GetPatchListError),
+    OpenGitRepositoryFailed(Box<dyn std::error::Error>),
+    OpenGitConfigFailed(Box<dyn std::error::Error>),
+    UncommittedChangesExistFailure(Box<dyn std::error::Error>),
+    UncommittedChangesExist,
+    GetPatchStackFailed(Box<dyn std::error::Error>),
+    GetPatchListFailed(Box<dyn std::error::Error>),
     PatchIndexNotFound,
     PatchStackBaseNotFound,
     CreateBranchFailed,
     BranchNameNotUtf8,
-    CherryPickFailed,
-    FailedToCheckout(utils::ExecuteError),
+    MergeCommitDetected(String),
+    ConflictsExist(String, String),
+    FailedToCheckout(Box<dyn std::error::Error>),
     GetCurrentBranchFailed,
-    StoreLastBranchFailed(WriteStrToFileError),
-    ReadLastBranchFailed(ReadStringFromFileError),
-    OpenGitConfigFailed(git2::Error),
-    GetRepoRootPathFailed(paths::PathsError),
+    StoreLastBranchFailed(Box<dyn std::error::Error>),
+    ReadLastBranchFailed(Box<dyn std::error::Error>),
+    GetRepoRootPathFailed(Box<dyn std::error::Error>),
     PathNotUtf8,
-    HookNotFound(hooks::FindHookError),
-    HookExecutionFailed(utils::ExecuteError),
-    UncommittedChangesExistFailure(git::UncommittedChangesError),
-    UncommittedChangesExist,
-    FindIsolateBranchFailed(git2::Error),
-    DeleteIsolateBranchFailed(git2::Error),
-    FailedToMapIndexesForCherryPick(cherry_picking::MapRangeForCherryPickError),
+    HookNotFound(Box<dyn std::error::Error>),
+    HookExecutionFailed(Box<dyn std::error::Error>),
+    FindIsolateBranchFailed(Box<dyn std::error::Error>),
+    DeleteIsolateBranchFailed(Box<dyn std::error::Error>),
+    FailedToMapIndexesForCherryPick(Box<dyn std::error::Error>),
     CurrentBranchNameMissing,
     GetUpstreamBranchNameFailed,
     GetRemoteNameFailed,
     RemoteNameNotUtf8,
-    FindRemoteFailed(git2::Error),
+    FindRemoteFailed(Box<dyn std::error::Error>),
     RemoteUrlNotUtf8,
+    Unhandled(Box<dyn std::error::Error>),
 }
+
+impl From<cherry_picking::CherryPickError> for IsolateError {
+    fn from(value: cherry_picking::CherryPickError) -> Self {
+        match value {
+            cherry_picking::CherryPickError::MergeCommitDetected(oid_string) => {
+                Self::MergeCommitDetected(oid_string)
+            }
+            cherry_picking::CherryPickError::ConflictsExist(oid_a_string, oid_b_string) => {
+                Self::ConflictsExist(oid_a_string, oid_b_string)
+            }
+            _ => Self::Unhandled(value.into()),
+        }
+    }
+}
+
+impl std::fmt::Display for IsolateError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::OpenGitRepositoryFailed(e) => write!(f, "failed to open git repository, {}", e),
+            Self::OpenGitConfigFailed(e) => write!(f, "failed to open git config, {}", e),
+            Self::UncommittedChangesExistFailure(e) => {
+                write!(f, "checking for uncommitted changes failed, {}", e)
+            }
+            Self::UncommittedChangesExist => write!(f, "uncommited changes exist"),
+            Self::GetPatchStackFailed(e) => write!(f, "get patch stack failed, {}", e),
+            Self::GetPatchListFailed(e) => {
+                write!(f, "get patch stack list of patches failed, {}", e)
+            }
+            Self::PatchIndexNotFound => write!(f, "patch index not found"),
+            Self::PatchStackBaseNotFound => write!(f, "patch stack base not found"),
+            Self::CreateBranchFailed => write!(f, "create branch failed"),
+            Self::BranchNameNotUtf8 => write!(f, "branch name not utf-8"),
+            Self::MergeCommitDetected(oid) => {
+                write!(f, "merge commit detected with sha {}", oid)
+            }
+            Self::ConflictsExist(src_oid, dst_oid) => write!(
+                f,
+                "conflict(s) detected when playing {} on top of {}",
+                src_oid, dst_oid
+            ),
+            Self::FailedToCheckout(e) => write!(f, "failed to checkout branch, {}", e),
+            Self::GetCurrentBranchFailed => write!(f, "failed to get current branch"),
+            Self::StoreLastBranchFailed(e) => write!(f, "failed to store last branch, {}", e),
+            Self::ReadLastBranchFailed(e) => write!(f, "failed to read last branch, {}", e),
+            Self::GetRepoRootPathFailed(e) => {
+                write!(f, "failed to get repositories root path, {}", e)
+            }
+            Self::PathNotUtf8 => write!(f, "path not utf-8"),
+            Self::HookNotFound(e) => write!(f, "hook not found, {}", e),
+            Self::HookExecutionFailed(e) => write!(f, "hook execution failed, {}", e),
+            Self::FindIsolateBranchFailed(e) => write!(f, "failed to find isolate branch, {}", e),
+            Self::DeleteIsolateBranchFailed(e) => {
+                write!(f, "failed to delete isolate branch, {}", e)
+            }
+            Self::FailedToMapIndexesForCherryPick(e) => {
+                write!(f, "failed to map indexes for cherry pick, {}", e)
+            }
+            Self::CurrentBranchNameMissing => write!(f, "current branch name missing"),
+            Self::GetUpstreamBranchNameFailed => write!(f, "failed to get upstream branch name"),
+            Self::GetRemoteNameFailed => write!(f, "fail to get remote name"),
+            Self::RemoteNameNotUtf8 => write!(f, "remote name not utf-8"),
+            Self::FindRemoteFailed(e) => write!(f, "failed to find remote, {}", e),
+            Self::RemoteUrlNotUtf8 => write!(f, "remote url not utf-8"),
+            Self::Unhandled(e) => write!(f, "{}", e),
+        }
+    }
+}
+
+impl std::error::Error for IsolateError {}
 
 pub fn isolate(
     start_patch_index_optional: Option<usize>,
@@ -47,25 +116,26 @@ pub fn isolate(
     color: bool,
 ) -> Result<(), IsolateError> {
     let isolate_branch_name = "ps/tmp/isolate";
-    let repo =
-        ps::private::git::create_cwd_repo().map_err(IsolateError::OpenGitRepositoryFailed)?;
+    let repo = ps::private::git::create_cwd_repo()
+        .map_err(|e| IsolateError::OpenGitRepositoryFailed(e.into()))?;
 
     let repo_gitdir_path = repo.path();
     let repo_gitdir_str = repo_gitdir_path.to_str().ok_or(IsolateError::PathNotUtf8)?;
-    let config = git2::Config::open_default().map_err(IsolateError::OpenGitConfigFailed)?;
+    let config =
+        git2::Config::open_default().map_err(|e| IsolateError::OpenGitConfigFailed(e.into()))?;
 
     if git::uncommitted_changes_exist(&repo)
-        .map_err(IsolateError::UncommittedChangesExistFailure)?
+        .map_err(|e| IsolateError::UncommittedChangesExistFailure(e.into()))?
     {
         return Err(IsolateError::UncommittedChangesExist);
     }
 
     match start_patch_index_optional {
         Some(patch_index) => {
-            let patch_stack =
-                ps::get_patch_stack(&repo).map_err(IsolateError::GetPatchStackFailed)?;
+            let patch_stack = ps::get_patch_stack(&repo)
+                .map_err(|e| IsolateError::GetPatchStackFailed(e.into()))?;
             let patches_vec = ps::get_patch_list(&repo, &patch_stack)
-                .map_err(IsolateError::GetPatchListFailed)?;
+                .map_err(|e| IsolateError::GetPatchListFailed(e.into()))?;
             let patch_stack_base_commit = patch_stack
                 .base
                 .peel_to_commit()
@@ -83,17 +153,18 @@ pub fn isolate(
                 patch_index,
                 end_patch_index_optional,
             )
-            .map_err(IsolateError::FailedToMapIndexesForCherryPick)?;
+            .map_err(|e| IsolateError::FailedToMapIndexesForCherryPick(e.into()))?;
 
-            ps::cherry_pick(
+            cherry_picking::cherry_pick(
                 &repo,
                 &config,
                 cherry_pick_range.root_oid,
                 cherry_pick_range.leaf_oid,
                 branch_ref_name,
+                0,
                 false,
-            )
-            .map_err(|_| IsolateError::CherryPickFailed)?;
+                true,
+            )?;
 
             // get currently checked out branch name
             let checked_out_branch = git::get_current_branch_shorthand(&repo)
@@ -101,7 +172,7 @@ pub fn isolate(
             // write currently checked out branch name to disk
             let path = paths::isolate_last_branch_path(&repo);
             write_str_to_file(checked_out_branch.as_str(), path)
-                .map_err(IsolateError::StoreLastBranchFailed)?;
+                .map_err(|e| IsolateError::StoreLastBranchFailed(e.into()))?;
 
             let cur_branch_name =
                 git::get_current_branch(&repo).ok_or(IsolateError::CurrentBranchNameMissing)?;
@@ -115,22 +186,22 @@ pub fn isolate(
                 .ok_or(IsolateError::RemoteNameNotUtf8)?;
             let remote = repo
                 .find_remote(remote_name_str)
-                .map_err(IsolateError::FindRemoteFailed)?;
+                .map_err(|e| IsolateError::FindRemoteFailed(e.into()))?;
             let remote_url_str = remote.url().ok_or(IsolateError::RemoteUrlNotUtf8)?;
 
             // checkout the ps/tmp/checkout branch
             utils::execute("git", &["checkout", isolate_branch_name])
-                .map_err(IsolateError::FailedToCheckout)?;
+                .map_err(|e| IsolateError::FailedToCheckout(e.into()))?;
 
-            let repo_root_path =
-                paths::repo_root_path(&repo).map_err(IsolateError::GetRepoRootPathFailed)?;
+            let repo_root_path = paths::repo_root_path(&repo)
+                .map_err(|e| IsolateError::GetRepoRootPathFailed(e.into()))?;
             let repo_root_str = repo_root_path.to_str().ok_or(IsolateError::PathNotUtf8)?;
             match hooks::find_hook(repo_root_str, repo_gitdir_str, "isolate_post_checkout") {
                 Ok(hook_path) => utils::execute(
                     hook_path.to_str().ok_or(IsolateError::PathNotUtf8)?,
                     &[remote_name_str, remote_url_str],
                 )
-                .map_err(IsolateError::HookExecutionFailed)?,
+                .map_err(|e| IsolateError::HookExecutionFailed(e.into()))?,
                 Err(hooks::FindHookError::NotFound) => {}
                 Err(hooks::FindHookError::NotExecutable(hook_path)) => {
                     let path_str = hook_path.to_str().unwrap_or("unknow path");
@@ -149,7 +220,7 @@ pub fn isolate(
                     );
                     utils::print_warn(color, &msg);
                 }
-                Err(e) => return Err(IsolateError::HookNotFound(e)),
+                Err(e) => return Err(IsolateError::HookNotFound(e.into())),
             }
 
             Ok(())
@@ -157,28 +228,28 @@ pub fn isolate(
         None => {
             // read last checked out branch name from disk
             let path = paths::isolate_last_branch_path(&repo);
-            let last_branch =
-                read_str_from_file(path).map_err(IsolateError::ReadLastBranchFailed)?;
+            let last_branch = read_str_from_file(path)
+                .map_err(|e| IsolateError::ReadLastBranchFailed(e.into()))?;
 
             // check it out
             utils::execute("git", &["checkout", &last_branch])
-                .map_err(IsolateError::FailedToCheckout)?;
+                .map_err(|e| IsolateError::FailedToCheckout(e.into()))?;
 
             let mut isolate_branch = repo
                 .find_branch(isolate_branch_name, git2::BranchType::Local)
-                .map_err(IsolateError::FindIsolateBranchFailed)?;
+                .map_err(|e| IsolateError::FindIsolateBranchFailed(e.into()))?;
             isolate_branch
                 .delete()
-                .map_err(IsolateError::DeleteIsolateBranchFailed)?;
+                .map_err(|e| IsolateError::DeleteIsolateBranchFailed(e.into()))?;
 
-            let repo_root_path =
-                paths::repo_root_path(&repo).map_err(IsolateError::GetRepoRootPathFailed)?;
+            let repo_root_path = paths::repo_root_path(&repo)
+                .map_err(|e| IsolateError::GetRepoRootPathFailed(e.into()))?;
             let repo_root_str = repo_root_path.to_str().ok_or(IsolateError::PathNotUtf8)?;
 
             match hooks::find_hook(repo_root_str, repo_gitdir_str, "isolate_post_cleanup") {
                 Ok(hook_path) => {
                     utils::execute(hook_path.to_str().ok_or(IsolateError::PathNotUtf8)?, &[])
-                        .map_err(IsolateError::HookExecutionFailed)?
+                        .map_err(|e| IsolateError::HookExecutionFailed(e.into()))?
                 }
                 Err(hooks::FindHookError::NotFound) => {}
                 Err(hooks::FindHookError::NotExecutable(hook_path)) => {
@@ -198,7 +269,7 @@ pub fn isolate(
                     );
                     utils::print_warn(color, &msg);
                 }
-                Err(e) => return Err(IsolateError::HookNotFound(e)),
+                Err(e) => return Err(IsolateError::HookNotFound(e.into())),
             }
 
             Ok(())

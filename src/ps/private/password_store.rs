@@ -33,10 +33,10 @@ pub fn get_ssh_key_password(
         Ok(entry) => match entry.get_password() {
             Ok(v) => Ok(Some(v)),
             Err(keyring::Error::NoEntry) => Ok(None),
-            Err(e) => Err(GetSshKeyPasswordError::Unknown(Box::new(e))),
+            Err(e) => Err(GetSshKeyPasswordError::Unknown(e.into())),
         },
         Err(keyring::error::Error::NoEntry) => Ok(None),
-        Err(e) => Err(GetSshKeyPasswordError::Unknown(Box::new(e))),
+        Err(e) => Err(GetSshKeyPasswordError::Unknown(e.into())),
     }
 }
 
@@ -64,7 +64,7 @@ pub fn set_ssh_key_password(
     match keyring_entry(key_path) {
         Ok(entry) => entry
             .set_password(password)
-            .map_err(|e| SetSshKeyPasswordError::Unknown(Box::new(e))),
-        Err(e) => Err(SetSshKeyPasswordError::Unknown(Box::new(e))),
+            .map_err(|e| SetSshKeyPasswordError::Unknown(e.into())),
+        Err(e) => Err(SetSshKeyPasswordError::Unknown(e.into())),
     }
 }

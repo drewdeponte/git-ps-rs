@@ -4,6 +4,7 @@ use super::super::private::git;
 use super::super::private::hooks;
 use super::super::private::paths;
 use super::super::private::utils;
+use super::sync;
 use super::verify_isolation;
 use std::fmt;
 use std::path::PathBuf;
@@ -11,21 +12,49 @@ use std::result::Result;
 
 #[derive(Debug)]
 pub enum RequestReviewError {
-    OpenRepositoryFailed(git::CreateCwdRepositoryError),
-    GetRepoRootPathFailed(paths::PathsError),
+    OpenRepositoryFailed(Box<dyn std::error::Error>),
+    GetRepoRootPathFailed(Box<dyn std::error::Error>),
     PathNotUtf8,
-    GetConfigFailed(config::GetConfigError),
+    GetConfigFailed(Box<dyn std::error::Error>),
     IsolationVerificationFailed(verify_isolation::VerifyIsolationError),
-    SyncFailed(ps::public::sync::SyncError),
+    MergeCommitDetected(String),
+    ConflictsExist(String, String),
     CurrentPatchStackBranchNameMissing,
     GetCurrentPatchStackUpstreamBranchNameFailed,
     GetRemoteNameFailed,
     BranchNameNotUtf8,
-    FindRemoteFailed(git2::Error),
+    FindRemoteFailed(Box<dyn std::error::Error>),
     RemoteUrlNotUtf8,
-    HookExecutionFailed(utils::ExecuteError),
+    HookExecutionFailed(Box<dyn std::error::Error>),
     PostSyncHookNotExecutable(PathBuf),
-    FindHookFailed(hooks::FindHookError),
+    FindHookFailed(Box<dyn std::error::Error>),
+    Unhandled(Box<dyn std::error::Error>),
+}
+
+impl From<sync::SyncError> for RequestReviewError {
+    fn from(value: sync::SyncError) -> Self {
+        match value {
+            sync::SyncError::MergeCommitDetected(oid) => Self::MergeCommitDetected(oid),
+            sync::SyncError::ConflictsExist(src_oid, dst_oid) => {
+                Self::ConflictsExist(src_oid, dst_oid)
+            }
+            _ => Self::Unhandled(value.into()),
+        }
+    }
+}
+
+impl From<verify_isolation::VerifyIsolationError> for RequestReviewError {
+    fn from(value: verify_isolation::VerifyIsolationError) -> Self {
+        match value {
+            verify_isolation::VerifyIsolationError::MergeCommitDetected(oid) => {
+                Self::MergeCommitDetected(oid)
+            }
+            verify_isolation::VerifyIsolationError::ConflictsExist(src_oid, dst_oid) => {
+                Self::ConflictsExist(src_oid, dst_oid)
+            }
+            _ => Self::IsolationVerificationFailed(value),
+        }
+    }
 }
 
 impl fmt::Display for RequestReviewError {
@@ -33,10 +62,10 @@ impl fmt::Display for RequestReviewError {
         match self {
             Self::OpenRepositoryFailed(e) => write!(
                 f,
-                "Repository not found in current working directory - {:?}",
+                "Repository not found in current working directory - {}",
                 e
             ),
-            Self::GetRepoRootPathFailed(e) => write!(f, "Get repository path failed - {:?}", e),
+            Self::GetRepoRootPathFailed(e) => write!(f, "Get repository path failed - {}", e),
             Self::PathNotUtf8 => write!(
                 f,
                 "Failed to process repository root path as it is NOT utf8"
@@ -48,9 +77,8 @@ impl fmt::Display for RequestReviewError {
                 path.to_str().unwrap_or("unknown path")
             ),
             Self::FindHookFailed(e) => {
-                write!(f, "failed to find request_review_post_sync hook - {:?}", e)
+                write!(f, "failed to find request_review_post_sync hook - {}", e)
             }
-            Self::SyncFailed(e) => write!(f, "Failed to sync patch to remote - {:?}", e),
             Self::CurrentPatchStackBranchNameMissing => {
                 write!(f, "Current branch name unexpectedly missin")
             }
@@ -60,20 +88,30 @@ impl fmt::Display for RequestReviewError {
             Self::GetRemoteNameFailed => write!(f, "Failed te get remote name"),
             Self::HookExecutionFailed(e) => write!(
                 f,
-                "Execution of the request_review_post_sync hook failed - {:?}",
+                "Execution of the request_review_post_sync hook failed - {}",
                 e
             ),
-            Self::GetConfigFailed(e) => write!(f, "Failed to get Git Patch Stack config - {:?}", e),
+            Self::GetConfigFailed(e) => write!(f, "Failed to get Git Patch Stack config - {}", e),
             Self::IsolationVerificationFailed(e) => {
-                write!(f, "Isolation verification failed - {:?}", e)
+                write!(f, "Isolation verification failed - {}", e)
             }
+
+            Self::MergeCommitDetected(oid) => write!(f, "merge commit detected with sha {}", oid),
+            Self::ConflictsExist(src_oid, dst_oid) => write!(
+                f,
+                "conflict detected when playing {} on top of {}",
+                src_oid, dst_oid
+            ),
             Self::RemoteUrlNotUtf8 => write!(f, "Failed to process remote url as it is NOT utf8"),
             Self::FindRemoteFailed(e) => {
-                write!(f, "Failed to find remote - {:?}", e)
+                write!(f, "Failed to find remote - {}", e)
             }
+            Self::Unhandled(e) => write!(f, "{}", e),
         }
     }
 }
+
+impl std::error::Error for RequestReviewError {}
 
 pub fn request_review(
     start_patch_index: usize,
@@ -83,11 +121,12 @@ pub fn request_review(
     isolation_verification_hook: bool,
     post_sync_hook: bool,
 ) -> Result<(), RequestReviewError> {
-    let repo = git::create_cwd_repo().map_err(RequestReviewError::OpenRepositoryFailed)?;
+    let repo =
+        git::create_cwd_repo().map_err(|e| RequestReviewError::OpenRepositoryFailed(e.into()))?;
 
     // find post_request_review hook
-    let repo_root_path =
-        paths::repo_root_path(&repo).map_err(RequestReviewError::GetRepoRootPathFailed)?;
+    let repo_root_path = paths::repo_root_path(&repo)
+        .map_err(|e| RequestReviewError::GetRepoRootPathFailed(e.into()))?;
     let repo_root_str = repo_root_path
         .to_str()
         .ok_or(RequestReviewError::PathNotUtf8)?;
@@ -106,24 +145,22 @@ pub fn request_review(
                     return Err(RequestReviewError::PostSyncHookNotExecutable(p));
                 }
                 Err(e) => {
-                    return Err(RequestReviewError::FindHookFailed(e));
+                    return Err(RequestReviewError::FindHookFailed(e.into()));
                 }
             }
     }
 
     let config = config::get_config(repo_root_str, repo_gitdir_str)
-        .map_err(RequestReviewError::GetConfigFailed)?;
+        .map_err(|e| RequestReviewError::GetConfigFailed(e.into()))?;
 
     // verify isolation
     if isolation_verification_hook && config.request_review.verify_isolation {
-        verify_isolation::verify_isolation(start_patch_index, end_patch_index, color)
-            .map_err(RequestReviewError::IsolationVerificationFailed)?;
+        verify_isolation::verify_isolation(start_patch_index, end_patch_index, color)?;
     }
 
     // sync patch up to remote
     let (patch_upstream_branch_name, _patch_upstream_branch_remote_name) =
-        ps::public::sync::sync(start_patch_index, end_patch_index, given_branch_name)
-            .map_err(RequestReviewError::SyncFailed)?;
+        ps::public::sync::sync(start_patch_index, end_patch_index, given_branch_name)?;
 
     // execute post sync hook
     let cur_patch_stack_branch_name = git::get_current_branch(&repo)
@@ -140,7 +177,7 @@ pub fn request_review(
             .ok_or(RequestReviewError::BranchNameNotUtf8)?;
     let cur_patch_stack_upstream_branch_remote = repo
         .find_remote(cur_patch_stack_upstream_branch_remote_name_str)
-        .map_err(RequestReviewError::FindRemoteFailed)?;
+        .map_err(|e| RequestReviewError::FindRemoteFailed(e.into()))?;
     let cur_patch_stack_upstream_branch_remote_url_str = cur_patch_stack_upstream_branch_remote
         .url()
         .ok_or(RequestReviewError::RemoteUrlNotUtf8)?;
@@ -162,7 +199,7 @@ pub fn request_review(
                 cur_patch_stack_upstream_branch_remote_url_str,
             ],
         )
-        .map_err(RequestReviewError::HookExecutionFailed)?;
+        .map_err(|e| RequestReviewError::HookExecutionFailed(e.into()))?;
     }
 
     Ok(())

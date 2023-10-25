@@ -12,6 +12,16 @@ pub enum ParsePatchIndexRangeBatchError {
     ParsePatchIndexOrRangeFailed(ParsePatchIndexOrRangeError),
 }
 
+impl std::fmt::Display for ParsePatchIndexRangeBatchError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::ParsePatchIndexOrRangeFailed(e) => write!(f, "{}", e),
+        }
+    }
+}
+
+impl std::error::Error for ParsePatchIndexRangeBatchError {}
+
 impl PatchIndexRangeBatch {
     #[allow(dead_code)]
     pub fn len(&self) -> usize {

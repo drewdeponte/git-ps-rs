@@ -13,6 +13,21 @@ pub enum FetchError {
     GetConfigFailed(config::GetConfigError),
 }
 
+impl std::fmt::Display for FetchError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::FetchFailed(e) => write!(f, "fetch failed, {}", e),
+            Self::UpstreamPatchesFailure(e) => write!(f, "get upstream patches failed, {}", e),
+            Self::RepositoryMissing => write!(f, "repository missing"),
+            Self::GetRepoRootPathFailed(e) => write!(f, "get repository root path failed, {}", e),
+            Self::PathNotUtf8 => write!(f, "path not utf-8"),
+            Self::GetConfigFailed(e) => write!(f, "get config failed, {}", e),
+        }
+    }
+}
+
+impl std::error::Error for FetchError {}
+
 pub fn fetch(color: bool) -> Result<(), FetchError> {
     git::ext_fetch().map_err(FetchError::FetchFailed)?;
 

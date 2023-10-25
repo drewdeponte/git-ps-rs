@@ -10,6 +10,19 @@ pub enum ReadConfigError {
     DeserializeFailed(toml::de::Error),
 }
 
+impl std::fmt::Display for ReadConfigError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::DeserializeFailed(e) => {
+                write!(f, "failed to deserialize the patch stack config, {}", e)
+            }
+            Self::ReadFailed(e) => write!(f, "failed to read the patch stack config, {}", e),
+        }
+    }
+}
+
+impl std::error::Error for ReadConfigError {}
+
 pub fn read_config_dto(path: &path::Path) -> Result<Option<ConfigDto>, ReadConfigError> {
     let config_content_result = fs::read_to_string(path);
     let content_result_option: Result<Option<String>, ReadConfigError> = match config_content_result

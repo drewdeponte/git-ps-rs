@@ -9,6 +9,16 @@ pub enum PathsError {
     RepoWorkDirNotFound,
 }
 
+impl std::fmt::Display for PathsError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::RepoWorkDirNotFound => write!(f, "Repository working directory not found"),
+        }
+    }
+}
+
+impl std::error::Error for PathsError {}
+
 pub fn repo_root_path(repo: &git2::Repository) -> Result<&Path, PathsError> {
     repo.workdir().ok_or(PathsError::RepoWorkDirNotFound)
 }
@@ -32,6 +42,17 @@ pub enum UserLevelConfigPathError {
     PathExpandHomeFailed(homedir::GetHomeError),
     HomeDirNotFound,
 }
+
+impl std::fmt::Display for UserLevelConfigPathError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::HomeDirNotFound => write!(f, "home directory not found"),
+            Self::PathExpandHomeFailed(e) => write!(f, "get home directory failed, {}", e),
+        }
+    }
+}
+
+impl std::error::Error for UserLevelConfigPathError {}
 
 pub fn user_level_config_path() -> Result<PathBuf, UserLevelConfigPathError> {
     let path_string = ".config/git-ps/config.toml".to_string();

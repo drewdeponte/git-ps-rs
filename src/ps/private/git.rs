@@ -38,9 +38,6 @@ use std::str;
 pub enum GitError {
     Git(git2::Error),
     NotFound,
-    TargetNotFound,
-    ReferenceNameMissing,
-    CommitMessageMissing,
 }
 
 impl From<git2::Error> for GitError {
@@ -48,6 +45,17 @@ impl From<git2::Error> for GitError {
         Self::Git(e)
     }
 }
+
+impl std::fmt::Display for GitError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Git(e) => write!(f, "{}", e),
+            Self::NotFound => write!(f, "not found"),
+        }
+    }
+}
+
+impl std::error::Error for GitError {}
 
 #[derive(Debug)]
 pub enum CreateCwdRepositoryError {
@@ -59,6 +67,16 @@ impl From<git2::Error> for CreateCwdRepositoryError {
         Self::Failed(e)
     }
 }
+
+impl std::fmt::Display for CreateCwdRepositoryError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Failed(e) => write!(f, "{}", e),
+        }
+    }
+}
+
+impl std::error::Error for CreateCwdRepositoryError {}
 
 /// Attempt to open an already-existing repository at or above current working
 /// directory
@@ -367,6 +385,16 @@ pub enum ExtForcePushError {
     ExecuteFailed(utils::ExecuteError),
 }
 
+impl std::fmt::Display for ExtForcePushError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::ExecuteFailed(e) => write!(f, "external force push failed, {}", e),
+        }
+    }
+}
+
+impl std::error::Error for ExtForcePushError {}
+
 pub fn ext_push(
     force: bool,
     remote_name: &str,
@@ -388,6 +416,16 @@ pub enum ExtDeleteRemoteBranchError {
     ExecuteFailed(utils::ExecuteError),
 }
 
+impl std::fmt::Display for ExtDeleteRemoteBranchError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::ExecuteFailed(e) => write!(f, "{}", e),
+        }
+    }
+}
+
+impl std::error::Error for ExtDeleteRemoteBranchError {}
+
 pub fn ext_delete_remote_branch(
     remote_name: &str,
     branch_name: &str,
@@ -402,6 +440,16 @@ pub fn ext_delete_remote_branch(
 pub enum ExtFetchError {
     ExecuteFailed(utils::ExecuteError),
 }
+
+impl std::fmt::Display for ExtFetchError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::ExecuteFailed(e) => write!(f, "{}", e),
+        }
+    }
+}
+
+impl std::error::Error for ExtFetchError {}
 
 pub fn ext_fetch() -> Result<(), ExtFetchError> {
     utils::execute("git", &["fetch"]).map_err(ExtFetchError::ExecuteFailed)?;
@@ -418,6 +466,22 @@ pub enum CommitDiffError {
     GetCommitTreeFailed,
     GetDiffTreeToTreeFailed,
 }
+
+impl std::fmt::Display for CommitDiffError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::MergeCommit => write!(f, "can't diff a merge commit"),
+            Self::CommitParentCountZero => write!(f, "parent count is zero"),
+            Self::GetParentZeroFailed => write!(f, "failed to get parent 0 oid"),
+            Self::GetParentZeroCommitFailed => write!(f, "failed to get parent 0 commit"),
+            Self::GetParentZeroTreeFailed => write!(f, "failed to get parent 0 tree"),
+            Self::GetCommitTreeFailed => write!(f, "failed to get tree of given commit"),
+            Self::GetDiffTreeToTreeFailed => write!(f, "failed to generate diff from trees"),
+        }
+    }
+}
+
+impl std::error::Error for CommitDiffError {}
 
 pub fn commit_diff<'a>(
     repo: &'a git2::Repository,
@@ -455,6 +519,17 @@ pub enum CommitDiffPatchIdError {
     CreatePatchHashFailed(git2::Error),
 }
 
+impl std::fmt::Display for CommitDiffPatchIdError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::GetDiffFailed(e) => write!(f, "get diff failed, {}", e),
+            Self::CreatePatchHashFailed(e) => write!(f, "create patch hash failed, {}", e),
+        }
+    }
+}
+
+impl std::error::Error for CommitDiffPatchIdError {}
+
 pub fn commit_diff_patch_id(
     repo: &git2::Repository,
     commit: &git2::Commit,
@@ -467,9 +542,17 @@ pub fn commit_diff_patch_id(
 #[derive(Debug)]
 pub enum CommonAncestorError {
     MergeBase(git2::Error),
-    FindCommit(git2::Error),
-    GetParentZero(git2::Error),
 }
+
+impl std::fmt::Display for CommonAncestorError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::MergeBase(e) => write!(f, "failed to get merge base, {}", e),
+        }
+    }
+}
+
+impl std::error::Error for CommonAncestorError {}
 
 pub fn common_ancestor(
     repo: &git2::Repository,
@@ -486,6 +569,16 @@ pub fn common_ancestor(
 pub enum UncommittedChangesError {
     StatusesFailed(git2::Error),
 }
+
+impl std::fmt::Display for UncommittedChangesError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::StatusesFailed(e) => write!(f, "{}", e),
+        }
+    }
+}
+
+impl std::error::Error for UncommittedChangesError {}
 
 pub fn uncommitted_changes_exist(repo: &git2::Repository) -> Result<bool, UncommittedChangesError> {
     let mut status_options = git2::StatusOptions::default();

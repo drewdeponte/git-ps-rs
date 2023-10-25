@@ -12,6 +12,27 @@ pub enum FindHookError {
     NotFound,
 }
 
+impl std::fmt::Display for FindHookError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::NotExecutable(path_buf) => {
+                write!(
+                    f,
+                    "Hook at {} is not executable",
+                    path_buf.to_str().unwrap_or("some non utf-8 path")
+                )
+            }
+            Self::PathExpandHomeFailed(e) => {
+                write!(f, "Failed to get home directory {}", e)
+            }
+            Self::HomeDirNotFound => write!(f, "Home directory not found"),
+            Self::NotFound => write!(f, "Not found"),
+        }
+    }
+}
+
+impl std::error::Error for FindHookError {}
+
 pub fn find_hook(
     repo_root: &str,
     repo_gitdir: &str,
@@ -66,6 +87,19 @@ pub enum HookOutputError {
     HookExecutionFailed(utils::ExecuteWithOutputError),
     HookNotFound(FindHookError),
 }
+
+impl std::fmt::Display for HookOutputError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::GetRepoRootPathFailed(e) => write!(f, "get repository root path failed, {}", e),
+            Self::PathNotUtf8 => write!(f, "path not utf-8"),
+            Self::HookExecutionFailed(e) => write!(f, "hook execution failed, {}", e),
+            Self::HookNotFound(e) => write!(f, "hook not found, {}", e),
+        }
+    }
+}
+
+impl std::error::Error for HookOutputError {}
 
 pub fn find_and_execute_hook_with_output(
     repo_root_str: &str,

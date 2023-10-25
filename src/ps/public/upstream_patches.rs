@@ -17,6 +17,27 @@ pub enum UpstreamPatchesError {
     GetUpstreamBranchOidFailed,
 }
 
+impl std::fmt::Display for UpstreamPatchesError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::RepositoryMissing => write!(f, "repository missing"),
+            Self::GetRepoRootPathFailed(e) => write!(f, "get repository root path failed, {}", e),
+            Self::PathNotUtf8 => write!(f, "path not utf-8"),
+            Self::GetConfigFailed(e) => write!(f, "get config failed, {}", e),
+            Self::GetHeadRefFailed => write!(f, "get head reference failed"),
+            Self::GetHeadRefTargetFailed => write!(f, "get head reference target failed"),
+            Self::GetHeadBranchNameFailed => write!(f, "get head branch name failed"),
+            Self::GetUpstreamBranchNameFailed => write!(f, "get upstream branch name failed"),
+            Self::FindUpstreamBranchReferenceFailed(e) => {
+                write!(f, "find upstream branch reference failed, {}", e)
+            }
+            Self::GetUpstreamBranchOidFailed => write!(f, "get upstream branch oid failed"),
+        }
+    }
+}
+
+impl std::error::Error for UpstreamPatchesError {}
+
 pub fn upstream_patches(color: bool) -> Result<(), UpstreamPatchesError> {
     let repo = git::create_cwd_repo().map_err(|_| UpstreamPatchesError::RepositoryMissing)?;
 

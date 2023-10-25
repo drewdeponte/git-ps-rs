@@ -20,7 +20,7 @@ fn main() {
 
     match cli.command {
         cli::Command::Branch(opts) => {
-            commands::branch::branch(opts.patch_index_or_range, opts.branch_name)
+            commands::branch::branch(opts.patch_index_or_range, opts.branch_name, cli.color)
         }
         cli::Command::Integrate(opts) => commands::integrate::integrate(
             opts.patch_index_or_range,

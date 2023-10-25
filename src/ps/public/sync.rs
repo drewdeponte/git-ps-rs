@@ -6,16 +6,65 @@ pub enum SyncError {
     RepositoryNotFound,
     CurrentBranchNameMissing,
     GetUpstreamBranchNameFailed,
-    GetPatchStackBranchRemoteNameFailed(git2::Error),
-    CreateRrBranchFailed(ps::private::branch::BranchError),
+    GetPatchStackBranchRemoteNameFailed(Box<dyn std::error::Error>),
+    MergeCommitDetected(String),
+    ConflictsExist(String, String),
     PatchBranchNameMissing,
     PatchUpstreamBranchNameMissing,
     BranchRemoteNameNotUtf8,
-    SetPatchBranchUpstreamFailed(git2::Error),
-    ForcePushFailed(git::ExtForcePushError),
-    GetBranchUpstreamRemoteName(git2::Error),
+    SetPatchBranchUpstreamFailed(Box<dyn std::error::Error>),
+    ForcePushFailed(Box<dyn std::error::Error>),
+    GetBranchUpstreamRemoteName(Box<dyn std::error::Error>),
     PatchBranchRefMissing,
+    Unhandled(Box<dyn std::error::Error>),
 }
+
+impl From<ps::private::branch::BranchError> for SyncError {
+    fn from(value: ps::private::branch::BranchError) -> Self {
+        match value {
+            ps::private::branch::BranchError::MergeCommitDetected(oid) => {
+                Self::MergeCommitDetected(oid)
+            }
+            ps::private::branch::BranchError::ConflictsExist(src_oid, dst_oid) => {
+                Self::ConflictsExist(src_oid, dst_oid)
+            }
+            _ => Self::Unhandled(value.into()),
+        }
+    }
+}
+
+impl std::fmt::Display for SyncError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::RepositoryNotFound => write!(f, "repository not found"),
+            Self::CurrentBranchNameMissing => write!(f, "current branch name missing"),
+            Self::GetUpstreamBranchNameFailed => write!(f, "failed to get upstream branch name"),
+            Self::GetPatchStackBranchRemoteNameFailed(e) => {
+                write!(f, "failed to get patch stack branch remote name, {}", e)
+            }
+            Self::MergeCommitDetected(oid) => write!(f, "merge commit detected with sha {}", oid),
+            Self::ConflictsExist(src_oid, dst_oid) => write!(
+                f,
+                "conflict found when playing {} on top of {}",
+                src_oid, dst_oid
+            ),
+            Self::PatchBranchNameMissing => write!(f, "patch branch name missing"),
+            Self::PatchUpstreamBranchNameMissing => write!(f, "patch upstream branch name missing"),
+            Self::BranchRemoteNameNotUtf8 => write!(f, "branch remote name is not utf-8"),
+            Self::SetPatchBranchUpstreamFailed(e) => {
+                write!(f, "failed to set patch branch upstream, {}", e)
+            }
+            Self::ForcePushFailed(e) => write!(f, "failed to force push patch up to remote, {}", e),
+            Self::GetBranchUpstreamRemoteName(e) => {
+                write!(f, "failed to get branch upstream remote name, {}", e)
+            }
+            Self::PatchBranchRefMissing => write!(f, "patch branch ref missing"),
+            Self::Unhandled(e) => write!(f, "{}", e),
+        }
+    }
+}
+
+impl std::error::Error for SyncError {}
 
 pub fn sync(
     start_patch_index: usize,
@@ -32,15 +81,14 @@ pub fn sync(
             .map_err(|_| SyncError::GetUpstreamBranchNameFailed)?;
     let cur_patch_stack_remote_name = repo
         .branch_remote_name(&cur_patch_stack_branch_upstream_name)
-        .map_err(SyncError::GetPatchStackBranchRemoteNameFailed)?;
+        .map_err(|e| SyncError::GetPatchStackBranchRemoteNameFailed(e.into()))?;
     let cur_patch_stack_remote_name_str: &str = cur_patch_stack_remote_name
         .as_str()
         .ok_or(SyncError::BranchRemoteNameNotUtf8)?;
 
     // create request review branch for patch
     let (mut patch_branch, _new_commit_oid) =
-        ps::private::branch::branch(&repo, start_patch_index, end_patch_index, given_branch_name)
-            .map_err(SyncError::CreateRrBranchFailed)?;
+        ps::private::branch::branch(&repo, start_patch_index, end_patch_index, given_branch_name)?;
 
     // get upstream branch name & remote of patch branch or fallback to using patch branch name &
     // cur patch stack remote.
@@ -67,7 +115,7 @@ pub fn sync(
             // get the configured remote of the patch branch
             let remote_name: String = repo
                 .branch_upstream_remote(&patch_branch_ref)
-                .map_err(SyncError::GetBranchUpstreamRemoteName)?
+                .map_err(|e| SyncError::GetBranchUpstreamRemoteName(e.into()))?
                 .as_str()
                 .ok_or(SyncError::BranchRemoteNameNotUtf8)?
                 .to_string();
@@ -83,7 +131,7 @@ pub fn sync(
                 &patch_branch_name,
                 &upstream_branch_name_relative_to_remote,
             )
-            .map_err(SyncError::ForcePushFailed)?;
+            .map_err(|e| SyncError::ForcePushFailed(e.into()))?;
 
             (upstream_branch_name_relative_to_remote, remote_name)
         }
@@ -94,13 +142,13 @@ pub fn sync(
                 &patch_branch_name,
                 &patch_branch_name,
             )
-            .map_err(SyncError::ForcePushFailed)?;
+            .map_err(|e| SyncError::ForcePushFailed(e.into()))?;
 
             patch_branch
                 .set_upstream(Some(
                     format!("{}/{}", cur_patch_stack_remote_name_str, &patch_branch_name).as_str(),
                 ))
-                .map_err(SyncError::SetPatchBranchUpstreamFailed)?;
+                .map_err(|e| SyncError::SetPatchBranchUpstreamFailed(e.into()))?;
 
             (
                 patch_branch_name.to_string(),

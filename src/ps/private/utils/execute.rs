@@ -15,6 +15,20 @@ pub enum ExecuteError {
     ExitMissingSignal, // triggered when we understand exit to be triggered by signal but no signal found
 }
 
+impl std::fmt::Display for ExecuteError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::SpawnFailure(e) => write!(f, "Spawn failed with {}", e),
+            Self::Failure(e) => write!(f, "Execute failure {}", e),
+            Self::ExitStatus(status) => write!(f, "Execute exited with status {}", status),
+            Self::ExitSignal(signal) => write!(f, "Execute exited with signal {}", signal),
+            Self::ExitMissingSignal => write!(f, ""),
+        }
+    }
+}
+
+impl std::error::Error for ExecuteError {}
+
 #[cfg(target_family = "unix")]
 fn handle_error_no_code(status: ExitStatus) -> ExecuteError {
     match status.signal() {
@@ -54,6 +68,16 @@ pub fn execute(exe: &str, args: &[&str]) -> Result<(), ExecuteError> {
 pub enum ExecuteWithOutputError {
     Failure(io::Error),
 }
+
+impl std::fmt::Display for ExecuteWithOutputError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Failure(e) => write!(f, "{}", e),
+        }
+    }
+}
+
+impl std::error::Error for ExecuteWithOutputError {}
 
 pub fn execute_with_output(exe: &str, args: &[&str]) -> Result<Output, ExecuteWithOutputError> {
     Command::new(exe)

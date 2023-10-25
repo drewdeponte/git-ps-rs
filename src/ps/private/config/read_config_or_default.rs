@@ -7,6 +7,18 @@ pub enum ReadConfigDtoOrDefaultError {
     ReadConfigFailed(ReadConfigError),
 }
 
+impl std::fmt::Display for ReadConfigDtoOrDefaultError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::ReadConfigFailed(e) => {
+                write!(f, "read config dto failed, {}", e)
+            }
+        }
+    }
+}
+
+impl std::error::Error for ReadConfigDtoOrDefaultError {}
+
 pub fn read_config_dto_or_default(
     path: &path::Path,
 ) -> Result<ConfigDto, ReadConfigDtoOrDefaultError> {

@@ -13,6 +13,18 @@ pub enum GetListPatchInfoError {
     GetListLocalBranchesWithInfoFailed(GetListLocalBranchesWithInfoError),
 }
 
+impl std::fmt::Display for GetListPatchInfoError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::GetListLocalBranchesWithInfoFailed(e) => {
+                write!(f, "get list local branches with info failed, {}", e)
+            }
+        }
+    }
+}
+
+impl std::error::Error for GetListPatchInfoError {}
+
 /// Gets a HashMap of information obtained from Git about the patches, keyed by patch stack id.
 ///
 /// # Arguments
@@ -54,6 +66,18 @@ pub enum GetListLocalBranchesWithInfoError {
     GetBranchPairFailed(git2::Error),
     GetListBranchInfoFailed(GetListBranchInfoError),
 }
+
+impl std::fmt::Display for GetListLocalBranchesWithInfoError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::GetBranchesFailed(e) => write!(f, "get braches failed, {}", e),
+            Self::GetBranchPairFailed(e) => write!(f, "get branch pair failed, {}", e),
+            Self::GetListBranchInfoFailed(e) => write!(f, "get list branch info failed, {}", e),
+        }
+    }
+}
+
+impl std::error::Error for GetListLocalBranchesWithInfoError {}
 
 pub fn get_list_local_branches_with_info(
     repo: &git2::Repository,
@@ -116,6 +140,22 @@ pub enum GetListBranchInfoError {
     RemoteInvalidUtf8,
     GetPatchInfoCollectionFailed(GetPatchInfoCollectionError),
 }
+
+impl std::fmt::Display for GetListBranchInfoError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::GetNameFailed(e) => write!(f, "get name failed, {}", e),
+            Self::NameInvalidUtf8 => write!(f, "name invalid utf-8"),
+            Self::ReferenceInvalidUtf8 => write!(f, "reference invalid utf-8"),
+            Self::RemoteInvalidUtf8 => write!(f, "remote invalid utf-8"),
+            Self::GetPatchInfoCollectionFailed(e) => {
+                write!(f, "get patch info collection failed, {}", e)
+            }
+        }
+    }
+}
+
+impl std::error::Error for GetListBranchInfoError {}
 
 pub fn get_list_branch_info(
     branch: &git2::Branch,
@@ -187,6 +227,21 @@ pub enum GetPatchInfoCollectionError {
     FindCommit(git2::Error),
     GetCommitDiffPatchId(git::CommitDiffPatchIdError),
 }
+
+impl std::fmt::Display for GetPatchInfoCollectionError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::GetBranchHeadOid => write!(f, "get branch head oid failed"),
+            Self::GetCommonAncestor(e) => write!(f, "get common ancestor failed, {}", e),
+            Self::GetCommits(e) => write!(f, "get commits failed, {}", e),
+            Self::GetRevisionOid(e) => write!(f, "get revision oid failed, {}", e),
+            Self::FindCommit(e) => write!(f, "find commit failed, {}", e),
+            Self::GetCommitDiffPatchId(e) => write!(f, "get commit diff patch id failed, {}", e),
+        }
+    }
+}
+
+impl std::error::Error for GetPatchInfoCollectionError {}
 
 pub struct PatchInfoCollection {
     pub commit_count: usize,

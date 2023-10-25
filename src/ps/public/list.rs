@@ -21,6 +21,29 @@ pub enum ListError {
     GetUpstreamBranchNameFailed,
 }
 
+impl std::fmt::Display for ListError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::RepositoryNotFound => write!(f, "repository not found"),
+            Self::GetPatchStackFailed(e) => write!(f, "get patch stack failed, {}", e),
+            Self::GetPatchListFailed(e) => {
+                write!(f, "get patch stack list of patches failed, {}", e)
+            }
+            Self::GetRepoRootPathFailed(e) => write!(f, "get repository root path failed, {}", e),
+            Self::PathNotUtf8 => write!(f, "path not utf-8"),
+            Self::GetConfigFailed(e) => write!(f, "get config failed, {}", e),
+            Self::GetCommitDiffPatchIdFailed(e) => {
+                write!(f, "get commit diff patch id failed, {}", e)
+            }
+            Self::GetHookOutputError(e) => write!(f, "get hook output failed, {}", e),
+            Self::CurrentBranchNameMissing => write!(f, "current branch name missing"),
+            Self::GetUpstreamBranchNameFailed => write!(f, "get upstream branch name failed"),
+        }
+    }
+}
+
+impl std::error::Error for ListError {}
+
 fn bg_color(
     is_connected_to_prev_row: bool,
     prev_row_showed_color: bool,

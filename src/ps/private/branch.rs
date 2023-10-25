@@ -1,7 +1,7 @@
 use super::super::super::ps;
+use super::super::private::cherry_picking;
 use super::super::private::git;
 use super::super::private::state_computation;
-use super::paths;
 use std::collections::HashMap;
 use std::fmt;
 use std::result::Result;
@@ -18,18 +18,18 @@ pub enum BranchError {
     PatchSummaryMissing,
     CreateRrBranchFailed,
     RrBranchNameNotUtf8,
-    CherryPickFailed(git::GitError),
-    GetPatchListFailed(ps::GetPatchListError),
-    GetPatchMetaDataPathFailed(paths::PathsError),
-    OpenGitConfigFailed(git2::Error),
-    PatchCommitDiffPatchIdFailed(git::CommitDiffPatchIdError),
+    MergeCommitDetected(String),
+    ConflictsExist(String, String),
+    GetPatchListFailed(Box<dyn std::error::Error>),
+    OpenGitConfigFailed(Box<dyn std::error::Error>),
     PatchStackHeadNoName,
-    GetListPatchInfoFailed(state_computation::GetListPatchInfoError),
+    GetListPatchInfoFailed(Box<dyn std::error::Error>),
     PatchBranchAmbiguous,
-    AddPatchIdsFailed(ps::AddPatchIdsError),
+    AddPatchIdsFailed(Box<dyn std::error::Error>),
     AssociatedBranchAmbiguous(std::vec::Vec<String>),
     PatchSeriesRequireBranchName,
-    PatchIndexRangeOutOfBounds(ps::PatchRangeWithinStackBoundsError),
+    PatchIndexRangeOutOfBounds(Box<dyn std::error::Error>),
+    UnhandledError(Box<dyn std::error::Error>),
 }
 
 impl From<git::CreateCwdRepositoryError> for BranchError {
@@ -44,6 +44,32 @@ impl From<ps::PatchStackError> for BranchError {
             ps::PatchStackError::GitError(_git2_error) => BranchError::PatchStackNotFound,
             ps::PatchStackError::HeadNoName => BranchError::PatchStackNotFound,
             ps::PatchStackError::UpstreamBranchNameNotFound => BranchError::PatchStackNotFound,
+        }
+    }
+}
+
+impl From<cherry_picking::CherryPickError> for BranchError {
+    fn from(value: cherry_picking::CherryPickError) -> Self {
+        match value {
+            cherry_picking::CherryPickError::MergeCommitDetected(oid) => {
+                Self::MergeCommitDetected(oid)
+            }
+            cherry_picking::CherryPickError::ConflictsExist(src_oid, dst_oid) => {
+                Self::ConflictsExist(src_oid, dst_oid)
+            }
+            _ => Self::UnhandledError(value.into()),
+        }
+    }
+}
+
+impl From<ps::AddPatchIdsError> for BranchError {
+    fn from(value: ps::AddPatchIdsError) -> Self {
+        match value {
+            ps::AddPatchIdsError::MergeCommitDetected(oid) => Self::MergeCommitDetected(oid),
+            ps::AddPatchIdsError::ConflictsExist(src_oid, dst_oid) => {
+                Self::ConflictsExist(src_oid, dst_oid)
+            }
+            _ => Self::AddPatchIdsFailed(value.into()),
         }
     }
 }
@@ -68,24 +94,21 @@ impl fmt::Display for BranchError {
             BranchError::RrBranchNameNotUtf8 => {
                 write!(f, "request-review branch is not utf8")
             }
-            BranchError::CherryPickFailed(_git_error) => {
-                write!(f, "Failed to cherry pick")
+            BranchError::MergeCommitDetected(oid) => {
+                write!(f, "merge commit detected with sha {}", oid)
+            }
+            BranchError::ConflictsExist(src_oid, dst_oid) => {
+                write!(
+                    f,
+                    "conflicts exist when attempting to play commit ({}) onto commit ({})",
+                    src_oid, dst_oid
+                )
             }
             BranchError::GetPatchListFailed(_patch_list_error) => {
                 write!(f, "Failed to get patch list")
             }
-            BranchError::GetPatchMetaDataPathFailed(_patch_meta_data_path_error) => {
-                write!(
-                    f,
-                    "Failed to get patch meta data path {:?}",
-                    _patch_meta_data_path_error
-                )
-            }
             BranchError::OpenGitConfigFailed(_) => {
                 write!(f, "Failed to open git config")
-            }
-            BranchError::PatchCommitDiffPatchIdFailed(_) => {
-                write!(f, "Failed to get commit diff patch id")
             }
             BranchError::PatchStackHeadNoName => {
                 write!(f, "Patch Stack Head has no name")
@@ -117,9 +140,12 @@ impl fmt::Display for BranchError {
                     "When creating a patch series you must specify the branch name."
                 )
             }
+            BranchError::UnhandledError(e) => write!(f, "{}", e),
         }
     }
 }
+
+impl std::error::Error for BranchError {}
 
 pub fn branch(
     repo: &git2::Repository,
@@ -127,17 +153,18 @@ pub fn branch(
     end_patch_index: Option<usize>,
     given_branch_name_option: Option<String>,
 ) -> Result<(git2::Branch<'_>, git2::Oid), BranchError> {
-    let config = git2::Config::open_default().map_err(BranchError::OpenGitConfigFailed)?;
+    let config =
+        git2::Config::open_default().map_err(|e| BranchError::OpenGitConfigFailed(e.into()))?;
 
-    ps::add_patch_ids(repo, &config).map_err(BranchError::AddPatchIdsFailed)?;
+    ps::add_patch_ids(repo, &config)?;
 
     let patch_stack = ps::get_patch_stack(repo)?;
-    let patches_vec =
-        ps::get_patch_list(repo, &patch_stack).map_err(BranchError::GetPatchListFailed)?;
+    let patches_vec = ps::get_patch_list(repo, &patch_stack)
+        .map_err(|e| BranchError::GetPatchListFailed(e.into()))?;
 
     // validate patch indexes are within bounds
     ps::patch_range_within_stack_bounds(start_patch_index, end_patch_index, &patches_vec)
-        .map_err(BranchError::PatchIndexRangeOutOfBounds)?;
+        .map_err(|e| BranchError::PatchIndexRangeOutOfBounds(e.into()))?;
 
     // fetch computed state from Git tree
     let patch_stack_base_commit = patch_stack
@@ -152,7 +179,7 @@ pub fn branch(
 
     let patch_info_collection: HashMap<Uuid, state_computation::PatchGitInfo> =
         state_computation::get_list_patch_info(repo, patch_stack_base_commit.id(), head_ref_name)
-            .map_err(BranchError::GetListPatchInfoFailed)?;
+            .map_err(|e| BranchError::GetListPatchInfoFailed(e.into()))?;
 
     // collect vector of indexes
     let indexes_iter = match end_patch_index {
@@ -205,34 +232,32 @@ pub fn branch(
         .ok_or(BranchError::RrBranchNameNotUtf8)?;
 
     let start_patch_oid = patches_vec.get(start_patch_index).unwrap().oid;
-    let start_patch_commit = repo.find_commit(start_patch_oid).unwrap();
-    let start_patch_parent_commit = start_patch_commit.parent(0).unwrap();
-    let start_patch_parent_oid = start_patch_parent_commit.id();
 
     let last_commit_oid_cherry_picked = match end_patch_index {
         Some(end_index) => {
             let end_patch_oid = patches_vec.get(end_index).unwrap().oid;
-            ps::cherry_pick_no_working_copy_range(
+            cherry_picking::cherry_pick(
                 repo,
                 &config,
-                start_patch_parent_oid,
-                end_patch_oid,
+                start_patch_oid,
+                Some(end_patch_oid),
                 branch_ref_name,
                 1,
                 false,
+                true,
             )
         }
-        None => ps::cherry_pick_no_working_copy_range(
+        None => cherry_picking::cherry_pick(
             repo,
             &config,
-            start_patch_parent_oid,
             start_patch_oid,
+            Some(start_patch_oid),
             branch_ref_name,
             1,
             false,
+            true,
         ),
-    }
-    .map_err(BranchError::CherryPickFailed)?
+    }?
     .expect("No commits cherry picked, when we expected at least one");
 
     Ok((branch, last_commit_oid_cherry_picked))

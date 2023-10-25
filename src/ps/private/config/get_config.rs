@@ -19,6 +19,19 @@ pub enum GetConfigError {
     ReadConfigFailed(ReadConfigDtoOrDefaultError),
 }
 
+impl std::fmt::Display for GetConfigError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::ReadConfigFailed(e) => write!(f, "read patch stack config failed, {}", e),
+            Self::FailedToGetUserLevelConfigPath(e) => {
+                write!(f, "failed to get user level config path, {}", e)
+            }
+        }
+    }
+}
+
+impl std::error::Error for GetConfigError {}
+
 pub fn get_config(repo_root: &str, repo_gitdir: &str) -> Result<PsConfig, GetConfigError> {
     // get the three different configs or their defaults
     let user_level_config_path =
