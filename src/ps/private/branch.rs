@@ -41,13 +41,9 @@ impl From<git::CreateCwdRepositoryError> for BranchError {
 impl From<ps::PatchStackError> for BranchError {
     fn from(e: ps::PatchStackError) -> Self {
         match e {
-            ps::PatchStackError::GitError(_git2_error) => {
-                BranchError::PatchStackNotFound
-            }
+            ps::PatchStackError::GitError(_git2_error) => BranchError::PatchStackNotFound,
             ps::PatchStackError::HeadNoName => BranchError::PatchStackNotFound,
-            ps::PatchStackError::UpstreamBranchNameNotFound => {
-                BranchError::PatchStackNotFound
-            }
+            ps::PatchStackError::UpstreamBranchNameNotFound => BranchError::PatchStackNotFound,
         }
     }
 }
@@ -131,14 +127,13 @@ pub fn branch(
     end_patch_index: Option<usize>,
     given_branch_name_option: Option<String>,
 ) -> Result<(git2::Branch<'_>, git2::Oid), BranchError> {
-    let config =
-        git2::Config::open_default().map_err(BranchError::OpenGitConfigFailed)?;
+    let config = git2::Config::open_default().map_err(BranchError::OpenGitConfigFailed)?;
 
     ps::add_patch_ids(repo, &config).map_err(BranchError::AddPatchIdsFailed)?;
 
     let patch_stack = ps::get_patch_stack(repo)?;
-    let patches_vec = ps::get_patch_list(repo, &patch_stack)
-        .map_err(BranchError::GetPatchListFailed)?;
+    let patches_vec =
+        ps::get_patch_list(repo, &patch_stack).map_err(BranchError::GetPatchListFailed)?;
 
     // validate patch indexes are within bounds
     ps::patch_range_within_stack_bounds(start_patch_index, end_patch_index, &patches_vec)
@@ -189,7 +184,10 @@ pub fn branch(
             return Err(BranchError::PatchSeriesRequireBranchName);
         }
     } else if range_patch_branches.len() == 1 {
-        new_branch_name = range_patch_branches.first().unwrap().to_string()
+        new_branch_name = range_patch_branches.first().unwrap().to_string();
+        if new_branch_name.starts_with("ps/rr/") && end_patch_index.is_some() {
+            return Err(BranchError::PatchSeriesRequireBranchName);
+        }
     } else {
         return Err(BranchError::AssociatedBranchAmbiguous(
             range_patch_branches.clone(),
