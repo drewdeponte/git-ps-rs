@@ -190,20 +190,22 @@ pub fn list(color: bool) -> Result<(), ListError> {
                     let upstream_opt = b.upstream.clone();
                     if let Some(upstream) = upstream_opt {
                         state_string.push('r');
-                        let upstream_branch_patch: state_computation::PatchInfo = upstream
-                            .patches
-                            .iter()
-                            .filter(|p| p.patch_id == ps_id)
-                            .map(|p| p.to_owned())
-                            .collect::<Vec<state_computation::PatchInfo>>()
-                            .first()
-                            .unwrap()
-                            .clone();
+                        let upstream_branch_patch_opt: Option<state_computation::PatchInfo> =
+                            upstream
+                                .patches
+                                .iter()
+                                .filter(|p| p.patch_id == ps_id)
+                                .map(|p| p.to_owned())
+                                .collect::<Vec<state_computation::PatchInfo>>()
+                                .first()
+                                .cloned();
 
                         match commit_diff_id {
                             Some(id) => {
-                                if upstream_branch_patch.commit_diff_id != id {
-                                    state_string.push('*');
+                                if let Some(upstream_branch_patch) = upstream_branch_patch_opt {
+                                    if upstream_branch_patch.commit_diff_id != id {
+                                        state_string.push('*');
+                                    }
                                 }
                             }
                             None => state_string.push('*'),
