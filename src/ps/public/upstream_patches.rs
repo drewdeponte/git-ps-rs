@@ -36,7 +36,22 @@ impl std::fmt::Display for UpstreamPatchesError {
     }
 }
 
-impl std::error::Error for UpstreamPatchesError {}
+impl std::error::Error for UpstreamPatchesError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::RepositoryMissing => None,
+            Self::GetRepoRootPathFailed(e) => Some(e),
+            Self::PathNotUtf8 => None,
+            Self::GetConfigFailed(e) => Some(e),
+            Self::GetHeadRefFailed => None,
+            Self::GetHeadRefTargetFailed => None,
+            Self::GetHeadBranchNameFailed => None,
+            Self::GetUpstreamBranchNameFailed => None,
+            Self::FindUpstreamBranchReferenceFailed(e) => Some(e),
+            Self::GetUpstreamBranchOidFailed => None,
+        }
+    }
+}
 
 pub fn upstream_patches(color: bool) -> Result<(), UpstreamPatchesError> {
     let repo = git::create_cwd_repo().map_err(|_| UpstreamPatchesError::RepositoryMissing)?;

@@ -42,7 +42,22 @@ impl std::fmt::Display for ListError {
     }
 }
 
-impl std::error::Error for ListError {}
+impl std::error::Error for ListError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::RepositoryNotFound => None,
+            Self::GetPatchStackFailed(e) => Some(e),
+            Self::GetPatchListFailed(e) => Some(e),
+            Self::GetRepoRootPathFailed(e) => Some(e),
+            Self::PathNotUtf8 => None,
+            Self::GetConfigFailed(e) => Some(e),
+            Self::GetCommitDiffPatchIdFailed(e) => Some(e),
+            Self::GetHookOutputError(e) => Some(e),
+            Self::CurrentBranchNameMissing => None,
+            Self::GetUpstreamBranchNameFailed => None,
+        }
+    }
+}
 
 fn bg_color(
     is_connected_to_prev_row: bool,

@@ -17,7 +17,13 @@ impl std::fmt::Display for ReadConfigDtoOrDefaultError {
     }
 }
 
-impl std::error::Error for ReadConfigDtoOrDefaultError {}
+impl std::error::Error for ReadConfigDtoOrDefaultError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::ReadConfigFailed(e) => Some(e),
+        }
+    }
+}
 
 pub fn read_config_dto_or_default(
     path: &path::Path,

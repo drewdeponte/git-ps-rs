@@ -114,7 +114,17 @@ impl std::fmt::Display for GpgSignStringError {
     }
 }
 
-impl std::error::Error for GpgSignStringError {}
+impl std::error::Error for GpgSignStringError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::GetGpgContext => None,
+            Self::GetSecretKey => None,
+            Self::AddSigner => None,
+            Self::CreateDetachedSignature => None,
+            Self::FromUtf8(e) => Some(e),
+        }
+    }
+}
 
 fn gpg_sign_string(commit: String, signing_key: String) -> Result<String, GpgSignStringError> {
     let mut ctx = gpgme::Context::from_protocol(gpgme::Protocol::OpenPgp)

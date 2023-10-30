@@ -108,7 +108,42 @@ impl std::fmt::Display for IsolateError {
     }
 }
 
-impl std::error::Error for IsolateError {}
+impl std::error::Error for IsolateError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::OpenGitRepositoryFailed(e) => Some(e.as_ref()),
+            Self::OpenGitConfigFailed(e) => Some(e.as_ref()),
+            Self::UncommittedChangesExistFailure(e) => Some(e.as_ref()),
+            Self::UncommittedChangesExist => None,
+            Self::GetPatchStackFailed(e) => Some(e.as_ref()),
+            Self::GetPatchListFailed(e) => Some(e.as_ref()),
+            Self::PatchIndexNotFound => None,
+            Self::PatchStackBaseNotFound => None,
+            Self::CreateBranchFailed => None,
+            Self::BranchNameNotUtf8 => None,
+            Self::MergeCommitDetected(_) => None,
+            Self::ConflictsExist(_, _) => None,
+            Self::FailedToCheckout(e) => Some(e.as_ref()),
+            Self::GetCurrentBranchFailed => None,
+            Self::StoreLastBranchFailed(e) => Some(e.as_ref()),
+            Self::ReadLastBranchFailed(e) => Some(e.as_ref()),
+            Self::GetRepoRootPathFailed(e) => Some(e.as_ref()),
+            Self::PathNotUtf8 => None,
+            Self::HookNotFound(e) => Some(e.as_ref()),
+            Self::HookExecutionFailed(e) => Some(e.as_ref()),
+            Self::FindIsolateBranchFailed(e) => Some(e.as_ref()),
+            Self::DeleteIsolateBranchFailed(e) => Some(e.as_ref()),
+            Self::FailedToMapIndexesForCherryPick(e) => Some(e.as_ref()),
+            Self::CurrentBranchNameMissing => None,
+            Self::GetUpstreamBranchNameFailed => None,
+            Self::GetRemoteNameFailed => None,
+            Self::RemoteNameNotUtf8 => None,
+            Self::FindRemoteFailed(e) => Some(e.as_ref()),
+            Self::RemoteUrlNotUtf8 => None,
+            Self::Unhandled(e) => Some(e.as_ref()),
+        }
+    }
+}
 
 pub fn isolate(
     start_patch_index_optional: Option<usize>,

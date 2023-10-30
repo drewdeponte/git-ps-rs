@@ -99,7 +99,14 @@ impl std::fmt::Display for ListHookError {
     }
 }
 
-impl std::error::Error for ListHookError {}
+impl std::error::Error for ListHookError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::GetHookOutputError(e) => Some(e),
+            Self::HookOutputInvalid(e) => Some(e),
+        }
+    }
+}
 
 pub fn execute_list_additional_info_hook(
     repo_root_str: &str,

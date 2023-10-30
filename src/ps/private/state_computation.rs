@@ -23,7 +23,13 @@ impl std::fmt::Display for GetListPatchInfoError {
     }
 }
 
-impl std::error::Error for GetListPatchInfoError {}
+impl std::error::Error for GetListPatchInfoError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::GetListLocalBranchesWithInfoFailed(e) => Some(e),
+        }
+    }
+}
 
 /// Gets a HashMap of information obtained from Git about the patches, keyed by patch stack id.
 ///
@@ -77,7 +83,15 @@ impl std::fmt::Display for GetListLocalBranchesWithInfoError {
     }
 }
 
-impl std::error::Error for GetListLocalBranchesWithInfoError {}
+impl std::error::Error for GetListLocalBranchesWithInfoError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::GetBranchesFailed(e) => Some(e),
+            Self::GetBranchPairFailed(e) => Some(e),
+            Self::GetListBranchInfoFailed(e) => Some(e),
+        }
+    }
+}
 
 pub fn get_list_local_branches_with_info(
     repo: &git2::Repository,
@@ -155,7 +169,17 @@ impl std::fmt::Display for GetListBranchInfoError {
     }
 }
 
-impl std::error::Error for GetListBranchInfoError {}
+impl std::error::Error for GetListBranchInfoError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::GetNameFailed(e) => Some(e),
+            Self::NameInvalidUtf8 => None,
+            Self::ReferenceInvalidUtf8 => None,
+            Self::RemoteInvalidUtf8 => None,
+            Self::GetPatchInfoCollectionFailed(e) => Some(e),
+        }
+    }
+}
 
 pub fn get_list_branch_info(
     branch: &git2::Branch,
@@ -241,7 +265,18 @@ impl std::fmt::Display for GetPatchInfoCollectionError {
     }
 }
 
-impl std::error::Error for GetPatchInfoCollectionError {}
+impl std::error::Error for GetPatchInfoCollectionError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::GetBranchHeadOid => None,
+            Self::GetCommonAncestor(e) => Some(e),
+            Self::GetCommits(e) => Some(e),
+            Self::GetRevisionOid(e) => Some(e),
+            Self::FindCommit(e) => Some(e),
+            Self::GetCommitDiffPatchId(e) => Some(e),
+        }
+    }
+}
 
 pub struct PatchInfoCollection {
     pub commit_count: usize,

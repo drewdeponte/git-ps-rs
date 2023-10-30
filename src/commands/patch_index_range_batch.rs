@@ -20,7 +20,13 @@ impl std::fmt::Display for ParsePatchIndexRangeBatchError {
     }
 }
 
-impl std::error::Error for ParsePatchIndexRangeBatchError {}
+impl std::error::Error for ParsePatchIndexRangeBatchError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::ParsePatchIndexOrRangeFailed(e) => Some(e),
+        }
+    }
+}
 
 impl PatchIndexRangeBatch {
     #[allow(dead_code)]

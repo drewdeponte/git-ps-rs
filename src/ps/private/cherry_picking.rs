@@ -22,7 +22,13 @@ impl std::fmt::Display for MapRangeForCherryPickError {
     }
 }
 
-impl std::error::Error for MapRangeForCherryPickError {}
+impl std::error::Error for MapRangeForCherryPickError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::StartIndexNotFound | Self::EndIndexNotFound => None,
+        }
+    }
+}
 
 /// Convert from a `start_patch_index` and an optional `end_patch_index` into a `CherryPickRange`
 /// containing a `root_oid` and optional `leaf_oid` that are ready to be used with the
@@ -109,7 +115,16 @@ impl std::fmt::Display for CherryPickError {
     }
 }
 
-impl std::error::Error for CherryPickError {}
+impl std::error::Error for CherryPickError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::MergeCommitDetected(_)
+            | Self::DestinationRefTargetNotFound
+            | Self::ConflictsExist(_, _) => None,
+            Self::UnhandledError(e) => Some(e.as_ref()),
+        }
+    }
+}
 
 /// Cherry pick either an individual commit identified by the `root_oid` Oid and None for
 /// `leaf_oid`, or a range of commits identified by the `root_oid` and `leaf_oid` both having Oids.

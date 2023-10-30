@@ -21,7 +21,14 @@ impl std::fmt::Display for ReadConfigError {
     }
 }
 
-impl std::error::Error for ReadConfigError {}
+impl std::error::Error for ReadConfigError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::ReadFailed(e) => Some(e),
+            Self::DeserializeFailed(e) => Some(e),
+        }
+    }
+}
 
 pub fn read_config_dto(path: &path::Path) -> Result<Option<ConfigDto>, ReadConfigError> {
     let config_content_result = fs::read_to_string(path);

@@ -189,7 +189,61 @@ impl std::fmt::Display for IntegrateError {
     }
 }
 
-impl std::error::Error for IntegrateError {}
+impl std::error::Error for IntegrateError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::RepositoryNotFound => None,
+            Self::GetPatchStackFailed(e) => Some(e.as_ref()),
+            Self::GetPatchListFailed(e) => Some(e.as_ref()),
+            Self::PatchIndexRangeOutOfBounds(e) => Some(e.as_ref()),
+            Self::OpenGitConfigFailed(e) => Some(e.as_ref()),
+            Self::AddPatchIdsFailed(e) => Some(e.as_ref()),
+            Self::GetRepoRootPathFailed(e) => Some(e.as_ref()),
+            Self::PathNotUtf8 => None,
+            Self::GetConfigFailed(e) => Some(e.as_ref()),
+            Self::ShowFailed(e) => Some(e.as_ref()),
+            Self::UserVerificationFailed(e) => Some(e.as_ref()),
+            Self::FetchFailed(e) => Some(e.as_ref()),
+            Self::PatchStackBaseNotFound => None,
+            Self::PatchStackHeadNoName => None,
+            Self::GetListPatchInfoFailed(e) => Some(e.as_ref()),
+            Self::HasNoAssociatedBranch => None,
+            Self::AssociatedBranchAmbiguous => None,
+            Self::FindPatchCommitFailed(e) => Some(e.as_ref()),
+            Self::MissingPatchId => None,
+            Self::MissingPatchInfo => None,
+            Self::UpstreamBranchInfoMissing => None,
+            Self::CommitCountMissmatch(_, _) => None,
+            Self::PatchAndRemotePatchIdMissmatch(_) => None,
+            Self::PatchDiffHashMissmatch(_) => None,
+            Self::PatchMissingDiffHash => None,
+            Self::CreateOrReplaceBranchFailed(e) => Some(e.as_ref()),
+            Self::IsolationVerificationFailed(e) => Some(e.as_ref()),
+            Self::GetPatchBranchNameFailed(e) => Some(e.as_ref()),
+            Self::CreatedBranchMissingName => None,
+            Self::CurrentBranchNameMissing => None,
+            Self::GetUpstreamBranchNameFailed => None,
+            Self::GetRemoteNameFailed => None,
+            Self::ConvertStringToStrFailed => None,
+            Self::PushFailed(e) => Some(e.as_ref()),
+            Self::HookExecutionFailed(e) => Some(e.as_ref()),
+            Self::VerifyHookExecutionFailed(e) => Some(e.as_ref()),
+            Self::HookNotFound(e) => Some(e.as_ref()),
+            Self::FindPatchBranchFailed(e) => Some(e.as_ref()),
+            Self::GetBranchUpstreamRemoteFailed(e) => Some(e.as_ref()),
+            Self::BranchUpstreamRemoteNotValidUtf8 => None,
+            Self::RemoteRrBranchNameMissing => None,
+            Self::DeleteRemoteBranchFailed(e) => Some(e.as_ref()),
+            Self::DeleteLocalBranchFailed(e) => Some(e.as_ref()),
+            Self::PullFailed(e) => Some(e.as_ref()),
+            Self::FindRemoteFailed(e) => Some(e.as_ref()),
+            Self::RemoteUrlNotUtf8 => None,
+            Self::ConflictsExist(_, _) => None,
+            Self::MergeCommitDetected(_) => None,
+            Self::UncommittedChangesExist => None,
+        }
+    }
+}
 
 pub fn integrate(
     start_patch_index: usize,
@@ -546,7 +600,14 @@ impl std::fmt::Display for GetVerificationError {
     }
 }
 
-impl std::error::Error for GetVerificationError {}
+impl std::error::Error for GetVerificationError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::ReadLineFailed(e) => Some(e),
+            Self::UserRejected(_) => None,
+        }
+    }
+}
 
 fn get_verification() -> Result<(), GetVerificationError> {
     let mut answer = String::new();

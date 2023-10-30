@@ -20,7 +20,14 @@ impl std::fmt::Display for WriteStrToFileError {
     }
 }
 
-impl std::error::Error for WriteStrToFileError {}
+impl std::error::Error for WriteStrToFileError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::OpenFailed(e) => Some(e),
+            Self::WriteFailed(e) => Some(e),
+        }
+    }
+}
 
 pub fn write_str_to_file<P: AsRef<Path>>(
     content: &str,
@@ -47,7 +54,14 @@ impl std::fmt::Display for ReadStringFromFileError {
     }
 }
 
-impl std::error::Error for ReadStringFromFileError {}
+impl std::error::Error for ReadStringFromFileError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::OpenFailed(e) => Some(e),
+            Self::ReadFailed(e) => Some(e),
+        }
+    }
+}
 
 pub fn read_str_from_file<P: AsRef<Path>>(path: P) -> Result<String, ReadStringFromFileError> {
     let mut file = fs::File::open(path).map_err(ReadStringFromFileError::OpenFailed)?;

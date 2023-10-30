@@ -30,7 +30,14 @@ impl std::fmt::Display for GetConfigError {
     }
 }
 
-impl std::error::Error for GetConfigError {}
+impl std::error::Error for GetConfigError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::FailedToGetUserLevelConfigPath(e) => Some(e),
+            Self::ReadConfigFailed(e) => Some(e),
+        }
+    }
+}
 
 pub fn get_config(repo_root: &str, repo_gitdir: &str) -> Result<PsConfig, GetConfigError> {
     // get the three different configs or their defaults

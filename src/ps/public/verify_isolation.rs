@@ -51,7 +51,17 @@ impl std::fmt::Display for VerifyIsolationError {
     }
 }
 
-impl std::error::Error for VerifyIsolationError {}
+impl std::error::Error for VerifyIsolationError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::MergeCommitDetected(_) => None,
+            Self::ConflictsExist(_, _) => None,
+            Self::UncommittedChangesExist => None,
+            Self::IsolateFailed(e) => Some(e),
+            Self::IsolateResetFailed(e) => Some(e),
+        }
+    }
+}
 
 pub fn verify_isolation(
     patch_index: usize,

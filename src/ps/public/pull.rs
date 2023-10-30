@@ -34,7 +34,21 @@ impl std::fmt::Display for PullError {
     }
 }
 
-impl std::error::Error for PullError {}
+impl std::error::Error for PullError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::RepositoryMissing => None,
+            Self::GetHeadBranchNameFailed => None,
+            Self::GetUpstreamBranchNameFailed => None,
+            Self::RebaseFailed(e) => Some(e),
+            Self::FetchFailed(e) => Some(e),
+            Self::GetRepoRootPathFailed(e) => Some(e),
+            Self::PathNotUtf8 => None,
+            Self::GetConfigFailed(e) => Some(e),
+            Self::ListFailed(e) => Some(e),
+        }
+    }
+}
 
 pub fn pull(color: bool) -> Result<(), PullError> {
     let repo = git::create_cwd_repo().map_err(|_| PullError::RepositoryMissing)?;

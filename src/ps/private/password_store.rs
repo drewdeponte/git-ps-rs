@@ -20,7 +20,13 @@ impl std::fmt::Display for GetSshKeyPasswordError {
     }
 }
 
-impl std::error::Error for GetSshKeyPasswordError {}
+impl std::error::Error for GetSshKeyPasswordError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::Unknown(e) => Some(e.as_ref()),
+        }
+    }
+}
 
 fn keyring_entry(key_path: &str) -> Result<Entry> {
     Entry::new(SSH_KEY_PASSWORD_KEYCHAIN_SERVICE, key_path)
@@ -55,7 +61,13 @@ impl std::fmt::Display for SetSshKeyPasswordError {
     }
 }
 
-impl std::error::Error for SetSshKeyPasswordError {}
+impl std::error::Error for SetSshKeyPasswordError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::Unknown(e) => Some(e.as_ref()),
+        }
+    }
+}
 
 pub fn set_ssh_key_password(
     key_path: &str,

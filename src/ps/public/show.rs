@@ -32,7 +32,20 @@ impl std::fmt::Display for ShowError {
     }
 }
 
-impl std::error::Error for ShowError {}
+impl std::error::Error for ShowError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::ExitStatus(_) => None,
+            Self::ExitSignal(_) => None,
+            Self::IOError(e) => Some(e),
+            Self::Unknown => None,
+            Self::RepositoryMissing => None,
+            Self::GetPatchStackFailed(e) => Some(e),
+            Self::GetPatchListFailed(e) => Some(e),
+            Self::PatchIndexNotFound => None,
+        }
+    }
+}
 
 impl From<utils::ExecuteError> for ShowError {
     fn from(e: utils::ExecuteError) -> Self {

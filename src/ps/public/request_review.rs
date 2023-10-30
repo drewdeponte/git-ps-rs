@@ -111,7 +111,29 @@ impl fmt::Display for RequestReviewError {
     }
 }
 
-impl std::error::Error for RequestReviewError {}
+impl std::error::Error for RequestReviewError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::OpenRepositoryFailed(e) => Some(e.as_ref()),
+            Self::GetRepoRootPathFailed(e) => Some(e.as_ref()),
+            Self::PathNotUtf8 => None,
+            Self::GetConfigFailed(e) => Some(e.as_ref()),
+            Self::IsolationVerificationFailed(e) => Some(e),
+            Self::MergeCommitDetected(_) => None,
+            Self::ConflictsExist(_, _) => None,
+            Self::CurrentPatchStackBranchNameMissing => None,
+            Self::GetCurrentPatchStackUpstreamBranchNameFailed => None,
+            Self::GetRemoteNameFailed => None,
+            Self::BranchNameNotUtf8 => None,
+            Self::FindRemoteFailed(e) => Some(e.as_ref()),
+            Self::RemoteUrlNotUtf8 => None,
+            Self::HookExecutionFailed(e) => Some(e.as_ref()),
+            Self::PostSyncHookNotExecutable(_) => None,
+            Self::FindHookFailed(e) => Some(e.as_ref()),
+            Self::Unhandled(e) => Some(e.as_ref()),
+        }
+    }
+}
 
 pub fn request_review(
     start_patch_index: usize,

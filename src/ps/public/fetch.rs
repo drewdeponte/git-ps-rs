@@ -26,7 +26,18 @@ impl std::fmt::Display for FetchError {
     }
 }
 
-impl std::error::Error for FetchError {}
+impl std::error::Error for FetchError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::FetchFailed(e) => Some(e),
+            Self::UpstreamPatchesFailure(e) => Some(e),
+            Self::RepositoryMissing => None,
+            Self::GetRepoRootPathFailed(e) => Some(e),
+            Self::PathNotUtf8 => None,
+            Self::GetConfigFailed(e) => Some(e),
+        }
+    }
+}
 
 pub fn fetch(color: bool) -> Result<(), FetchError> {
     git::ext_fetch().map_err(FetchError::FetchFailed)?;

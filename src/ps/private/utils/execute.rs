@@ -27,7 +27,17 @@ impl std::fmt::Display for ExecuteError {
     }
 }
 
-impl std::error::Error for ExecuteError {}
+impl std::error::Error for ExecuteError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::SpawnFailure(e) => Some(e),
+            Self::Failure(e) => Some(e),
+            Self::ExitStatus(_) => None,
+            Self::ExitSignal(_) => None,
+            Self::ExitMissingSignal => None,
+        }
+    }
+}
 
 #[cfg(target_family = "unix")]
 fn handle_error_no_code(status: ExitStatus) -> ExecuteError {
@@ -77,7 +87,13 @@ impl std::fmt::Display for ExecuteWithOutputError {
     }
 }
 
-impl std::error::Error for ExecuteWithOutputError {}
+impl std::error::Error for ExecuteWithOutputError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::Failure(e) => Some(e),
+        }
+    }
+}
 
 pub fn execute_with_output(exe: &str, args: &[&str]) -> Result<Output, ExecuteWithOutputError> {
     Command::new(exe)

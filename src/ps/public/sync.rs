@@ -64,7 +64,26 @@ impl std::fmt::Display for SyncError {
     }
 }
 
-impl std::error::Error for SyncError {}
+impl std::error::Error for SyncError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::RepositoryNotFound => None,
+            Self::CurrentBranchNameMissing => None,
+            Self::GetUpstreamBranchNameFailed => None,
+            Self::GetPatchStackBranchRemoteNameFailed(e) => Some(e.as_ref()),
+            Self::MergeCommitDetected(_) => None,
+            Self::ConflictsExist(_, _) => None,
+            Self::PatchBranchNameMissing => None,
+            Self::PatchUpstreamBranchNameMissing => None,
+            Self::BranchRemoteNameNotUtf8 => None,
+            Self::SetPatchBranchUpstreamFailed(e) => Some(e.as_ref()),
+            Self::ForcePushFailed(e) => Some(e.as_ref()),
+            Self::GetBranchUpstreamRemoteName(e) => Some(e.as_ref()),
+            Self::PatchBranchRefMissing => None,
+            Self::Unhandled(e) => Some(e.as_ref()),
+        }
+    }
+}
 
 pub fn sync(
     start_patch_index: usize,

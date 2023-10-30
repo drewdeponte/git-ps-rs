@@ -31,7 +31,16 @@ impl std::fmt::Display for FindHookError {
     }
 }
 
-impl std::error::Error for FindHookError {}
+impl std::error::Error for FindHookError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::NotExecutable(_) => None,
+            Self::PathExpandHomeFailed(e) => Some(e),
+            Self::HomeDirNotFound => None,
+            Self::NotFound => None,
+        }
+    }
+}
 
 pub fn find_hook(
     repo_root: &str,
@@ -99,7 +108,16 @@ impl std::fmt::Display for HookOutputError {
     }
 }
 
-impl std::error::Error for HookOutputError {}
+impl std::error::Error for HookOutputError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::GetRepoRootPathFailed(e) => Some(e),
+            Self::PathNotUtf8 => None,
+            Self::HookExecutionFailed(e) => Some(e),
+            Self::HookNotFound(e) => Some(e),
+        }
+    }
+}
 
 pub fn find_and_execute_hook_with_output(
     repo_root_str: &str,

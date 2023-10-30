@@ -39,7 +39,16 @@ impl std::fmt::Display for BranchError {
     }
 }
 
-impl std::error::Error for BranchError {}
+impl std::error::Error for BranchError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::OpenRepositoryFailed(e) => Some(e.as_ref()),
+            Self::ConflictsExist(_, _) => None,
+            Self::MergeCommitDetected(_) => None,
+            Self::Unhandled(e) => Some(e.as_ref()),
+        }
+    }
+}
 
 pub fn branch(
     start_patch_index: usize,

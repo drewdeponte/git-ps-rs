@@ -55,7 +55,14 @@ impl std::fmt::Display for GitError {
     }
 }
 
-impl std::error::Error for GitError {}
+impl std::error::Error for GitError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::Git(e) => Some(e),
+            Self::NotFound => None,
+        }
+    }
+}
 
 #[derive(Debug)]
 pub enum CreateCwdRepositoryError {
@@ -76,7 +83,13 @@ impl std::fmt::Display for CreateCwdRepositoryError {
     }
 }
 
-impl std::error::Error for CreateCwdRepositoryError {}
+impl std::error::Error for CreateCwdRepositoryError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::Failed(e) => Some(e),
+        }
+    }
+}
 
 /// Attempt to open an already-existing repository at or above current working
 /// directory
@@ -393,7 +406,13 @@ impl std::fmt::Display for ExtForcePushError {
     }
 }
 
-impl std::error::Error for ExtForcePushError {}
+impl std::error::Error for ExtForcePushError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::ExecuteFailed(e) => Some(e),
+        }
+    }
+}
 
 pub fn ext_push(
     force: bool,
@@ -424,7 +443,13 @@ impl std::fmt::Display for ExtDeleteRemoteBranchError {
     }
 }
 
-impl std::error::Error for ExtDeleteRemoteBranchError {}
+impl std::error::Error for ExtDeleteRemoteBranchError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::ExecuteFailed(e) => Some(e),
+        }
+    }
+}
 
 pub fn ext_delete_remote_branch(
     remote_name: &str,
@@ -449,7 +474,13 @@ impl std::fmt::Display for ExtFetchError {
     }
 }
 
-impl std::error::Error for ExtFetchError {}
+impl std::error::Error for ExtFetchError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::ExecuteFailed(e) => Some(e),
+        }
+    }
+}
 
 pub fn ext_fetch() -> Result<(), ExtFetchError> {
     utils::execute("git", &["fetch"]).map_err(ExtFetchError::ExecuteFailed)?;
@@ -481,7 +512,11 @@ impl std::fmt::Display for CommitDiffError {
     }
 }
 
-impl std::error::Error for CommitDiffError {}
+impl std::error::Error for CommitDiffError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        None
+    }
+}
 
 pub fn commit_diff<'a>(
     repo: &'a git2::Repository,
@@ -528,7 +563,14 @@ impl std::fmt::Display for CommitDiffPatchIdError {
     }
 }
 
-impl std::error::Error for CommitDiffPatchIdError {}
+impl std::error::Error for CommitDiffPatchIdError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::GetDiffFailed(e) => Some(e),
+            Self::CreatePatchHashFailed(e) => Some(e),
+        }
+    }
+}
 
 pub fn commit_diff_patch_id(
     repo: &git2::Repository,
@@ -552,7 +594,13 @@ impl std::fmt::Display for CommonAncestorError {
     }
 }
 
-impl std::error::Error for CommonAncestorError {}
+impl std::error::Error for CommonAncestorError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::MergeBase(e) => Some(e),
+        }
+    }
+}
 
 pub fn common_ancestor(
     repo: &git2::Repository,
@@ -578,7 +626,13 @@ impl std::fmt::Display for UncommittedChangesError {
     }
 }
 
-impl std::error::Error for UncommittedChangesError {}
+impl std::error::Error for UncommittedChangesError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::StatusesFailed(e) => Some(e),
+        }
+    }
+}
 
 pub fn uncommitted_changes_exist(repo: &git2::Repository) -> Result<bool, UncommittedChangesError> {
     let mut status_options = git2::StatusOptions::default();

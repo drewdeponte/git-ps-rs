@@ -50,7 +50,15 @@ impl std::fmt::Display for PatchStackError {
     }
 }
 
-impl std::error::Error for PatchStackError {}
+impl std::error::Error for PatchStackError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::GitError(e) => Some(e),
+            Self::HeadNoName => None,
+            Self::UpstreamBranchNameNotFound => None,
+        }
+    }
+}
 
 pub fn get_patch_stack(repo: &git2::Repository) -> Result<PatchStack<'_>, PatchStackError> {
     let head_ref = repo.head()?;
@@ -97,7 +105,15 @@ impl std::fmt::Display for GetPatchListError {
     }
 }
 
-impl std::error::Error for GetPatchListError {}
+impl std::error::Error for GetPatchListError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::CreateRevWalkFailed(e) => Some(e),
+            Self::StackBaseTargetMissing => None,
+            Self::StackHeadTargetMissing => None,
+        }
+    }
+}
 
 pub fn get_patch_list(
     repo: &git2::Repository,
@@ -245,7 +261,27 @@ impl std::fmt::Display for AddPatchIdsError {
     }
 }
 
-impl std::error::Error for AddPatchIdsError {}
+impl std::error::Error for AddPatchIdsError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::GetCurrentBranch => None,
+            Self::FindCurrentBranchReference(e) => Some(e.as_ref()),
+            Self::RevParseCurrentBranchReference(e) => Some(e.as_ref()),
+            Self::GetCurrentBranchUpstreamName(e) => Some(e.as_ref()),
+            Self::RevParseCurrentBranchUpstreamReference(e) => Some(e.as_ref()),
+            Self::FindCommonAncestor(e) => Some(e.as_ref()),
+            Self::FindCommonAncestorCommit(e) => Some(e.as_ref()),
+            Self::CreateAddIdReworkBranch(e) => Some(e.as_ref()),
+            Self::GetAddIdReworkBranchReferenceName => None,
+            Self::ConflictsExist(_, _) => None,
+            Self::MergeCommitDetected(_) => None,
+            Self::CherryPickNoWorkingCopyRange(e) => Some(e.as_ref()),
+            Self::SetCurrentBranchTarget(e) => Some(e.as_ref()),
+            Self::FindAddIdReworkReference(e) => Some(e.as_ref()),
+            Self::DeleteAppIdReworkBranch(e) => Some(e.as_ref()),
+        }
+    }
+}
 
 /// Rebase the currently checked out branch, amending commits with patch identifiers if they are
 /// missing.
@@ -341,7 +377,14 @@ impl std::fmt::Display for PatchRangeWithinStackBoundsError {
     }
 }
 
-impl std::error::Error for PatchRangeWithinStackBoundsError {}
+impl std::error::Error for PatchRangeWithinStackBoundsError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::StartPatchIndexOutOfBounds(_) => None,
+            Self::EndPatchIndexOutOfBounds(_) => None,
+        }
+    }
+}
 
 pub fn patch_range_within_stack_bounds(
     start_patch_index: usize,

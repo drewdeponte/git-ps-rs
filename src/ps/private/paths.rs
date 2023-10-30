@@ -17,7 +17,11 @@ impl std::fmt::Display for PathsError {
     }
 }
 
-impl std::error::Error for PathsError {}
+impl std::error::Error for PathsError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        None
+    }
+}
 
 pub fn repo_root_path(repo: &git2::Repository) -> Result<&Path, PathsError> {
     repo.workdir().ok_or(PathsError::RepoWorkDirNotFound)
@@ -52,7 +56,14 @@ impl std::fmt::Display for UserLevelConfigPathError {
     }
 }
 
-impl std::error::Error for UserLevelConfigPathError {}
+impl std::error::Error for UserLevelConfigPathError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::PathExpandHomeFailed(e) => Some(e),
+            Self::HomeDirNotFound => None,
+        }
+    }
+}
 
 pub fn user_level_config_path() -> Result<PathBuf, UserLevelConfigPathError> {
     let path_string = ".config/git-ps/config.toml".to_string();

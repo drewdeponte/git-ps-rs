@@ -145,7 +145,33 @@ impl fmt::Display for BranchError {
     }
 }
 
-impl std::error::Error for BranchError {}
+impl std::error::Error for BranchError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::RepositoryMissing
+            | Self::PatchStackNotFound
+            | Self::PatchStackBaseNotFound
+            | Self::PatchIndexNotFound
+            | Self::PatchCommitNotFound
+            | Self::PatchMessageMissing
+            | Self::PatchSummaryMissing
+            | Self::CreateRrBranchFailed
+            | Self::RrBranchNameNotUtf8
+            | Self::MergeCommitDetected(_)
+            | Self::ConflictsExist(_, _) => None,
+            Self::GetPatchListFailed(e) => Some(e.as_ref()),
+            Self::OpenGitConfigFailed(e) => Some(e.as_ref()),
+            Self::PatchStackHeadNoName => None,
+            Self::GetListPatchInfoFailed(e) => Some(e.as_ref()),
+            Self::PatchBranchAmbiguous => None,
+            Self::AddPatchIdsFailed(e) => Some(e.as_ref()),
+            Self::AssociatedBranchAmbiguous(_) => None,
+            Self::PatchSeriesRequireBranchName => None,
+            Self::PatchIndexRangeOutOfBounds(e) => Some(e.as_ref()),
+            Self::UnhandledError(e) => Some(e.as_ref()),
+        }
+    }
+}
 
 pub fn branch(
     repo: &git2::Repository,

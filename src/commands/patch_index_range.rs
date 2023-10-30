@@ -16,7 +16,10 @@ impl PartialEq for PatchIndexRange {
 #[derive(Debug)]
 pub enum ParsePatchIndexOrRangeError {
     InvalidIndexRange(String),
-    UnparsableIndex(String, std::num::ParseIntError),
+    UnparsableIndex {
+        parsed_string: String,
+        source: std::num::ParseIntError,
+    },
     StartPatchIndexLargerThanEnd(String),
 }
 
@@ -28,15 +31,28 @@ impl std::fmt::Display for ParsePatchIndexOrRangeError {
                 "starting patch index larger than ending patch index {}",
                 s
             ),
-            Self::UnparsableIndex(parsed_str, e) => {
-                write!(f, "unable to parse index {}, {}", parsed_str, e)
+            Self::UnparsableIndex {
+                parsed_string,
+                source,
+            } => {
+                write!(f, "unable to parse index {}, {}", parsed_string, source)
             }
             Self::InvalidIndexRange(s) => write!(f, "invalid index range {}", s),
         }
     }
 }
 
-impl std::error::Error for ParsePatchIndexOrRangeError {}
+impl std::error::Error for ParsePatchIndexOrRangeError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::UnparsableIndex {
+                parsed_string: _,
+                source,
+            } => Some(source),
+            _ => None,
+        }
+    }
+}
 
 impl std::str::FromStr for PatchIndexRange {
     type Err = ParsePatchIndexOrRangeError;
@@ -53,7 +69,10 @@ impl std::str::FromStr for PatchIndexRange {
         if num_parts == 1 {
             let patch_start_index_str = patch_index_or_range_parts.first().unwrap();
             let patch_start_index = patch_start_index_str.parse::<usize>().map_err(|e| {
-                ParsePatchIndexOrRangeError::UnparsableIndex(patch_start_index_str.to_string(), e)
+                ParsePatchIndexOrRangeError::UnparsableIndex {
+                    parsed_string: patch_start_index_str.to_string(),
+                    source: e,
+                }
             })?;
             Ok(PatchIndexRange {
                 start_index: patch_start_index,
@@ -63,10 +82,16 @@ impl std::str::FromStr for PatchIndexRange {
             let patch_start_index_str = patch_index_or_range_parts.first().unwrap();
             let patch_end_index_str = patch_index_or_range_parts.get(1).unwrap();
             let patch_start_index = patch_start_index_str.parse::<usize>().map_err(|e| {
-                ParsePatchIndexOrRangeError::UnparsableIndex(patch_start_index_str.to_string(), e)
+                ParsePatchIndexOrRangeError::UnparsableIndex {
+                    parsed_string: patch_start_index_str.to_string(),
+                    source: e,
+                }
             })?;
             let patch_end_index = patch_end_index_str.parse::<usize>().map_err(|e| {
-                ParsePatchIndexOrRangeError::UnparsableIndex(patch_end_index_str.to_string(), e)
+                ParsePatchIndexOrRangeError::UnparsableIndex {
+                    parsed_string: patch_end_index_str.to_string(),
+                    source: e,
+                }
             })?;
             match patch_end_index.cmp(&patch_start_index) {
                 std::cmp::Ordering::Greater => Ok(PatchIndexRange {
