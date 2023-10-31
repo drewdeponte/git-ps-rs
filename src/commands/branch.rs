@@ -1,5 +1,5 @@
 use super::patch_index_range::PatchIndexRange;
-use super::utils::print_err;
+use super::utils::{print_err, print_error_chain};
 use gps as ps;
 use std::option::Option;
 use std::str::FromStr;
@@ -45,13 +45,13 @@ pub fn branch(patch_index_or_range: String, branch_name: Option<String>, color: 
                     std::process::exit(1);
                 }
                 Err(e) => {
-                    eprintln!("Error: {}", e);
+                    print_error_chain(color, e.into());
                     std::process::exit(1);
                 }
             }
         }
         Err(e) => {
-            eprintln!("Error: {}", e);
+            print_error_chain(color, e.into());
             std::process::exit(1);
         }
     }

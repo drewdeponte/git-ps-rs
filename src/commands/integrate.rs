@@ -1,5 +1,5 @@
 use super::patch_index_range::PatchIndexRange;
-use super::utils::print_err;
+use super::utils::{print_err, print_error_chain};
 use gps as ps;
 use std::str::FromStr;
 
@@ -172,13 +172,13 @@ pub fn integrate(
                     std::process::exit(1);
                 }
                 Err(e) => {
-                    print_err(color, format!("\nError: {}\n", e).as_str());
+                    print_error_chain(color, e.into());
                     std::process::exit(1);
                 }
             }
         }
         Err(e) => {
-            eprintln!("Error: {}", e);
+            print_error_chain(color, e.into());
             std::process::exit(1);
         }
     }

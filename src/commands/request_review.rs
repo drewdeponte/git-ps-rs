@@ -6,7 +6,7 @@
 // inside of the `ps` module.
 
 use super::patch_index_range_batch::PatchIndexRangeBatch;
-use super::utils::print_err;
+use super::utils::{print_err, print_error_chain};
 use gps as ps;
 
 pub fn request_review(
@@ -26,7 +26,7 @@ pub fn request_review(
                     &patch_index_or_range_batch
                 ),
             );
-            eprintln!("Error: {}", e);
+            print_error_chain(color, e.into());
             std::process::exit(1);
         }
     };
@@ -122,7 +122,7 @@ pub fn request_review(
                     );
                 }
                 _ => {
-                    print_err(color, format!("\nError: {}\n", e).as_str());
+                    print_error_chain(color, e.into());
                 }
             },
         };
