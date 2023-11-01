@@ -1,5 +1,5 @@
 use super::{
-    paths::{self, path_exists_and_is_executable, PathExistsAndIsExecutable},
+    paths::{path_exists_and_is_executable, PathExistsAndIsExecutable},
     utils,
 };
 use std::{path::PathBuf, process::Output};
@@ -91,7 +91,6 @@ pub fn find_hook(
 
 #[derive(Debug)]
 pub enum HookOutputError {
-    GetRepoRootPathFailed(paths::PathsError),
     PathNotUtf8,
     HookExecutionFailed(utils::ExecuteWithOutputError),
     HookNotFound(FindHookError),
@@ -100,7 +99,6 @@ pub enum HookOutputError {
 impl std::fmt::Display for HookOutputError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::GetRepoRootPathFailed(e) => write!(f, "get repository root path failed, {}", e),
             Self::PathNotUtf8 => write!(f, "path not utf-8"),
             Self::HookExecutionFailed(e) => write!(f, "hook execution failed, {}", e),
             Self::HookNotFound(e) => write!(f, "hook not found, {}", e),
@@ -111,7 +109,6 @@ impl std::fmt::Display for HookOutputError {
 impl std::error::Error for HookOutputError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
-            Self::GetRepoRootPathFailed(e) => Some(e),
             Self::PathNotUtf8 => None,
             Self::HookExecutionFailed(e) => Some(e),
             Self::HookNotFound(e) => Some(e),

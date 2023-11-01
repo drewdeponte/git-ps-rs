@@ -10,13 +10,13 @@ use std::cmp::Ordering;
 #[derive(Debug)]
 pub enum ListError {
     RepositoryNotFound,
-    GetPatchStackFailed(ps::PatchStackError),
-    GetPatchListFailed(ps::GetPatchListError),
-    GetRepoRootPathFailed(paths::PathsError),
+    GetPatchStackFailed(Box<dyn std::error::Error>),
+    GetPatchListFailed(Box<dyn std::error::Error>),
+    GetRepoRootPathFailed(Box<dyn std::error::Error>),
     PathNotUtf8,
-    GetConfigFailed(config::GetConfigError),
-    GetCommitDiffPatchIdFailed(git::CommitDiffPatchIdError),
-    GetHookOutputError(list::ListHookError),
+    GetConfigFailed(Box<dyn std::error::Error>),
+    GetCommitDiffPatchIdFailed(Box<dyn std::error::Error>),
+    GetHookOutputError(Box<dyn std::error::Error>),
     CurrentBranchNameMissing,
     GetUpstreamBranchNameFailed,
 }
@@ -46,13 +46,13 @@ impl std::error::Error for ListError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Self::RepositoryNotFound => None,
-            Self::GetPatchStackFailed(e) => Some(e),
-            Self::GetPatchListFailed(e) => Some(e),
-            Self::GetRepoRootPathFailed(e) => Some(e),
+            Self::GetPatchStackFailed(e) => Some(e.as_ref()),
+            Self::GetPatchListFailed(e) => Some(e.as_ref()),
+            Self::GetRepoRootPathFailed(e) => Some(e.as_ref()),
             Self::PathNotUtf8 => None,
-            Self::GetConfigFailed(e) => Some(e),
-            Self::GetCommitDiffPatchIdFailed(e) => Some(e),
-            Self::GetHookOutputError(e) => Some(e),
+            Self::GetConfigFailed(e) => Some(e.as_ref()),
+            Self::GetCommitDiffPatchIdFailed(e) => Some(e.as_ref()),
+            Self::GetHookOutputError(e) => Some(e.as_ref()),
             Self::CurrentBranchNameMissing => None,
             Self::GetUpstreamBranchNameFailed => None,
         }
@@ -85,12 +85,13 @@ fn is_connected_to_prev_row(prev_patch_branches: &[String], cur_patch_branches: 
 pub fn list(color: bool) -> Result<(), ListError> {
     let repo = git::create_cwd_repo().map_err(|_| ListError::RepositoryNotFound)?;
 
-    let repo_root_path = paths::repo_root_path(&repo).map_err(ListError::GetRepoRootPathFailed)?;
+    let repo_root_path =
+        paths::repo_root_path(&repo).map_err(|e| ListError::GetRepoRootPathFailed(e.into()))?;
     let repo_root_str = repo_root_path.to_str().ok_or(ListError::PathNotUtf8)?;
     let repo_gitdir_path = repo.path();
     let repo_gitdir_str = repo_gitdir_path.to_str().ok_or(ListError::PathNotUtf8)?;
-    let config =
-        config::get_config(repo_root_str, repo_gitdir_str).map_err(ListError::GetConfigFailed)?;
+    let config = config::get_config(repo_root_str, repo_gitdir_str)
+        .map_err(|e| ListError::GetConfigFailed(e.into()))?;
 
     let cur_patch_stack_branch_ref =
         git::get_current_branch(&repo).ok_or(ListError::CurrentBranchNameMissing)?;
@@ -104,10 +105,11 @@ pub fn list(color: bool) -> Result<(), ListError> {
     // We do know what branch we are currently checked out on when running this command. It seems
     // like we should use that as the base branch.
 
-    let patch_stack = ps::get_patch_stack(&repo).map_err(ListError::GetPatchStackFailed)?;
+    let patch_stack =
+        ps::get_patch_stack(&repo).map_err(|e| ListError::GetPatchStackFailed(e.into()))?;
 
-    let list_of_patches =
-        ps::get_patch_list(&repo, &patch_stack).map_err(ListError::GetPatchListFailed)?;
+    let list_of_patches = ps::get_patch_list(&repo, &patch_stack)
+        .map_err(|e| ListError::GetPatchListFailed(e.into()))?;
 
     let base_oid = patch_stack.base.target().unwrap();
 
@@ -142,7 +144,7 @@ pub fn list(color: bool) -> Result<(), ListError> {
             Err(git::CommitDiffPatchIdError::GetDiffFailed(git::CommitDiffError::MergeCommit)) => {
                 None
             }
-            Err(e) => return Err(ListError::GetCommitDiffPatchIdFailed(e)),
+            Err(e) => return Err(ListError::GetCommitDiffPatchIdFailed(e.into())),
         };
 
         if let Some(ps_id) = ps::commit_ps_id(&commit) {
@@ -266,7 +268,7 @@ pub fn list(color: bool) -> Result<(), ListError> {
                                 &patch.summary,
                             ],
                         )
-                        .map_err(ListError::GetHookOutputError)?;
+                        .map_err(|e| ListError::GetHookOutputError(e.into()))?;
                         let hook_stdout_len = config.list.extra_patch_info_length;
                         row.add_cell(
                             Some(hook_stdout_len + 1),

@@ -5,13 +5,14 @@
 // be strongly considered if they fit better in one of the other modules
 // inside the ps module and should be exposed via the library public interface.
 
+use super::utils::print_error_chain;
 use gps as ps;
 
 pub fn list(color: bool) {
     match ps::list(color) {
         Ok(_) => {}
         Err(e) => {
-            eprintln!("Error: {:?}", e);
+            print_error_chain(color, e.into());
             std::process::exit(1);
         }
     };
