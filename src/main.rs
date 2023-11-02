@@ -19,6 +19,10 @@ fn main() {
     let cli = cli::Cli::parse();
 
     match cli.command {
+
+        cli::Command::Amend(opts) => {
+            commands::amend::amend(opts.patch_index)
+        }
         cli::Command::Branch(opts) => {
             commands::branch::branch(opts.patch_index_or_range, opts.branch_name, cli.color)
         }

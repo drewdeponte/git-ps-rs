@@ -15,6 +15,11 @@ pub struct RequestReview {
 }
 
 #[derive(Debug, Args)]
+pub struct AmendCmdOpts {
+    pub patch_index: usize,
+}
+
+#[derive(Debug, Args)]
 pub struct BranchCmdOpts {
     pub patch_index_or_range: String,
     /// Use the provided branch name instead of generating one
@@ -66,6 +71,9 @@ pub struct BackupStackCmdOpts {
 
 #[derive(Debug, Subcommand)]
 pub enum Command {
+    /// (a) - Amend a patch
+    #[command(name = "amend", alias = "a")]
+    Amend(AmendCmdOpts),
     /// (b) - Create a branch for a patch or patch series
     #[command(name = "branch", alias = "b")]
     Branch(BranchCmdOpts),

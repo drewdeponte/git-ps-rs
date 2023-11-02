@@ -33,6 +33,7 @@ pub fn rebase(continue_rebase: bool) -> Result<(), RebaseError> {
             &[
                 "rebase",
                 "-i",
+                "--autosquash",
                 "--onto",
                 upstream_branch_name.as_str(),
                 upstream_branch_name.as_str(),
