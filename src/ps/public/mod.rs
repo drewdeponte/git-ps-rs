@@ -9,6 +9,7 @@ pub mod list;
 pub mod pull;
 pub mod rebase;
 pub mod request_review;
+pub mod sha;
 pub mod show;
 pub mod sync;
 pub mod upstream_patches;

@@ -15,5 +15,6 @@ pub mod patch_index_range_batch;
 pub mod pull;
 pub mod rebase;
 pub mod request_review;
+pub mod sha;
 pub mod show;
 pub mod utils;

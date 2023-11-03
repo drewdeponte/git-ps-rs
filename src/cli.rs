@@ -38,6 +38,14 @@ pub struct IntegrateCmdOpts {
 }
 
 #[derive(Debug, Args)]
+pub struct ShaCmdOpts {
+    pub patch_index: usize,
+    /// Do not print the trailing newline character
+    #[arg(short = 'n')]
+    pub exclude_newline: bool,
+}
+
+#[derive(Debug, Args)]
 pub struct ShowCmdOpts {
     pub patch_index_or_range: String,
 }
@@ -187,6 +195,24 @@ stack.
     /// (rr) - Request review of the specified patch
     #[command(name = "request-review", alias = "rr")]
     RequestReview(RequestReview),
+    /// Output the sha of specified patch to stdout
+    #[command(
+        name = "sha",
+        long_about = r"
+Output the sha of the patch identified by the given index to stdout
+
+The intent of this command is that it be used to help bridge the gap between
+gps and git. That means you should think about using it with other git commands.
+
+For example lets say you are a fan of using git commit --fixup=amend:<sha> Using
+gps sha you could instead run git commit --fixup=amend:$(gps sha <patch-index>)
+
+This lets you work in terms of patches in your stack. If you are thinking this is
+more complicated to remember than you want to deal with. No worries, just define
+either a Git alias or a shell alias for that command.
+"
+    )]
+    Sha(ShaCmdOpts),
     /// Show the identified patch in raw form
     #[command(name = "show")]
     Show(ShowCmdOpts),
