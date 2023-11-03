@@ -38,6 +38,11 @@ pub struct IntegrateCmdOpts {
 }
 
 #[derive(Debug, Args)]
+pub struct ShaCmdOpts {
+    pub patch_index: usize,
+}
+
+#[derive(Debug, Args)]
 pub struct ShowCmdOpts {
     pub patch_index_or_range: String,
 }
@@ -187,6 +192,9 @@ stack.
     /// (rr) - Request review of the specified patch
     #[command(name = "request-review", alias = "rr")]
     RequestReview(RequestReview),
+    /// Provide sha of specified patch
+    #[command(name = "sha")]
+    Sha(ShaCmdOpts),
     /// Show the identified patch in raw form
     #[command(name = "show")]
     Show(ShowCmdOpts),

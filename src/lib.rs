@@ -14,6 +14,7 @@ pub use ps::public::list::list;
 pub use ps::public::pull::{pull, PullError};
 pub use ps::public::rebase::rebase;
 pub use ps::public::request_review::{request_review, RequestReviewError};
+pub use ps::public::sha;
 pub use ps::public::show::show;
 pub use ps::public::sync::{sync, SyncError};
 pub use ps::public::upstream_patches::upstream_patches;
