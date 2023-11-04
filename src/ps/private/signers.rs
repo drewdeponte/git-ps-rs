@@ -1,5 +1,5 @@
 use super::password_store;
-use gpgme;
+use super::utils;
 use ssh_key::PrivateKey;
 
 #[derive(Debug)]
@@ -82,34 +82,25 @@ pub fn ssh_signer(
     }
 }
 
-pub fn gpg_signer(signing_key: String) -> impl Fn(String) -> Result<String, SignerError> {
+pub fn gpg_signer(
+    signing_key: String,
+    program: Option<String>,
+) -> impl Fn(String) -> Result<String, SignerError> {
     move |commit_string: String| {
-        gpg_sign_string(commit_string, signing_key.clone())
+        gpg_sign_string(commit_string, signing_key.clone(), program.clone())
             .map_err(|e| SignerError::Signing(e.into()))
     }
 }
 
 #[derive(Debug)]
 enum GpgSignStringError {
-    GetGpgContext,
-    GetSecretKey,
-    AddSigner,
-    CreateDetachedSignature,
-    FromUtf8(std::string::FromUtf8Error),
+    Unhandled(Box<dyn std::error::Error>),
 }
 
 impl std::fmt::Display for GpgSignStringError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            GpgSignStringError::GetGpgContext => write!(f, "failed to get GPG context"),
-            GpgSignStringError::GetSecretKey => write!(f, "failed to get GPG secret key"),
-            GpgSignStringError::AddSigner => write!(f, "failed to add signer"),
-            GpgSignStringError::CreateDetachedSignature => {
-                write!(f, "failed to create detached signature")
-            }
-            GpgSignStringError::FromUtf8(e) => {
-                write!(f, "failed to interpret signature as utf8 - {}", e)
-            }
+            GpgSignStringError::Unhandled(e) => write!(f, "{}", e),
         }
     }
 }
@@ -117,30 +108,29 @@ impl std::fmt::Display for GpgSignStringError {
 impl std::error::Error for GpgSignStringError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
-            Self::GetGpgContext => None,
-            Self::GetSecretKey => None,
-            Self::AddSigner => None,
-            Self::CreateDetachedSignature => None,
-            Self::FromUtf8(e) => Some(e),
+            Self::Unhandled(e) => Some(e.as_ref()),
         }
     }
 }
 
-fn gpg_sign_string(commit: String, signing_key: String) -> Result<String, GpgSignStringError> {
-    let mut ctx = gpgme::Context::from_protocol(gpgme::Protocol::OpenPgp)
-        .map_err(|_| GpgSignStringError::GetGpgContext)?;
-    ctx.set_armor(true);
-    let key = ctx
-        .get_secret_key(signing_key)
-        .map_err(|_| GpgSignStringError::GetSecretKey)?;
+fn gpg_sign_string(
+    commit: String,
+    signing_key: String,
+    program: Option<String>,
+) -> Result<String, GpgSignStringError> {
+    let prog = program.unwrap_or("gpg".to_string());
+    let output = utils::execute_with_input_and_output(
+        &commit,
+        &prog,
+        &[
+            "--local-user",
+            &signing_key,
+            "--sign",
+            "--armor",
+            "--detach-sig",
+        ],
+    )
+    .map_err(|e| GpgSignStringError::Unhandled(e.into()))?;
 
-    ctx.add_signer(&key)
-        .map_err(|_| GpgSignStringError::AddSigner)?;
-    let mut output = Vec::new();
-    ctx.sign_detached(commit, &mut output)
-        .map_err(|_| GpgSignStringError::CreateDetachedSignature)?;
-
-    String::from_utf8(output)
-        .map(|s| s.trim().to_string())
-        .map_err(GpgSignStringError::FromUtf8)
+    String::from_utf8(output.stdout).map_err(|e| GpgSignStringError::Unhandled(e.into()))
 }

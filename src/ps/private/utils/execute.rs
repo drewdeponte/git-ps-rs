@@ -1,9 +1,9 @@
-use std::io;
+use std::io::{self, Write};
 #[cfg(target_family = "unix")]
 use std::os::unix::process::ExitStatusExt;
 #[cfg(target_family = "windows")]
 use std::os::windows::process::ExitStatusExt;
-use std::process::{Command, ExitStatus, Output};
+use std::process::{Command, ExitStatus, Output, Stdio};
 use std::result::Result;
 
 #[derive(Debug)]
@@ -100,4 +100,57 @@ pub fn execute_with_output(exe: &str, args: &[&str]) -> Result<Output, ExecuteWi
         .args(args)
         .output()
         .map_err(ExecuteWithOutputError::Failure)
+}
+
+#[derive(Debug)]
+pub enum ExecuteWithInputAndOutputError {
+    StdinMissing,
+    Unhandled(Box<dyn std::error::Error>),
+}
+
+impl std::fmt::Display for ExecuteWithInputAndOutputError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::StdinMissing => write!(f, "stdin is somehow missing for this command"),
+            Self::Unhandled(e) => write!(f, "{}", e),
+        }
+    }
+}
+
+impl std::error::Error for ExecuteWithInputAndOutputError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::StdinMissing => None,
+            Self::Unhandled(e) => Some(e.as_ref()),
+        }
+    }
+}
+
+pub fn execute_with_input_and_output(
+    input: &str,
+    exe: &str,
+    args: &[&str],
+) -> Result<Output, ExecuteWithInputAndOutputError> {
+    let mut child = Command::new(exe)
+        .args(args)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .map_err(|e| ExecuteWithInputAndOutputError::Unhandled(e.into()))?;
+
+    let mut stdin = child
+        .stdin
+        .take()
+        .ok_or(ExecuteWithInputAndOutputError::StdinMissing)?;
+
+    let input_string = input.to_string();
+    std::thread::spawn(move || {
+        stdin
+            .write_all(input_string.as_bytes())
+            .expect("Failed to write to stdin");
+    });
+
+    child
+        .wait_with_output()
+        .map_err(|e| ExecuteWithInputAndOutputError::Unhandled(e.into()))
 }

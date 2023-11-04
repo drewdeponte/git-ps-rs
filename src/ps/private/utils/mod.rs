@@ -3,7 +3,10 @@ mod mergable;
 mod print_warn;
 mod string_manipulation;
 
-pub use execute::{execute, execute_with_output, ExecuteError, ExecuteWithOutputError};
+pub use execute::{
+    execute, execute_with_input_and_output, execute_with_output, ExecuteError,
+    ExecuteWithInputAndOutputError, ExecuteWithOutputError,
+};
 pub use mergable::merge_option;
 pub use mergable::Mergable;
 pub use print_warn::print_warn;

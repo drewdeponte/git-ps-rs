@@ -155,6 +155,22 @@ pub enum ConfigGetError {
     Failed(git2::Error),
 }
 
+impl std::fmt::Display for ConfigGetError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Failed(e) => write!(f, "{}", e),
+        }
+    }
+}
+
+impl std::error::Error for ConfigGetError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::Failed(e) => Some(e),
+        }
+    }
+}
+
 pub fn config_get_to_option<T>(
     res_val: Result<T, git2::Error>,
 ) -> Result<Option<T>, ConfigGetError> {
@@ -190,6 +206,7 @@ pub enum CreateCommitError {
     CreateUnsignedCommitFailed(CreateUnsignedCommitError),
     ReadSshSigningKeyFailed(std::io::Error),
     UserSigningKeyNotFoundInGitConfig,
+    Unhandled(Box<dyn std::error::Error>),
 }
 
 pub fn create_commit(
@@ -206,6 +223,9 @@ pub fn create_commit(
         .map_err(CreateCommitError::GetCommitGpgsignFailed)?
         .unwrap_or(false);
 
+    let gpg_program_option = config_get_string(config, "gpg.program")
+        .map_err(|e| CreateCommitError::Unhandled(e.into()))?;
+
     if sign_commit_flag {
         let gpg_format_option = config_get_string(config, "gpg.format")
             .map_err(CreateCommitError::GetGpgFormatFailed)?;
@@ -219,7 +239,7 @@ pub fn create_commit(
 
                     create_signed_commit(
                         repo,
-                        signers::gpg_signer(signing_key),
+                        signers::gpg_signer(signing_key, gpg_program_option),
                         dest_ref_name,
                         author,
                         committer,
