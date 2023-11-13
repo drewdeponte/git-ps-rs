@@ -1,5 +1,5 @@
-use super::password_store;
-use super::utils;
+use super::super::password_store;
+use super::super::utils;
 use ssh_key::PrivateKey;
 
 #[derive(Debug)]

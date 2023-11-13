@@ -7,7 +7,6 @@ pub mod hooks;
 pub mod list;
 pub mod password_store;
 pub mod paths;
-pub mod signers;
 pub mod state_computation;
 pub mod string_file_io;
 pub mod utils;
