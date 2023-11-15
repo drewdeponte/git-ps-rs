@@ -49,9 +49,17 @@ mod get_summary;
 mod git_error;
 #[cfg(feature = "backup_cmd")]
 mod hash_object_write;
+mod in_rebase;
+mod in_rebase_done_todos;
+mod in_rebase_head_name;
+mod in_rebase_onto;
+mod in_rebase_todos;
+mod line_to_rebase_todo;
 #[cfg(feature = "backup_cmd")]
 mod read_hashed_object;
+mod rebase_todo;
 mod signers;
+mod str_to_rebase_todos;
 #[cfg(test)]
 mod test_utils;
 mod uncommited_changes_exist;
@@ -78,7 +86,15 @@ pub use get_summary::*;
 pub use git_error::*;
 #[cfg(feature = "backup_cmd")]
 pub use hash_object_write::*;
+pub use in_rebase::*;
+pub use in_rebase_done_todos::*;
+pub use in_rebase_head_name::*;
+pub use in_rebase_onto::*;
+pub use in_rebase_todos::*;
+pub use line_to_rebase_todo::*;
 #[cfg(feature = "backup_cmd")]
 pub use read_hashed_object::*;
+pub use rebase_todo::*;
 pub use signers::*;
+pub use str_to_rebase_todos::*;
 pub use uncommited_changes_exist::*;
