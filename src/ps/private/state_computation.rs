@@ -245,7 +245,7 @@ pub fn get_list_branch_info(
 #[derive(Debug)]
 pub enum GetPatchInfoCollectionError {
     GetBranchHeadOid,
-    GetCommonAncestor(Box<dyn std::error::Error>),
+    GetCommonAncestor(git::CommonAncestorError),
     GetCommits(git::GitError),
     GetRevisionOid(git2::Error),
     FindCommit(git2::Error),
@@ -269,7 +269,7 @@ impl std::error::Error for GetPatchInfoCollectionError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Self::GetBranchHeadOid => None,
-            Self::GetCommonAncestor(e) => Some(e.as_ref()),
+            Self::GetCommonAncestor(e) => Some(e),
             Self::GetCommits(e) => Some(e),
             Self::GetRevisionOid(e) => Some(e),
             Self::FindCommit(e) => Some(e),
@@ -296,13 +296,8 @@ pub fn get_patch_info_collection(
         .get()
         .target()
         .ok_or(GetPatchInfoCollectionError::GetBranchHeadOid)?;
-
-    #[cfg(not(feature = "ext_common_ancestor"))]
     let common_ancestor_oid = git::common_ancestor(repo, branch_head_oid, base_oid)
-        .map_err(|e| GetPatchInfoCollectionError::GetCommonAncestor(e.into()))?;
-    #[cfg(feature = "ext_common_ancestor")]
-    let common_ancestor_oid = git::ext_common_ancestor(branch_head_oid, base_oid)
-        .map_err(|e| GetPatchInfoCollectionError::GetCommonAncestor(e.into()))?;
+        .map_err(GetPatchInfoCollectionError::GetCommonAncestor)?;
 
     let revwalk = git::get_revs(
         repo,

@@ -41,4 +41,3 @@ clap_mangen = "0.2.14"
 
 [features]
 backup_cmd = []
-ext_common_ancestor = []
