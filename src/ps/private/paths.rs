@@ -81,8 +81,8 @@ pub enum PathExistsAndIsExecutable {
 }
 
 pub fn path_exists_and_is_executable(path: &Path) -> PathExistsAndIsExecutable {
-    if path.exists() {
-        if path.is_executable() {
+    if path.exists() { 
+        if path.is_executable()  || cfg!(target_os = "windows") {
             PathExistsAndIsExecutable::ExistsAndIsExecutable
         } else {
             PathExistsAndIsExecutable::ExistsButNotExecutable
