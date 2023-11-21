@@ -1,8 +1,6 @@
 use std::io::{self, Write};
 #[cfg(target_family = "unix")]
 use std::os::unix::process::ExitStatusExt;
-#[cfg(target_family = "windows")]
-use std::os::windows::process::ExitStatusExt;
 use std::process::{Command, ExitStatus, Output, Stdio};
 use std::result::Result;
 
