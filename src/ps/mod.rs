@@ -62,13 +62,19 @@ impl std::error::Error for PatchStackError {
 
 pub fn get_patch_stack(repo: &git2::Repository) -> Result<PatchStack<'_>, PatchStackError> {
     let head_ref = repo.head()?;
-    let upstream_branch_name_buf = head_ref
-        .name()
-        .ok_or(PatchStackError::HeadNoName)
-        .and_then(|head_branch_name| {
-            repo.branch_upstream_name(head_branch_name)
-                .map_err(PatchStackError::GitError)
-        })?;
+    let repo_gitdir_path = repo.path();
+
+    let head_branch_name = match git::in_rebase(repo_gitdir_path) {
+        true => git::in_rebase_head_name(repo_gitdir_path)
+            .unwrap()
+            .trim()
+            .to_string(),
+        false => git::get_current_branch(repo).ok_or(PatchStackError::HeadNoName)?,
+    };
+
+    let upstream_branch_name_buf = repo
+        .branch_upstream_name(&head_branch_name)
+        .map_err(PatchStackError::GitError)?;
     let upstream_branch_name = upstream_branch_name_buf
         .as_str()
         .ok_or(PatchStackError::UpstreamBranchNameNotFound)?;

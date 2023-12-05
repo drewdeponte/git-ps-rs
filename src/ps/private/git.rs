@@ -50,7 +50,6 @@ mod git_error;
 #[cfg(feature = "backup_cmd")]
 mod hash_object_write;
 mod in_rebase;
-mod in_rebase_done_todos;
 mod in_rebase_head_name;
 mod in_rebase_onto;
 mod in_rebase_todos;
@@ -87,7 +86,6 @@ pub use git_error::*;
 #[cfg(feature = "backup_cmd")]
 pub use hash_object_write::*;
 pub use in_rebase::*;
-pub use in_rebase_done_todos::*;
 pub use in_rebase_head_name::*;
 pub use in_rebase_onto::*;
 pub use in_rebase_todos::*;
