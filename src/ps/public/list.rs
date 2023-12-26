@@ -181,6 +181,34 @@ fn rebase_todo_command_to_row(todo: &RebaseTodoCommand, color: bool) -> list::Li
     }
 }
 
+fn get_behind_count(
+    repo: &git2::Repository,
+    patch_stack: &ps::PatchStack,
+    patch_stack_upstream_tracking_branch_name: &str,
+) -> usize {
+    let patch_stack_branch_upstream = repo
+        .find_branch(
+            patch_stack_upstream_tracking_branch_name,
+            git2::BranchType::Remote,
+        )
+        .expect("cur patch stack branch upstream to exist");
+
+    let patch_stack_branch_upstream_oid = patch_stack_branch_upstream
+        .into_reference()
+        .target()
+        .expect("cur patch stack branch upstream to have a target");
+
+    let behind_com_anc = git::common_ancestor(
+        repo,
+        patch_stack.head.target().expect("HEAD to have an oid"),
+        patch_stack_branch_upstream_oid,
+    )
+    .expect("common ancestor between HEAD and upstream tracking branch to exist");
+
+    git::count_commits(repo, patch_stack_branch_upstream_oid, behind_com_anc)
+        .expect("to be able to count commits from remote tracking branch to common ancestor")
+}
+
 pub fn list(color: bool) -> Result<(), ListError> {
     let repo = git::create_cwd_repo().map_err(|_| ListError::RepositoryNotFound)?;
 
@@ -262,11 +290,14 @@ pub fn list(color: bool) -> Result<(), ListError> {
         state_computation::get_list_patch_info(&repo, base_oid, &cur_patch_stack_branch_name)
             .unwrap();
 
+    let behind_count = get_behind_count(&repo, &patch_stack, &cur_patch_stack_branch_upstream_name);
+
     println!(
-        "{} tracking {} [ahead {}]",
+        "{} tracking {} [ahead {}, behind {}]",
         &cur_patch_stack_branch_name,
         &cur_patch_stack_branch_upstream_name,
-        list_of_patches.len()
+        list_of_patches.len(),
+        behind_count,
     );
 
     let list_of_patches_iter: Box<dyn Iterator<Item = _>> = if config.list.reverse_order {
