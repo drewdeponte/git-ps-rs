@@ -68,14 +68,9 @@ fn bg_color(
 ) -> Option<ansi_term::Colour> {
     let super_light_gray = Fixed(237);
 
-    if alternate_colors {
-        if (is_connected_to_prev_row && prev_row_showed_color)
-            || (!is_connected_to_prev_row && !prev_row_showed_color)
-        {
-            Some(super_light_gray)
-        } else {
-            None
-        }
+    if alternate_colors && is_connected_to_prev_row == prev_row_showed_color
+    {
+        Some(super_light_gray)
     } else {
         None
     }
