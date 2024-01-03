@@ -146,5 +146,8 @@ fn apply_list_config_defaults(list_config_dto: &ListConfigDto) -> PsListConfig {
         add_extra_patch_info: list_config_dto.add_extra_patch_info.unwrap_or(false),
         extra_patch_info_length: list_config_dto.extra_patch_info_length.unwrap_or(10),
         reverse_order: list_config_dto.reverse_order.unwrap_or(false),
+        alternate_patch_series_bg_colors: list_config_dto
+            .alternate_patch_series_bg_colors
+            .unwrap_or(true),
     }
 }
