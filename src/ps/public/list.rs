@@ -64,13 +64,18 @@ impl std::error::Error for ListError {
 fn bg_color(
     is_connected_to_prev_row: bool,
     prev_row_showed_color: bool,
+    alternate_colors: bool,
 ) -> Option<ansi_term::Colour> {
     let super_light_gray = Fixed(237);
 
-    if (is_connected_to_prev_row && prev_row_showed_color)
-        || (!is_connected_to_prev_row && !prev_row_showed_color)
-    {
-        Some(super_light_gray)
+    if alternate_colors {
+        if (is_connected_to_prev_row && prev_row_showed_color)
+            || (!is_connected_to_prev_row && !prev_row_showed_color)
+        {
+            Some(super_light_gray)
+        } else {
+            None
+        }
     } else {
         None
     }
@@ -339,7 +344,7 @@ pub fn list(color: bool) -> Result<(), ListError> {
             prev_patch_branches = vec![];
         }
 
-        let bg_color = bg_color(connected_to_prev_row, prev_row_included_bg);
+        let bg_color = bg_color(connected_to_prev_row, prev_row_included_bg, config.list.alternate_colors);
         prev_row_included_bg = bg_color.is_some();
 
         row.add_cell(Some(5), Some(Green), bg_color, format!("{} ", patch.index));

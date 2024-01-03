@@ -41,4 +41,5 @@ pub struct PsListConfig {
     pub add_extra_patch_info: bool,
     pub extra_patch_info_length: usize,
     pub reverse_order: bool,
+    pub alternate_colors: bool,
 }
