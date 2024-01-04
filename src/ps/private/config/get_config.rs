@@ -4,7 +4,7 @@ use super::branch_config_dto::BranchConfigDto;
 use super::config_dto::ConfigDto;
 use super::fetch_config_dto::FetchConfigDto;
 use super::integrate_config_dto::IntegrateConfigDto;
-use super::list_config_dto::ListConfigDto;
+use super::list_config_dto::{ListConfigDto, ColorWithAlternate};
 use super::ps_config::{
     PsBranchConfig, PsConfig, PsFetchConfig, PsIntegrateConfig, PsListConfig, PsPullConfig,
     PsRequestReviewConfig,
@@ -12,6 +12,7 @@ use super::ps_config::{
 use super::pull_config_dto::PullConfigDto;
 use super::read_config_or_default::*;
 use super::request_review_config_dto::RequestReviewConfigDto;
+use ansi_term::Color;
 
 #[derive(Debug)]
 pub enum GetConfigError {
@@ -147,5 +148,29 @@ fn apply_list_config_defaults(list_config_dto: &ListConfigDto) -> PsListConfig {
         extra_patch_info_length: list_config_dto.extra_patch_info_length.unwrap_or(10),
         reverse_order: list_config_dto.reverse_order.unwrap_or(false),
         alternate_colors: list_config_dto.alternate_colors.unwrap_or(true),
+        patch_series_background: list_config_dto.patch_series_background.clone().unwrap_or_else(|| ColorWithAlternate {
+            color: None,
+            color_alternate: Some(Color::Fixed(237)), // super light grey
+        }),
+        patch_series_foreground: list_config_dto.patch_series_foreground.clone().unwrap_or_else(|| ColorWithAlternate {
+            color: None,
+            color_alternate: None
+        }),
+        patch_series_index: list_config_dto.patch_series_index.clone().unwrap_or_else(|| ColorWithAlternate {
+            color: Some(Color::Green),
+            color_alternate: None 
+        }),
+        patch_series_sha: list_config_dto.patch_series_sha.clone().unwrap_or_else(|| ColorWithAlternate {
+            color: Some(Color::Yellow),
+            color_alternate: None
+        }),
+        patch_series_summary: list_config_dto.patch_series_summary.clone().unwrap_or_else(|| ColorWithAlternate {
+            color: Some(Color::Cyan),
+            color_alternate: None
+        }),
+        patch_series_extra_patch_info: list_config_dto.patch_series_extra_patch_info.clone().unwrap_or_else(|| ColorWithAlternate {
+            color: Some(Color::Blue),
+            color_alternate: None
+        }),
     }
 }
