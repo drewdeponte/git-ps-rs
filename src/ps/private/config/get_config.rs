@@ -4,7 +4,7 @@ use super::branch_config_dto::BranchConfigDto;
 use super::config_dto::ConfigDto;
 use super::fetch_config_dto::FetchConfigDto;
 use super::integrate_config_dto::IntegrateConfigDto;
-use super::list_config_dto::ListConfigDto;
+use super::list_config_dto::{ColorWithAlternate, ListConfigDto};
 use super::ps_config::{
     PsBranchConfig, PsConfig, PsFetchConfig, PsIntegrateConfig, PsListConfig, PsPullConfig,
     PsRequestReviewConfig,
@@ -12,6 +12,7 @@ use super::ps_config::{
 use super::pull_config_dto::PullConfigDto;
 use super::read_config_or_default::*;
 use super::request_review_config_dto::RequestReviewConfigDto;
+use ansi_term::Color;
 
 #[derive(Debug)]
 pub enum GetConfigError {
@@ -146,8 +147,50 @@ fn apply_list_config_defaults(list_config_dto: &ListConfigDto) -> PsListConfig {
         add_extra_patch_info: list_config_dto.add_extra_patch_info.unwrap_or(false),
         extra_patch_info_length: list_config_dto.extra_patch_info_length.unwrap_or(10),
         reverse_order: list_config_dto.reverse_order.unwrap_or(false),
-        alternate_patch_series_bg_colors: list_config_dto
-            .alternate_patch_series_bg_colors
+        alternate_patch_series_colors: list_config_dto
+            .alternate_patch_series_colors
             .unwrap_or(true),
+        patch_background: list_config_dto
+            .patch_background
+            .clone()
+            .unwrap_or(ColorWithAlternate {
+                color: None,
+                alternate_color: Some(Color::RGB(58, 58, 58)),
+            }),
+        patch_foreground: list_config_dto
+            .patch_foreground
+            .clone()
+            .unwrap_or(ColorWithAlternate {
+                color: Some(Color::RGB(248, 153, 95)),
+                alternate_color: None,
+            }),
+        patch_index: list_config_dto
+            .patch_index
+            .clone()
+            .unwrap_or(ColorWithAlternate {
+                color: Some(Color::RGB(237, 199, 99)),
+                alternate_color: None,
+            }),
+        patch_sha: list_config_dto
+            .patch_sha
+            .clone()
+            .unwrap_or(ColorWithAlternate {
+                color: Some(Color::RGB(157, 208, 108)),
+                alternate_color: None,
+            }),
+        patch_summary: list_config_dto
+            .patch_summary
+            .clone()
+            .unwrap_or(ColorWithAlternate {
+                color: None,
+                alternate_color: None,
+            }),
+        patch_extra_info: list_config_dto
+            .patch_extra_info
+            .clone()
+            .unwrap_or(ColorWithAlternate {
+                color: Some(Color::RGB(109, 202, 231)),
+                alternate_color: None,
+            }),
     }
 }

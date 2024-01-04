@@ -1,12 +1,12 @@
 use super::super::super::ps;
 use super::super::private::config;
+use super::super::private::config::ColorSelector;
 use super::super::private::git;
 use super::super::private::git::RebaseTodoCommand;
 use super::super::private::list;
 use super::super::private::paths;
 use super::super::private::state_computation;
 use ansi_term::Color;
-use ansi_term::Colour::{Blue, Cyan, Fixed, Green, Yellow};
 use std::cmp::Ordering;
 
 #[derive(Debug)]
@@ -61,20 +61,6 @@ impl std::error::Error for ListError {
     }
 }
 
-fn bg_color(
-    is_connected_to_prev_row: bool,
-    prev_row_showed_color: bool,
-    alternate_patch_series_bg_colors: bool,
-) -> Option<ansi_term::Colour> {
-    let super_light_gray = Fixed(237);
-
-    if alternate_patch_series_bg_colors && is_connected_to_prev_row == prev_row_showed_color {
-        Some(super_light_gray)
-    } else {
-        None
-    }
-}
-
 fn is_connected_to_prev_row(prev_patch_branches: &[String], cur_patch_branches: &[String]) -> bool {
     cur_patch_branches
         .iter()
@@ -83,7 +69,12 @@ fn is_connected_to_prev_row(prev_patch_branches: &[String], cur_patch_branches: 
         .unwrap()
 }
 
-fn rebase_todo_command_to_row(todo: &RebaseTodoCommand, color: bool) -> list::ListRow {
+fn rebase_todo_command_to_row(
+    todo: &RebaseTodoCommand,
+    color: bool,
+    patch_series_index_color: Option<Color>,
+    patch_series_sha_color: Option<Color>,
+) -> list::ListRow {
     let mut row = list::ListRow::new(color);
     match todo {
         RebaseTodoCommand::Pick {
@@ -130,8 +121,18 @@ fn rebase_todo_command_to_row(todo: &RebaseTodoCommand, color: bool) -> list::Li
             keep_only_this_commits_message: _,
             open_editor: _,
         } => {
-            row.add_cell(Some(11), Some(Green), None, format!("{} ", key.clone()));
-            row.add_cell(Some(8), Some(Yellow), None, format!("{:.7} ", sha.clone()));
+            row.add_cell(
+                Some(11),
+                patch_series_index_color,
+                None,
+                format!("{} ", key.clone()),
+            );
+            row.add_cell(
+                Some(8),
+                patch_series_sha_color,
+                None,
+                format!("{:.7} ", sha.clone()),
+            );
             row.add_cell(Some(51), None, None, format!("{:.50} ", rest.clone()));
             row
         }
@@ -143,10 +144,15 @@ fn rebase_todo_command_to_row(todo: &RebaseTodoCommand, color: bool) -> list::Li
             oneline,
             reword: _,
         } => {
-            row.add_cell(Some(11), Some(Green), None, format!("{} ", key.clone()));
+            row.add_cell(
+                Some(11),
+                patch_series_index_color,
+                None,
+                format!("{} ", key.clone()),
+            );
             row.add_cell(
                 Some(8),
-                Some(Yellow),
+                patch_series_sha_color,
                 None,
                 format!("{:.7} ", sha.clone().unwrap_or("".to_string())),
             );
@@ -164,7 +170,12 @@ fn rebase_todo_command_to_row(todo: &RebaseTodoCommand, color: bool) -> list::Li
         | RebaseTodoCommand::Reset { line: _, key, rest }
         | RebaseTodoCommand::UpdateRef { line: _, key, rest }
         | RebaseTodoCommand::Noop { line: _, key, rest } => {
-            row.add_cell(Some(11), Some(Green), None, format!("{} ", key.clone()));
+            row.add_cell(
+                Some(11),
+                patch_series_index_color,
+                None,
+                format!("{} ", key.clone()),
+            );
             row.add_cell(Some(51), None, None, format!("{:.50} ", rest.clone()));
             row
         }
@@ -173,7 +184,12 @@ fn rebase_todo_command_to_row(todo: &RebaseTodoCommand, color: bool) -> list::Li
             key,
             message,
         } => {
-            row.add_cell(Some(11), Some(Green), None, format!("{} ", key.clone()));
+            row.add_cell(
+                Some(11),
+                patch_series_index_color,
+                None,
+                format!("{} ", key.clone()),
+            );
             row.add_cell(Some(51), None, None, format!("{:.50} ", message.clone()));
             row
         }
@@ -252,7 +268,15 @@ pub fn list(color: bool) -> Result<(), ListError> {
                 todos_vec.len()
             );
             for todo in todos_vec.iter().rev() {
-                println!("{}", rebase_todo_command_to_row(todo, color));
+                println!(
+                    "{}",
+                    rebase_todo_command_to_row(
+                        todo,
+                        color,
+                        config.list.patch_index.select_color(false),
+                        config.list.patch_sha.select_color(false)
+                    )
+                );
             }
             println!("(use \"git rebase --edit-todo\" to view and edit)");
             println!("(use \"git rebase --continue\" once you are satisfied with your changes)");
@@ -307,7 +331,7 @@ pub fn list(color: bool) -> Result<(), ListError> {
 
     let mut prev_patch_branches: Vec<String> = vec![];
     let mut connected_to_prev_row: bool;
-    let mut prev_row_included_bg: bool = true;
+    let mut prev_row_had_alternate_colors: bool = true;
 
     for patch in list_of_patches_iter {
         let mut row = list::ListRow::new(color);
@@ -338,40 +362,43 @@ pub fn list(color: bool) -> Result<(), ListError> {
             prev_patch_branches = vec![];
         }
 
-        let bg_color = bg_color(
-            connected_to_prev_row,
-            prev_row_included_bg,
-            config.list.alternate_patch_series_bg_colors,
-        );
-        prev_row_included_bg = bg_color.is_some();
+        let is_alternate = config.list.alternate_patch_series_colors
+            && connected_to_prev_row == prev_row_had_alternate_colors;
+        let bg_color = config.list.patch_background.select_color(is_alternate);
+        prev_row_had_alternate_colors = is_alternate;
+        let fg_color = config.list.patch_foreground.select_color(is_alternate);
+        let sha_color = config.list.patch_sha.select_color(is_alternate);
+        let index_color = config.list.patch_index.select_color(is_alternate);
+        let summary_color = config.list.patch_summary.select_color(is_alternate);
+        let extra_patch_info_color = config.list.patch_extra_info.select_color(is_alternate);
 
-        row.add_cell(Some(5), Some(Green), bg_color, format!("{} ", patch.index));
-        row.add_cell(
-            Some(8),
-            Some(Yellow),
-            bg_color,
-            format!("{:.7} ", patch.oid),
-        );
+        row.add_cell(Some(5), index_color, bg_color, format!("{} ", patch.index));
+        row.add_cell(Some(8), sha_color, bg_color, format!("{:.7} ", patch.oid));
         row.add_cell(
             Some(51),
-            None,
+            summary_color,
             bg_color,
             format!("{:.50} ", patch.summary.clone()),
         );
 
         if let Some(ps_id) = ps::commit_ps_id(&commit) {
             if let Some(patch_info) = patch_info_collection.get(&ps_id) {
-                row.add_cell(Some(2), Some(Cyan), bg_color, "( ");
+                row.add_cell(Some(2), fg_color, bg_color, "( ");
                 for b in patch_info.branches.iter() {
                     match patch_info.branches.len().cmp(&1) {
                         Ordering::Greater => {
-                            row.add_cell(None, None, bg_color, format!("{} ", b.name.clone()));
+                            row.add_cell(None, fg_color, bg_color, format!("{} ", b.name.clone()));
                         }
                         Ordering::Less => {}
                         Ordering::Equal => {
                             let branch_info = patch_info.branches.first().unwrap();
                             if !branch_info.name.starts_with("ps/rr/") {
-                                row.add_cell(None, None, bg_color, format!("{} ", b.name.clone()));
+                                row.add_cell(
+                                    None,
+                                    fg_color,
+                                    bg_color,
+                                    format!("{} ", b.name.clone()),
+                                );
                             }
                         }
                     }
@@ -434,7 +461,12 @@ pub fn list(color: bool) -> Result<(), ListError> {
                             state_string.push('!');
                         }
                     }
-                    row.add_cell(None, Some(Blue), bg_color, format!("{} ", &state_string));
+                    row.add_cell(
+                        None,
+                        extra_patch_info_color,
+                        bg_color,
+                        format!("{} ", &state_string),
+                    );
 
                     if config.list.add_extra_patch_info {
                         let hook_stdout = list::execute_list_additional_info_hook(
@@ -451,18 +483,18 @@ pub fn list(color: bool) -> Result<(), ListError> {
                         let hook_stdout_len = config.list.extra_patch_info_length;
                         row.add_cell(
                             Some(hook_stdout_len + 1),
-                            Some(Blue),
+                            extra_patch_info_color,
                             bg_color,
                             format!("{} ", hook_stdout),
                         );
                     }
                 }
-                row.add_cell(Some(2), Some(Cyan), bg_color, ")");
+                row.add_cell(Some(2), fg_color, bg_color, ")");
             } else {
-                row.add_cell(None, Some(Cyan), bg_color, "()")
+                row.add_cell(None, fg_color, bg_color, "()")
             }
         } else {
-            row.add_cell(None, Some(Cyan), bg_color, "()")
+            row.add_cell(None, fg_color, bg_color, "()")
         }
 
         println!("{}", row);
@@ -476,7 +508,15 @@ pub fn list(color: bool) -> Result<(), ListError> {
             todos_vec.len()
         );
         for todo in todos_vec.iter() {
-            println!("{}", rebase_todo_command_to_row(todo, color));
+            println!(
+                "{}",
+                rebase_todo_command_to_row(
+                    todo,
+                    color,
+                    config.list.patch_index.select_color(false),
+                    config.list.patch_sha.select_color(false)
+                )
+            );
         }
         println!("(use \"git rebase --edit-todo\" to view and edit)");
         println!("(use \"git rebase --continue\" once you are satisfied with your changes)");

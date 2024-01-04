@@ -15,3 +15,4 @@ pub use config_dto::*;
 pub use get_config::*;
 pub use ps_config::*;
 pub use request_review_config_dto::*;
+pub use list_config_dto::ColorSelector;

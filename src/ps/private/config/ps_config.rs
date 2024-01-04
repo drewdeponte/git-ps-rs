@@ -1,3 +1,5 @@
+use super::list_config_dto::ColorWithAlternate;
+
 #[derive(Debug)]
 pub struct PsConfig {
     pub request_review: PsRequestReviewConfig,
@@ -41,5 +43,11 @@ pub struct PsListConfig {
     pub add_extra_patch_info: bool,
     pub extra_patch_info_length: usize,
     pub reverse_order: bool,
-    pub alternate_patch_series_bg_colors: bool,
+    pub alternate_patch_series_colors: bool,
+    pub patch_background: ColorWithAlternate,
+    pub patch_foreground: ColorWithAlternate,
+    pub patch_index: ColorWithAlternate,
+    pub patch_sha: ColorWithAlternate,
+    pub patch_summary: ColorWithAlternate,
+    pub patch_extra_info: ColorWithAlternate,
 }
