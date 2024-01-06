@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# isolate_post_checkout hook using GitHub CLI (https://cli.github.com)
+# isolate_post_checkout hook
 #
 # This hook handles verifying a patch is isolated after checking out the
 # temporary ps/tmp/isolate branch.
