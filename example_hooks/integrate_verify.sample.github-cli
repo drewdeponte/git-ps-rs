@@ -1,0 +1,27 @@
+#!/bin/sh
+
+# integrate_verify hook using GitHub CLI (https://cli.github.com)
+#
+# This hook handles doing any verification checks prior to integrating.
+#
+# In this sample we are making sure that the GitHub Pull Request Checks have
+# all passed utilizing the GitHub CLI. Therefore, you need to make sure that
+# you have the GitHub CLI installed, in your PATH, and have logged into it for
+# this hook to work.
+#
+# Setup
+#
+# - install github cli - on macOS - brew install gh
+# - login to github cli - gh auth login
+
+patch_upstream_branch_name=$1 # string of the patch's associated upstream branch name (e.g. ps/rr/your-patches-branch-name)
+patch_stack_upstream_branch_name_relative_to_remote=$2 # string of the patch stack's branch name (e.g. main)
+patch_stack_upstream_remote_name=$3 # string of the patch stack's remote name (e.g. origin)
+patch_stack_upstream_remote_url=$4 # string of the patch stack's remote url
+
+gh pr -R "$patch_stack_upstream_remote_url" checks $patch_upstream_branch_name
+if [ $? -eq 0 ]; then
+  exit 0
+else
+  exit 1
+fi
