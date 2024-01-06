@@ -457,7 +457,7 @@ mod tests {
         assert!(opt.is_some());
         assert_eq!(
             opt.unwrap(),
-            Uuid::from_str("2dce2a21-72b9-487a-b641-4a0b157b76e8------").unwrap()
+            Uuid::from_str("2dce2a21-72b9-487a-b641-4a0b157b76e8").unwrap()
         );
     }
 
