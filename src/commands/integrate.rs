@@ -56,7 +56,7 @@ pub fn integrate(
                         r#"
   Looks like the patch(es) haven't had a branch associated with them yet.
 
-  You can associate them with gps request-review-branch and gps sync.
+  You can associate them with gps branch and gps request-review.
 
   Or you can skip saftey checks like this one with --force.
         "#,
