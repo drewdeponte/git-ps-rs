@@ -5,7 +5,6 @@ use super::create_signed_commit::{create_signed_commit, CreateSignedCommitError}
 use super::create_unsigned_commit::{create_unsigned_commit, CreateUnsignedCommitError};
 use super::signers;
 use git2;
-use std::fs;
 use std::result::Result;
 use std::str;
 
@@ -16,7 +15,6 @@ pub enum CreateCommitError {
     GetUserSigningKeyFailed(ConfigGetError),
     CreateSignedCommitFailed(CreateSignedCommitError),
     CreateUnsignedCommitFailed(CreateUnsignedCommitError),
-    ReadSshSigningKeyFailed(std::io::Error),
     UserSigningKeyNotFoundInGitConfig,
     Unhandled(Box<dyn std::error::Error>),
 }
@@ -68,22 +66,17 @@ pub fn create_commit(
                         parents,
                     )
                     .map_err(CreateCommitError::CreateSignedCommitFailed),
-                    "ssh" => {
-                        let encoded_key = fs::read_to_string(&signing_key_config)
-                            .map_err(CreateCommitError::ReadSshSigningKeyFailed)?;
-
-                        create_signed_commit(
-                            repo,
-                            signers::ssh_signer(signing_key_config, encoded_key),
-                            dest_ref_name,
-                            author,
-                            committer,
-                            message,
-                            tree,
-                            parents,
-                        )
-                        .map_err(CreateCommitError::CreateSignedCommitFailed)
-                    }
+                    "ssh" => create_signed_commit(
+                        repo,
+                        signers::ssh_signer(signing_key_config, gpg_program_option),
+                        dest_ref_name,
+                        author,
+                        committer,
+                        message,
+                        tree,
+                        parents,
+                    )
+                    .map_err(CreateCommitError::CreateSignedCommitFailed),
                     "x509" => {
                         eprintln!("Warning: gps currently does NOT support x509 signatures. See issue #44 - https://github.com/uptech/git-ps-rs/issues");
                         eprintln!("The commit has been created unsigned!");
