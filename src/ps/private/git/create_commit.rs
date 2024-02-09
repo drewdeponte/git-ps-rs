@@ -52,35 +52,29 @@ pub fn create_commit(
                     })
                     .map_err(|e| CreateCommitError::Unhandled(e.into()))?;
 
+                let signing_key_config = config_get_string(config, "user.signingkey")
+                    .map_err(CreateCommitError::GetUserSigningKeyFailed)?
+                    .ok_or(CreateCommitError::UserSigningKeyNotFoundInGitConfig)?;
+
                 match val.as_str() {
-                    "openpgp" => {
-                        let signing_key = config_get_string(config, "user.signingkey")
-                            .map_err(CreateCommitError::GetUserSigningKeyFailed)?
-                            .ok_or(CreateCommitError::UserSigningKeyNotFoundInGitConfig)?;
-
-                        create_signed_commit(
-                            repo,
-                            signers::gpg_signer(signing_key, gpg_program_option),
-                            dest_ref_name,
-                            author,
-                            committer,
-                            message,
-                            tree,
-                            parents,
-                        )
-                        .map_err(CreateCommitError::CreateSignedCommitFailed)
-                    }
+                    "openpgp" => create_signed_commit(
+                        repo,
+                        signers::gpg_signer(signing_key_config, gpg_program_option),
+                        dest_ref_name,
+                        author,
+                        committer,
+                        message,
+                        tree,
+                        parents,
+                    )
+                    .map_err(CreateCommitError::CreateSignedCommitFailed),
                     "ssh" => {
-                        let signing_key_path = config_get_string(config, "user.signingkey")
-                            .map_err(CreateCommitError::GetUserSigningKeyFailed)?
-                            .ok_or(CreateCommitError::UserSigningKeyNotFoundInGitConfig)?;
-
-                        let encoded_key = fs::read_to_string(&signing_key_path)
+                        let encoded_key = fs::read_to_string(&signing_key_config)
                             .map_err(CreateCommitError::ReadSshSigningKeyFailed)?;
 
                         create_signed_commit(
                             repo,
-                            signers::ssh_signer(signing_key_path, encoded_key),
+                            signers::ssh_signer(signing_key_config, encoded_key),
                             dest_ref_name,
                             author,
                             committer,
