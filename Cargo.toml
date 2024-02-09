@@ -30,8 +30,6 @@ ssh-key = { version = "0.6.1", features = ["alloc", "encryption", "ed25519", "rs
 rpassword = "7.2.0"
 clap = { version = "4.4.6", features = ["derive"] }
 keyring = "2"
-
-[dev-dependencies]
 tempfile = "3.3.0"
 
 [build-dependencies]
