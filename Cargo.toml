@@ -26,7 +26,6 @@ toml = "0.8.8"
 ansi_term = { version = "0.12.1", features = ["derive_serde_style"] }
 ureq = "2.4.0"
 version-compare = "0.1.0"
-ssh-key = { version = "0.6.1", features = ["alloc", "encryption", "ed25519", "rsa"] }
 rpassword = "7.2.0"
 clap = { version = "4.4.6", features = ["derive"] }
 keyring = "2"
