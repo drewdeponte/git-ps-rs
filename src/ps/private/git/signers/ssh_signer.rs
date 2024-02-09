@@ -70,3 +70,13 @@ pub fn ssh_signer(
         }
     }
 }
+
+fn literal_ssh_key(signing_key_config: &str) -> Option<&str> {
+    if signing_key_config.starts_with("ssh-") {
+        Some(signing_key_config)
+    } else if let Some(stripped) = signing_key_config.strip_prefix("key::") {
+        Some(stripped)
+    } else {
+        None
+    }
+}
