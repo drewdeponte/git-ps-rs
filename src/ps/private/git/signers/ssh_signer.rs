@@ -114,6 +114,26 @@ impl std::error::Error for SshSignStringError {
     }
 }
 
+fn ssh_sign_string(
+    commit: String,
+    signing_key: String,
+    program: Option<String>,
+) -> Result<String, SshSignStringError> {
+    let prog = program.unwrap_or("ssh-keygen".to_string());
+    let dir = tempdir().map_err(SshSignStringError::CreateTempDirFailed)?;
+    // keep the binding alive so the path doesn't get dropped
+    let dir_binding = dir.path().join(".tmp_signing_key");
+    let path = signing_key_path(&dir_binding, &signing_key)?;
+    let output = utils::execute_with_input_and_output(
+        &commit,
+        &prog,
+        &["-Y", "sign", "-n", "git", "-f", path],
+    )
+    .map_err(|e| SshSignStringError::Unhandled(e.into()))?;
+
+    String::from_utf8(output.stdout).map_err(|e| SshSignStringError::Unhandled(e.into()))
+}
+
 fn literal_ssh_key(signing_key_config: &str) -> Option<&str> {
     if signing_key_config.starts_with("ssh-") {
         Some(signing_key_config)
