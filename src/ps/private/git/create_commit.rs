@@ -34,81 +34,61 @@ pub fn create_commit(
         .unwrap_or(false);
 
     if sign_commit_flag {
-        let gpg_format_option = config_get_string(config, "gpg.format")
-            .map_err(CreateCommitError::GetGpgFormatFailed)?;
+        let gpg_format = config_get_string(config, "gpg.format")
+            .map_err(CreateCommitError::GetGpgFormatFailed)?
+            .unwrap_or(("openpgp").to_string());
 
-        match gpg_format_option {
-            Some(val) => {
-                // If program is specified for the desired format, use that program to sign the commit.
-                // Otherwise, fallback to the general program (legacy for opengpg).
-                let gpg_program_option = config_get_string(config, &format!("gpg.{}.program", val))
-                    .and_then(|opt| {
-                        opt.map_or_else(
-                            || config_get_string(config, "gpg.program"),
-                            |v| Ok(Some(v)),
-                        )
-                    })
-                    .map_err(|e| CreateCommitError::Unhandled(e.into()))?;
+        // If program is specified for the desired format, use that program to sign the commit.
+        // Otherwise, fallback to the general program (legacy for opengpg).
+        let gpg_program_option = config_get_string(config, &format!("gpg.{}.program", gpg_format))
+            .and_then(|opt| {
+                opt.map_or_else(|| config_get_string(config, "gpg.program"), |v| Ok(Some(v)))
+            })
+            .map_err(|e| CreateCommitError::Unhandled(e.into()))?;
 
-                let signing_key_config = config_get_string(config, "user.signingkey")
-                    .map_err(CreateCommitError::GetUserSigningKeyFailed)?
-                    .ok_or(CreateCommitError::UserSigningKeyNotFoundInGitConfig)?;
+        let signing_key_config = config_get_string(config, "user.signingkey")
+            .map_err(CreateCommitError::GetUserSigningKeyFailed)?
+            .ok_or(CreateCommitError::UserSigningKeyNotFoundInGitConfig)?;
 
-                match val.as_str() {
-                    "openpgp" => create_signed_commit(
-                        repo,
-                        signers::gpg_signer(signing_key_config, gpg_program_option),
-                        dest_ref_name,
-                        author,
-                        committer,
-                        message,
-                        tree,
-                        parents,
-                    )
-                    .map_err(CreateCommitError::CreateSignedCommitFailed),
-                    "ssh" => create_signed_commit(
-                        repo,
-                        signers::ssh_signer(signing_key_config, gpg_program_option),
-                        dest_ref_name,
-                        author,
-                        committer,
-                        message,
-                        tree,
-                        parents,
-                    )
-                    .map_err(CreateCommitError::CreateSignedCommitFailed),
-                    "x509" => {
-                        eprintln!("Warning: gps currently does NOT support x509 signatures. See issue #44 - https://github.com/uptech/git-ps-rs/issues");
-                        eprintln!("The commit has been created unsigned!");
-                        create_unsigned_commit(
-                            repo,
-                            dest_ref_name,
-                            author,
-                            committer,
-                            message,
-                            tree,
-                            parents,
-                        )
-                        .map_err(CreateCommitError::CreateUnsignedCommitFailed)
-                    }
-                    _ => {
-                        eprintln!("Warning: gps currently only supports GPG & SSH signatures. See issue #44 - https://github.com/uptech/git-ps-rs/issues");
-                        eprintln!("The commit has been created unsigned!");
-                        create_unsigned_commit(
-                            repo,
-                            dest_ref_name,
-                            author,
-                            committer,
-                            message,
-                            tree,
-                            parents,
-                        )
-                        .map_err(CreateCommitError::CreateUnsignedCommitFailed)
-                    }
-                }
+        match gpg_format.as_str() {
+            "openpgp" => create_signed_commit(
+                repo,
+                signers::gpg_signer(signing_key_config, gpg_program_option),
+                dest_ref_name,
+                author,
+                committer,
+                message,
+                tree,
+                parents,
+            )
+            .map_err(CreateCommitError::CreateSignedCommitFailed),
+            "ssh" => create_signed_commit(
+                repo,
+                signers::ssh_signer(signing_key_config, gpg_program_option),
+                dest_ref_name,
+                author,
+                committer,
+                message,
+                tree,
+                parents,
+            )
+            .map_err(CreateCommitError::CreateSignedCommitFailed),
+            "x509" => {
+                eprintln!("Warning: gps currently does NOT support x509 signatures. See issue #44 - https://github.com/uptech/git-ps-rs/issues");
+                eprintln!("The commit has been created unsigned!");
+                create_unsigned_commit(
+                    repo,
+                    dest_ref_name,
+                    author,
+                    committer,
+                    message,
+                    tree,
+                    parents,
+                )
+                .map_err(CreateCommitError::CreateUnsignedCommitFailed)
             }
-            None => {
-                eprintln!("Warning: Your git config gpg.format doesn't appear to be set even though commit.gpgsign is enabled");
+            _ => {
+                eprintln!("Warning: gps currently only supports GPG & SSH signatures. See issue #44 - https://github.com/uptech/git-ps-rs/issues");
                 eprintln!("The commit has been created unsigned!");
                 create_unsigned_commit(
                     repo,
