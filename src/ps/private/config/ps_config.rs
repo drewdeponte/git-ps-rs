@@ -1,4 +1,4 @@
-use super::list_config_dto::ColorWithAlternate;
+use super::list::ColorWithAlternate;
 
 #[derive(Debug)]
 pub struct PsConfig {

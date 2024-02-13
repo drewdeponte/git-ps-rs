@@ -1,10 +1,10 @@
 use super::super::utils;
-use super::branch_config_dto::*;
-use super::fetch_config_dto::*;
-use super::integrate_config_dto::*;
-use super::list_config_dto::*;
-use super::pull_config_dto::*;
-use super::request_review_config_dto::*;
+use super::branch::BranchConfigDto;
+use super::fetch::FetchConfigDto;
+use super::integrate::IntegrateConfigDto;
+use super::list::ListConfigDto;
+use super::pull::PullConfigDto;
+use super::request_review::RequestReviewConfigDto;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize, Default)]

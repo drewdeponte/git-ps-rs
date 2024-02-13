@@ -5,7 +5,6 @@ pub mod config;
 pub mod git;
 pub mod hooks;
 pub mod list;
-pub mod password_store;
 pub mod paths;
 pub mod state_computation;
 pub mod string_file_io;

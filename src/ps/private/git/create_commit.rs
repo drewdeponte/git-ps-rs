@@ -1,6 +1,4 @@
-use super::config_get_bool::config_get_bool;
-use super::config_get_error::ConfigGetError;
-use super::config_get_string::config_get_string;
+use super::config::{config_get_bool, config_get_string, ConfigGetError};
 use super::create_signed_commit::{create_signed_commit, CreateSignedCommitError};
 use super::create_unsigned_commit::{create_unsigned_commit, CreateUnsignedCommitError};
 use super::signers;

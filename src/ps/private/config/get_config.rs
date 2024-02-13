@@ -1,17 +1,17 @@
 use super::super::paths;
 use super::super::utils::*;
-use super::branch_config_dto::BranchConfigDto;
+use super::branch::BranchConfigDto;
 use super::config_dto::ConfigDto;
-use super::fetch_config_dto::FetchConfigDto;
-use super::integrate_config_dto::IntegrateConfigDto;
-use super::list_config_dto::{ColorWithAlternate, ListConfigDto};
+use super::fetch::FetchConfigDto;
+use super::integrate::IntegrateConfigDto;
+use super::list::{ColorWithAlternate, ListConfigDto};
 use super::ps_config::{
     PsBranchConfig, PsConfig, PsFetchConfig, PsIntegrateConfig, PsListConfig, PsPullConfig,
     PsRequestReviewConfig,
 };
-use super::pull_config_dto::PullConfigDto;
+use super::pull::PullConfigDto;
 use super::read_config_or_default::*;
-use super::request_review_config_dto::RequestReviewConfigDto;
+use super::request_review::RequestReviewConfigDto;
 use ansi_term::Color;
 
 #[derive(Debug)]

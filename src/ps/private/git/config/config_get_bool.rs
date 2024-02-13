@@ -1,5 +1,4 @@
-use super::config_get_error::ConfigGetError;
-use super::config_get_to_option::config_get_to_option;
+use super::{config_get_to_option, ConfigGetError};
 use git2;
 use std::result::Result;
 

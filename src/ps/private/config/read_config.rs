@@ -1,4 +1,4 @@
-use super::config_dto::*;
+use super::ConfigDto;
 use std::fs;
 use std::io;
 use std::path;

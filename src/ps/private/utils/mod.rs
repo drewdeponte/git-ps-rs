@@ -5,7 +5,7 @@ mod string_manipulation;
 
 pub use execute::{
     execute, execute_with_input_and_output, execute_with_output, ExecuteError,
-    ExecuteWithInputAndOutputError, ExecuteWithOutputError,
+    ExecuteWithOutputError,
 };
 pub use mergable::merge_option;
 pub use mergable::Mergable;

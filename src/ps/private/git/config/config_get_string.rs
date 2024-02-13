@@ -1,5 +1,4 @@
-use super::config_get_error::ConfigGetError;
-use super::config_get_to_option::config_get_to_option;
+use super::{config_get_to_option, ConfigGetError};
 
 pub fn config_get_string(
     config: &git2::Config,

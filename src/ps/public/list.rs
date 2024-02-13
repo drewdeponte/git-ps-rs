@@ -1,6 +1,6 @@
 use super::super::super::ps;
 use super::super::private::config;
-use super::super::private::config::ColorSelector;
+use super::super::private::config::list::ColorSelector;
 use super::super::private::git;
 use super::super::private::git::RebaseTodoCommand;
 use super::super::private::list;
