@@ -65,7 +65,7 @@ fn ssh_sign_string(
     let output = utils::execute_with_input_and_output(
         &commit,
         &prog,
-        &["-Y", "sign", "-n", "git", "-f", path],
+        &["-Y", "sign", "-n", "git", "-q", "-f", path],
     )
     .map_err(|e| SshSignStringError::Unhandled(e.into()))?;
 
