@@ -1,11 +1,7 @@
 use super::signer_error::SignerError;
 use crate::ps::private::utils;
-use std::{
-    fs::File,
-    io::{self, Write},
-    path::PathBuf,
-};
-use tempfile::tempdir;
+use std::{fs::File, io::Write};
+use tempfile::{tempdir, NamedTempFile};
 
 pub fn ssh_signer(
     signing_key: String,
@@ -19,23 +15,17 @@ pub fn ssh_signer(
 
 #[derive(Debug)]
 enum SshSignStringError {
-    CreateTempDirFailed(io::Error),
-    CreateTempFileFailed(io::Error),
-    WriteTempFileFailed(io::Error),
-    TempPathToStrFailed,
+    MissingOption,
+    SignCommandFailed(Vec<u8>),
     Unhandled(Box<dyn std::error::Error>),
 }
 
 impl std::fmt::Display for SshSignStringError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            SshSignStringError::CreateTempDirFailed(e) => write!(f, "{}", e),
-            SshSignStringError::CreateTempFileFailed(e) => write!(f, "{}", e),
-            SshSignStringError::WriteTempFileFailed(e) => write!(f, "{}", e),
-            SshSignStringError::TempPathToStrFailed => {
-                write!(f, "Failed to convert temp path to string")
-            }
-            SshSignStringError::Unhandled(e) => write!(f, "{}", e),
+            Self::MissingOption => write!(f, "unexpected option missing"),
+            Self::SignCommandFailed(stderr) => write!(f, "{:?}", stderr),
+            Self::Unhandled(e) => write!(f, "{}", e),
         }
     }
 }
@@ -43,33 +33,105 @@ impl std::fmt::Display for SshSignStringError {
 impl std::error::Error for SshSignStringError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
-            Self::CreateTempDirFailed(e) => Some(e),
-            Self::CreateTempFileFailed(e) => Some(e),
-            Self::WriteTempFileFailed(e) => Some(e),
-            Self::TempPathToStrFailed => None,
+            Self::MissingOption => None,
+            Self::SignCommandFailed(_) => None,
             Self::Unhandled(e) => Some(e.as_ref()),
         }
     }
 }
 
 fn ssh_sign_string(
-    commit: String,
+    string: String,
     signing_key: String,
     program: Option<String>,
 ) -> Result<String, SshSignStringError> {
     let prog = program.unwrap_or("ssh-keygen".to_string());
-    let dir = tempdir().map_err(SshSignStringError::CreateTempDirFailed)?;
-    // keep the binding alive so the path doesn't get dropped
-    let dir_binding = dir.path().join(".tmp_signing_key");
-    let path = signing_key_path(&dir_binding, &signing_key)?;
-    let output = utils::execute_with_input_and_output(
-        &commit,
-        &prog,
-        &["-Y", "sign", "-n", "git", "-q", "-f", path],
-    )
-    .map_err(|e| SshSignStringError::Unhandled(e.into()))?;
+    let mut is_literal_key = false;
 
-    String::from_utf8(output.stdout).map_err(|e| SshSignStringError::Unhandled(e.into()))
+    let ssh_key_path = match literal_ssh_key(&signing_key) {
+        Some(ssh_key_content) => {
+            is_literal_key = true;
+
+            // create a temporary directory & possibly a temporary file to hold the sigining key
+            // for use with the ssh-keygen command
+            let dir = tempdir().map_err(|e| SshSignStringError::Unhandled(e.into()))?;
+            let tmp_ssh_key_path = dir.path().join(".tmp_signing_key");
+            let mut file = File::create(tmp_ssh_key_path.as_path())
+                .map_err(|e| SshSignStringError::Unhandled(e.into()))?;
+            file.write(ssh_key_content.as_bytes())
+                .map_err(|e| SshSignStringError::Unhandled(e.into()))?;
+            tmp_ssh_key_path
+        }
+        None => {
+            let mut path_buf = std::path::PathBuf::new();
+            path_buf.push(&signing_key);
+            path_buf
+        }
+    };
+
+    let ssh_key_path_str = ssh_key_path
+        .to_str()
+        .ok_or(SshSignStringError::MissingOption)?;
+
+    // write the string to sign to a temporary file that we can
+    // reference in the ssh-keygen command
+    let mut tmp_string_file =
+        NamedTempFile::new().map_err(|e| SshSignStringError::Unhandled(e.into()))?;
+    tmp_string_file
+        .write(string.as_bytes())
+        .map_err(|e| SshSignStringError::Unhandled(e.into()))?;
+    // Close the file, but keep the path to it around.
+    let tmp_string_file_path = tmp_string_file.into_temp_path();
+    let tmp_string_file_path_str = tmp_string_file_path
+        .to_str()
+        .ok_or(SshSignStringError::MissingOption)?;
+
+    let output = match is_literal_key {
+        true => utils::execute_with_output(
+            &prog,
+            &[
+                "-Y",
+                "sign",
+                "-n",
+                "git",
+                "-f",
+                ssh_key_path_str,
+                "-U",
+                tmp_string_file_path_str,
+            ],
+        )
+        .map_err(|e| SshSignStringError::Unhandled(e.into()))?,
+        false => utils::execute_with_output(
+            &prog,
+            &[
+                "-Y",
+                "sign",
+                "-n",
+                "git",
+                "-f",
+                ssh_key_path_str,
+                tmp_string_file_path_str,
+            ],
+        )
+        .map_err(|e| SshSignStringError::Unhandled(e.into()))?,
+    };
+
+    let signed_content_file_path = tmp_string_file_path.to_path_buf();
+
+    tmp_string_file_path
+        .close()
+        .map_err(|e| SshSignStringError::Unhandled(e.into()))?;
+
+    if !output.status.success() {
+        return Err(SshSignStringError::SignCommandFailed(output.stderr));
+    }
+
+    // read the signature from the produced file
+    let signed_content_file_path_str = signed_content_file_path
+        .to_str()
+        .ok_or(SshSignStringError::MissingOption)?;
+    std::fs::read_to_string(format!("{}.sig", signed_content_file_path_str))
+        .map_err(|e| SshSignStringError::Unhandled(e.into()))
 }
 
 fn literal_ssh_key(signing_key_config: &str) -> Option<&str> {
@@ -79,20 +141,5 @@ fn literal_ssh_key(signing_key_config: &str) -> Option<&str> {
         Some(stripped)
     } else {
         None
-    }
-}
-
-// If the signing key is a literal SSH key, write it to a temporary file and return the path.
-fn signing_key_path<'a>(
-    path: &'a PathBuf,
-    signing_key_config: &'a str,
-) -> Result<&'a str, SshSignStringError> {
-    match literal_ssh_key(signing_key_config) {
-        Some(literal) => {
-            let mut file = File::create(path).map_err(SshSignStringError::CreateTempFileFailed)?;
-            writeln!(file, "{}", literal).map_err(SshSignStringError::WriteTempFileFailed)?;
-            path.to_str().ok_or(SshSignStringError::TempPathToStrFailed)
-        }
-        None => Ok(signing_key_config),
     }
 }

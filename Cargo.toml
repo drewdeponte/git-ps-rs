@@ -27,7 +27,7 @@ ansi_term = { version = "0.12.1", features = ["derive_serde_style"] }
 ureq = "2.4.0"
 version-compare = "0.1.0"
 clap = { version = "4.4.6", features = ["derive"] }
-tempfile = "3.3.0"
+tempfile = "3.10.1"
 
 [build-dependencies]
 clap = { version = "4.4.6", features = ["string"] }
