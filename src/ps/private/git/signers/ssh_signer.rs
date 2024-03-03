@@ -116,7 +116,7 @@ fn ssh_sign_string(
         .map_err(|e| SshSignStringError::Unhandled(e.into()))?,
     };
 
-    let signed_content_file_path = tmp_string_file_path.to_path_buf();
+    let content_to_sign_file_path = tmp_string_file_path.to_path_buf();
 
     tmp_string_file_path
         .close()
@@ -127,11 +127,16 @@ fn ssh_sign_string(
     }
 
     // read the signature from the produced file
-    let signed_content_file_path_str = signed_content_file_path
+    let content_to_sign_file_path_str = content_to_sign_file_path
         .to_str()
         .ok_or(SshSignStringError::MissingOption)?;
-    std::fs::read_to_string(format!("{}.sig", signed_content_file_path_str))
-        .map_err(|e| SshSignStringError::Unhandled(e.into()))
+    let signed_content_file_path = format!("{}.sig", &content_to_sign_file_path_str);
+    let signed_content = std::fs::read_to_string(&signed_content_file_path)
+        .map_err(|e| SshSignStringError::Unhandled(e.into()))?;
+    std::fs::remove_file(&signed_content_file_path)
+        .map_err(|e| SshSignStringError::Unhandled(e.into()))?;
+
+    Ok(signed_content)
 }
 
 fn literal_ssh_key(signing_key_config: &str) -> Option<&str> {
