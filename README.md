@@ -24,8 +24,8 @@ To find details on contributing and developing this project see [DEVELOPMENT.md]
 
 ## License
 
-`git-ps-rs` is Copyright © 2020 UpTech Works, LLC. It is free software, and
-may be redistributed under the terms specified in the LICENSE file.
+`git-ps-rs` is Copyright © 2020 UpTech Works, LLC. It is free software, and may
+be redistributed under the terms specified in the LICENSE file.
 
 ## About
 
