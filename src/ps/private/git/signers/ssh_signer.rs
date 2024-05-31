@@ -47,14 +47,14 @@ fn ssh_sign_string(
 ) -> Result<String, SshSignStringError> {
     let prog = program.unwrap_or("ssh-keygen".to_string());
     let mut is_literal_key = false;
+    // create a temporary directory to hold a temp file for ssh key path in the literal ssh key
+    // case
     let dir = tempdir().map_err(|e| SshSignStringError::Unhandled(e.into()))?;
 
     let ssh_key_path = match literal_ssh_key(&signing_key) {
         Some(ssh_key_content) => {
             is_literal_key = true;
 
-            // create a temporary directory & possibly a temporary file to hold the sigining key
-            // for use with the ssh-keygen command
             let tmp_ssh_key_path = dir.path().join(".tmp_signing_key");
             let mut file = File::create(tmp_ssh_key_path.as_path())
                 .map_err(|e| SshSignStringError::Unhandled(e.into()))?;
