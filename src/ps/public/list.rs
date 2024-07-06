@@ -435,7 +435,6 @@ pub fn list(color: bool) -> Result<(), ListError> {
 
                     let upstream_opt = b.upstream.clone();
                     if let Some(upstream) = upstream_opt {
-                        state_string.push('r');
                         let upstream_branch_patch_opt: Option<state_computation::PatchInfo> =
                             upstream
                                 .patches
@@ -446,19 +445,22 @@ pub fn list(color: bool) -> Result<(), ListError> {
                                 .first()
                                 .cloned();
 
-                        match commit_diff_id {
-                            Some(id) => {
-                                if let Some(upstream_branch_patch) = upstream_branch_patch_opt {
-                                    if upstream_branch_patch.commit_diff_id != id {
-                                        state_string.push('*');
+                        if upstream_branch_patch_opt.is_some() {
+                            state_string.push('r');
+                            match commit_diff_id {
+                                Some(id) => {
+                                    if let Some(upstream_branch_patch) = upstream_branch_patch_opt {
+                                        if upstream_branch_patch.commit_diff_id != id {
+                                            state_string.push('*');
+                                        }
                                     }
                                 }
+                                None => state_string.push('*'),
                             }
-                            None => state_string.push('*'),
-                        }
 
-                        if upstream.patches.len() < upstream.commit_count {
-                            state_string.push('!');
+                            if upstream.patches.len() < upstream.commit_count {
+                                state_string.push('!');
+                            }
                         }
                     }
                     row.add_cell(
