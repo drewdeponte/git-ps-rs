@@ -51,7 +51,7 @@ pub fn find_hook(
         [repo_root, ".git-ps", "hooks", filename].iter().collect();
     let repository_level_hook_pathbuf: PathBuf =
         [repo_gitdir, "git-ps", "hooks", filename].iter().collect();
-    let mut user_level_hook_pathbuf: PathBuf = homedir::get_my_home()
+    let mut user_level_hook_pathbuf: PathBuf = homedir::my_home()
         .map_err(FindHookError::PathExpandHomeFailed)?
         .ok_or(FindHookError::HomeDirNotFound)?;
     user_level_hook_pathbuf.push(".config");

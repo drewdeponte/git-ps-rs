@@ -67,7 +67,7 @@ impl std::error::Error for UserLevelConfigPathError {
 
 pub fn user_level_config_path() -> Result<PathBuf, UserLevelConfigPathError> {
     let path_string = ".config/git-ps/config.toml".to_string();
-    let mut path = homedir::get_my_home()
+    let mut path = homedir::my_home()
         .map_err(UserLevelConfigPathError::PathExpandHomeFailed)?
         .ok_or(UserLevelConfigPathError::HomeDirNotFound)?;
     path.push(path_string);
