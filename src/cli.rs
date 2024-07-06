@@ -80,6 +80,11 @@ pub struct BackupStackCmdOpts {
     pub branch_name: String,
 }
 
+#[derive(Debug, Args)]
+pub struct PushCmdOpts {
+    pub branch_name: String,
+}
+
 #[derive(Debug, Subcommand)]
 pub enum Command {
     /// (b) - Create a branch for a patch or patch series
@@ -236,6 +241,10 @@ either a Git alias or a shell alias for that command.
     /// (a) Append the specified patch(es) to the specified patch series
     #[command(name = "append", alias = "a")]
     Append(AppendCmdOpts),
+
+    /// Push the local patches of the named patch series up to it's remote tracking branch
+    #[command(name = "push")]
+    Push(PushCmdOpts),
 
     /// (iso) - isolate a patch or series of patches for manual testing or evaluation.
     ///

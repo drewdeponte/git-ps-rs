@@ -9,6 +9,7 @@ pub mod isolate;
 pub mod latest_github_release;
 pub mod list;
 pub mod pull;
+pub mod push;
 pub mod rebase;
 pub mod request_review;
 pub mod sha;

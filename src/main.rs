@@ -47,6 +47,7 @@ fn main() {
         cli::Command::Append(opts) => {
             commands::append::append(opts.patch_index_or_range, opts.branch_name, cli.color)
         }
+        cli::Command::Push(opts) => commands::push::push(opts.branch_name, cli.color),
         cli::Command::Isolate(opts) => {
             commands::isolate::isolate(opts.patch_index_or_range, cli.color)
         }
