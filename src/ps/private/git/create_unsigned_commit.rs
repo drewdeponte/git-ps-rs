@@ -3,8 +3,10 @@ use std::result::Result;
 
 #[derive(Debug)]
 pub enum CreateUnsignedCommitError {
+    #[allow(dead_code)]
     FindDestinationReferenceFailed(git2::Error),
     DestinationReferenceNameNotFound,
+    #[allow(dead_code)]
     CreateCommitFailed(git2::Error),
 }
 

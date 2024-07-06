@@ -5,14 +5,21 @@ use std::str;
 
 #[derive(Debug)]
 pub enum CreateSignedCommitError {
+    #[allow(dead_code)]
     CreateCommitBuffer(git2::Error),
+    #[allow(dead_code)]
     FromUtf8(str::Utf8Error),
+    #[allow(dead_code)]
     SigningFailed(signers::SignerError),
+    #[allow(dead_code)]
     FindDestinationReference(git2::Error),
+    #[allow(dead_code)]
     CommitSigned(git2::Error),
+    #[allow(dead_code)]
     SetReferenceTarget(git2::Error),
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn create_signed_commit<F>(
     repo: &'_ git2::Repository,
     signer: F,

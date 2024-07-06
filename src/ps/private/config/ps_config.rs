@@ -7,18 +7,11 @@ pub struct PsConfig {
     pub integrate: PsIntegrateConfig,
     pub fetch: PsFetchConfig,
     pub list: PsListConfig,
-    pub branch: PsBranchConfig,
 }
 
 #[derive(Debug)]
 pub struct PsRequestReviewConfig {
     pub verify_isolation: bool,
-}
-
-#[derive(Debug)]
-pub struct PsBranchConfig {
-    pub verify_isolation: bool,
-    pub push_to_remote: bool,
 }
 
 #[derive(Debug)]

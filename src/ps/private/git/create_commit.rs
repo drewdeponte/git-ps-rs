@@ -8,15 +8,23 @@ use std::str;
 
 #[derive(Debug)]
 pub enum CreateCommitError {
+    #[allow(dead_code)]
     GetCommitGpgsignFailed(ConfigGetError),
+    #[allow(dead_code)]
     GetGpgFormatFailed(ConfigGetError),
+    #[allow(dead_code)]
     GetUserSigningKeyFailed(ConfigGetError),
+    #[allow(dead_code)]
     CreateSignedCommitFailed(CreateSignedCommitError),
+    #[allow(dead_code)]
     CreateUnsignedCommitFailed(CreateUnsignedCommitError),
+    #[allow(dead_code)]
     UserSigningKeyNotFoundInGitConfig,
+    #[allow(dead_code)]
     Unhandled(Box<dyn std::error::Error>),
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn create_commit(
     repo: &'_ git2::Repository,
     config: &'_ git2::Config,

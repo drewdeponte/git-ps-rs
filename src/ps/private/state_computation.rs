@@ -124,9 +124,7 @@ pub fn get_list_local_branches_with_info(
 #[derive(Debug, Clone)]
 pub struct ListBranchInfo {
     pub name: String,
-    pub reference: String,
     pub patches: Vec<PatchInfo>,
-    pub commit_count: usize,
     pub upstream: Option<ListUpstreamBranchInfo>,
 }
 
@@ -134,14 +132,12 @@ pub struct ListBranchInfo {
 pub struct PatchInfo {
     pub patch_id: Uuid,
     pub commit_diff_id: git2::Oid,
-    pub commit_timestamp: git2::Time,
 }
 
 #[derive(Debug, Clone)]
 pub struct ListUpstreamBranchInfo {
     pub name: String,
     pub reference: String,
-    pub remote: String,
     pub patches: Vec<PatchInfo>,
     pub commit_count: usize,
 }
@@ -151,7 +147,6 @@ pub enum GetListBranchInfoError {
     GetNameFailed(git2::Error),
     NameInvalidUtf8,
     ReferenceInvalidUtf8,
-    RemoteInvalidUtf8,
     GetPatchInfoCollectionFailed(GetPatchInfoCollectionError),
 }
 
@@ -161,7 +156,6 @@ impl std::fmt::Display for GetListBranchInfoError {
             Self::GetNameFailed(e) => write!(f, "get name failed, {}", e),
             Self::NameInvalidUtf8 => write!(f, "name invalid utf-8"),
             Self::ReferenceInvalidUtf8 => write!(f, "reference invalid utf-8"),
-            Self::RemoteInvalidUtf8 => write!(f, "remote invalid utf-8"),
             Self::GetPatchInfoCollectionFailed(e) => {
                 write!(f, "get patch info collection failed, {}", e)
             }
@@ -175,7 +169,6 @@ impl std::error::Error for GetListBranchInfoError {
             Self::GetNameFailed(e) => Some(e),
             Self::NameInvalidUtf8 => None,
             Self::ReferenceInvalidUtf8 => None,
-            Self::RemoteInvalidUtf8 => None,
             Self::GetPatchInfoCollectionFailed(e) => Some(e),
         }
     }
@@ -204,9 +197,7 @@ pub fn get_list_branch_info(
 
     let mut upstream_info: Option<ListUpstreamBranchInfo> = None;
 
-    if let (Some(upstream_branch), Some(upstream_remote)) =
-        (upstream_branch_opt, upstream_remote_opt)
-    {
+    if let (Some(upstream_branch), Some(_)) = (upstream_branch_opt, upstream_remote_opt) {
         let upstream_branch_name = upstream_branch
             .name()
             .map_err(GetListBranchInfoError::GetNameFailed)?
@@ -224,10 +215,6 @@ pub fn get_list_branch_info(
         upstream_info = Some(ListUpstreamBranchInfo {
             name: upstream_branch_name.to_string(),
             reference: upstream_branch_refname.to_string(),
-            remote: upstream_remote
-                .as_str()
-                .ok_or(GetListBranchInfoError::RemoteInvalidUtf8)?
-                .to_string(),
             patches: upstream_patch_info_collection.patch_info_entries,
             commit_count: upstream_patch_info_collection.commit_count,
         })
@@ -235,9 +222,7 @@ pub fn get_list_branch_info(
 
     Ok(ListBranchInfo {
         name: name.to_string(),
-        reference: refname.to_string(),
         patches: patch_info_collection.patch_info_entries,
-        commit_count: patch_info_collection.commit_count,
         upstream: upstream_info,
     })
 }
@@ -323,7 +308,6 @@ pub fn get_patch_info_collection(
 
             patch_info_entries.push(PatchInfo {
                 patch_id: ps_id,
-                commit_timestamp: commit.time(),
                 commit_diff_id,
             });
         }
