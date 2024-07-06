@@ -3,6 +3,7 @@
 // it's respective command modules and exposing them externally. All code
 // related to these responsibilities belongs here.
 
+pub mod append;
 pub mod backup_stack;
 pub mod branch;
 pub mod checkout;

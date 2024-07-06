@@ -44,6 +44,9 @@ fn main() {
         }
         cli::Command::Id => commands::id::id(cli.color),
         cli::Command::Show(opts) => commands::show::show(opts.patch_index_or_range),
+        cli::Command::Append(opts) => {
+            commands::append::append(opts.patch_index_or_range, opts.branch_name, cli.color)
+        }
         cli::Command::Isolate(opts) => {
             commands::isolate::isolate(opts.patch_index_or_range, cli.color)
         }

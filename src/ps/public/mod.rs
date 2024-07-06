@@ -1,3 +1,4 @@
+pub mod append;
 pub mod backup_stack;
 pub mod branch;
 pub mod checkout;

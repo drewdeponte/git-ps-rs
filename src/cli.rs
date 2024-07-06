@@ -51,6 +51,14 @@ pub struct ShowCmdOpts {
 }
 
 #[derive(Debug, Args)]
+pub struct AppendCmdOpts {
+    pub patch_index_or_range: String,
+    /// The branch name identifying the patch series
+    #[arg(short = 'n')]
+    pub branch_name: String,
+}
+
+#[derive(Debug, Args)]
 pub struct IsolateCmdOpts {
     pub patch_index_or_range: Option<String>,
 }
@@ -224,6 +232,10 @@ either a Git alias or a shell alias for that command.
     /// Show the identified patch in raw form
     #[command(name = "show")]
     Show(ShowCmdOpts),
+
+    /// (a) Append the specified patch(es) to the specified patch series
+    #[command(name = "append", alias = "a")]
+    Append(AppendCmdOpts),
 
     /// (iso) - isolate a patch or series of patches for manual testing or evaluation.
     ///
