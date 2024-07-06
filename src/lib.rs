@@ -7,6 +7,7 @@ pub use ps::public::backup_stack::backup_stack;
 pub use ps::public::branch::{branch, BranchError};
 pub use ps::public::checkout::checkout;
 pub use ps::public::fetch::fetch;
+pub use ps::public::id::id;
 pub use ps::public::integrate;
 pub use ps::public::isolate::{isolate, IsolateError};
 pub use ps::public::latest_github_release::{newer_release_available, notify_of_newer_release};

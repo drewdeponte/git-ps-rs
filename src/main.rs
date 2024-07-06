@@ -42,6 +42,7 @@ fn main() {
         cli::Command::Sha(opts) => {
             commands::sha::sha(opts.patch_index, cli.color, opts.exclude_newline)
         }
+        cli::Command::Id => commands::id::id(cli.color),
         cli::Command::Show(opts) => commands::show::show(opts.patch_index_or_range),
         cli::Command::Isolate(opts) => {
             commands::isolate::isolate(opts.patch_index_or_range, cli.color)

@@ -7,6 +7,7 @@ pub mod backup_stack;
 pub mod branch;
 pub mod checkout;
 pub mod fetch;
+pub mod id;
 pub mod integrate;
 pub mod isolate;
 pub mod list;

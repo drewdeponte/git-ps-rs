@@ -77,6 +77,7 @@ pub enum Command {
     /// (b) - Create a branch for a patch or patch series
     #[command(name = "branch", alias = "b")]
     Branch(BranchCmdOpts),
+
     /// (int) - Integrate the specified patch into the patch stacks upstream
     /// remote
     #[command(name = "integrate", alias = "int")]
@@ -192,9 +193,11 @@ stack.
     /// Pull changes down from upstream and rebase stack on top
     #[command(name = "pull")]
     Pull,
+
     /// (rr) - Request review of the specified patch
     #[command(name = "request-review", alias = "rr")]
     RequestReview(RequestReview),
+
     /// Output the sha of specified patch to stdout
     #[command(
         name = "sha",
@@ -213,6 +216,11 @@ either a Git alias or a shell alias for that command.
 "
     )]
     Sha(ShaCmdOpts),
+
+    /// Rebase current branch adding patch ids to any patches missing them
+    #[command(name = "id")]
+    Id,
+
     /// Show the identified patch in raw form
     #[command(name = "show")]
     Show(ShowCmdOpts),
@@ -231,6 +239,7 @@ either a Git alias or a shell alias for that command.
     /// to the stack that you were on when you switched into isolation mode by running `gps iso`.
     #[command(name = "isolate", alias = "iso")]
     Isolate(IsolateCmdOpts),
+
     /// (co) - Checkout the patch identified by the patch-index, leaving you
     /// in a headless state.
     #[command(name = "checkout", alias = "co")]
