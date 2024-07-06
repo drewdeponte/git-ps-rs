@@ -387,7 +387,7 @@ dependencies = [
 
 [[package]]
 name = "gps"
-version = "7.1.1"
+version = "7.2.0"
 dependencies = [
  "ansi_term",
  "clap",
