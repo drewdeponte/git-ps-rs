@@ -28,13 +28,11 @@ ureq = "2.10.0"
 version-compare = "0.2.0"
 clap = { version = "4.5.8", features = ["derive"] }
 tempfile = "3.10.1"
-rustls = "0.23.10" # to force higher version than ureq requires for security fixes
 
 [build-dependencies]
 clap = { version = "4.5.8", features = ["string"] }
 clap_complete = "4.5.7"
 clap_mangen = "0.2.22"
-rustls = "0.23.10" # to force higher version than ureq requires for security fixes
 
 [features]
 backup_cmd = []
