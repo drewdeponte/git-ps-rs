@@ -1,0 +1,66 @@
+#!/bin/sh
+
+# request_review_post_sync hook using GitLab CLI
+# (https://gitlab.com/gitlab-org/cli) and jq (https://jqlang.github.io/jq/)
+#
+# This hook handles requesting review after the sync step of the request review
+# command has completed.
+#
+# In this particular case it is creating a merge request within GitLab by using
+# the GitLab CLI. Therefore, you need to make sure that you have the GitLab CLI
+# and jq installed and in your PATH, and that you have logged in to GitLab for
+# this hook to work.
+#
+# Setup
+#
+# - install GitLab cli and jq - on macOS - brew install glab jq
+# - login to GitLab cli - glab auth login
+
+patch_upstream_branch_name=$1 # string of the patch's associated upstream branch name (e.g. ps/rr/your-patches-branch-name)
+patch_stack_upstream_branch_name_relative_to_remote=$2 # string of the patch stack's branch name (e.g. main)
+patch_stack_upstream_remote_name=$3 # string of the patch stack's remote name (e.g. origin)
+patch_stack_upstream_remote_url=$4 # string of the patch stack's remote url
+
+if ! glab --version >/dev/null 2>&1; then
+    echo "glab not found, please make sure it is installed and available on $PATH"
+    exit 1
+fi
+
+if ! jq --version >/dev/null 2>&1; then
+    echo "jq not found, please make sure it is installed and available on $PATH"
+    exit 1
+fi
+
+if ! glab auth status >/dev/null 2>&1; then
+    echo "glab is not logged in, please check the output of \"glab auth status\" and resolve"
+fi
+
+state=$(glab mr -R "$patch_stack_upstream_remote_url" view $patch_upstream_branch_name -F json | jq -r .state)
+if [ $? -eq 0 ]; then
+    if [ $state = "opened" ]; then
+        echo "Open PR already exists, updating description"
+        action="update_description"
+    else
+        echo "PR found but it isn't open, creating a new one"
+        action="create"
+    fi
+else
+    echo "PR not found, creating a new one"
+    action="create"
+fi
+
+just_head="$patch_upstream_branch_name^..$patch_upstream_branch_name"
+new_title=$(git log "$just_head" --pretty=format:%s)
+new_description=$(git log "$just_head" --pretty=format:%b)
+
+if [ $action = "create" ]; then
+    glab mr create \
+        --title "$new_title" \
+        --description "$new_description" \
+        --head "$patch_stack_upstream_remote_url" \
+        --source-branch "$patch_upstream_branch_name" \
+        --target-branch "$patch_stack_upstream_branch_name_relative_to_remote" \
+        --remove-source-branch
+elif [ $action = "update_description" ]; then
+    glab mr update "$patch_upstream_branch_name" --title "$new_title" --description "$new_description"
+fi
