@@ -36,9 +36,10 @@ if ! glab auth status >/dev/null 2>&1; then
     exit 1
 fi
 
-state=$(glab mr -R "$patch_stack_upstream_remote_url" view $patch_upstream_branch_name -F json | jq -r .state)
+state_json=$(glab mr -R "$patch_stack_upstream_remote_url" view $patch_upstream_branch_name -F json 2>/dev/null)
 if [ $? -eq 0 ]; then
-    if [ $state = "opened" ]; then
+    state=$(echo "$state_json" | jq -r .state)
+    if [ "$state" = "opened" ]; then
         echo "Open PR already exists, updating description"
         action="update_description"
     else
