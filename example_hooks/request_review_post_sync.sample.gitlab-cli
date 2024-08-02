@@ -33,6 +33,7 @@ fi
 
 if ! glab auth status >/dev/null 2>&1; then
     echo "glab is not logged in, please check the output of \"glab auth status\" and resolve"
+    exit 1
 fi
 
 state=$(glab mr -R "$patch_stack_upstream_remote_url" view $patch_upstream_branch_name -F json | jq -r .state)
